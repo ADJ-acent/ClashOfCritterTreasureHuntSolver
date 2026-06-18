@@ -113,7 +113,7 @@ test("pick-cost estimator returns at least one dig per treasure", async () => {
 test("estimator reports 'already found' when nothing remains", async () => {
   const { window, doc } = boot();
   // Custom empty stage: clear pieces, no treasures to find.
-  loadStage(window, doc, 12); // Stage 12 has no treasures defined
+  loadStage(window, doc, 0); // Stage 12 has no treasures defined
   click(window, doc.querySelector("#estimate"));
   await new Promise(r => setTimeout(r, 80));
   assert.match(doc.querySelector("#estimateOut").textContent, /already found|0 picks/i);
