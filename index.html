@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Treasure Hunt — Probability Solver</title>
+<style>
+  :root {
+    --bg: #15171c;
+    --panel: #1e2128;
+    --panel2: #262a33;
+    --line: #333845;
+    --text: #e6e8ec;
+    --muted: #9aa3b2;
+    --accent: #ffd24a;
+    --empty: #2a2d34;
+    --item: #caa23a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.4;
+  }
+  header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  header h1 { margin: 0 0 2px; font-size: 18px; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+  .wrap {
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .controls { width: 320px; flex: 0 0 auto; }
+  .controls h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 8px; }
+  .controls section { margin-bottom: 18px; }
+  label { font-size: 13px; color: var(--muted); }
+  input[type=number] {
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 5px 7px;
+    width: 64px;
+    font-size: 14px;
+  }
+  button {
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  button:hover { border-color: #4a5160; }
+  button.primary { background: var(--accent); color: #1a1a1a; border-color: var(--accent); font-weight: 600; }
+  button.danger { color: #ff8a8a; }
+  .quick-add { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .quick-add button { font-size: 12px; padding: 4px 7px; }
+  table.pieces { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.pieces th { text-align: left; color: var(--muted); font-weight: 500; padding: 4px 6px; }
+  table.pieces td { padding: 3px 6px; border-top: 1px solid var(--line); }
+  table.pieces tr.done td { color: var(--muted); }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .stage-area { flex: 1 1 420px; min-width: 360px; }
+  #status { font-size: 13px; color: var(--muted); margin: 0 0 10px; min-height: 18px; }
+  #status .warn { color: #ff9b6b; }
+  #grid {
+    display: grid;
+    gap: 4px;
+    user-select: none;
+  }
+  .cell {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 2px solid transparent;
+    background: #333;
+    transition: background .12s, border-color .12s;
+  }
+  .cell.empty { background: var(--empty); color: #5a5f6a; cursor: pointer; }
+  .cell.item  { background: var(--item); color: #20160a; }
+  .cell .sub { position: absolute; bottom: 2px; right: 4px; font-size: 9px; font-weight: 500; opacity: .8; }
+  .cell.hl { border-color: #fff; }
+  .cell.dim { opacity: .35; }
+  .legend { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 12px; color: var(--muted); }
+  .legend .bar { height: 12px; width: 200px; border-radius: 6px;
+    background: linear-gradient(90deg,
+      hsl(240 70% 45%), hsl(180 70% 42%), hsl(120 65% 42%), hsl(60 80% 48%), hsl(0 80% 52%)); }
+  /* popover */
+  #pop {
+    position: fixed;
+    z-index: 50;
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.5);
+    display: none;
+    min-width: 180px;
+  }
+  #pop .ttl { font-size: 11px; color: var(--muted); padding: 3px 6px 6px; }
+  #pop button { display: block; width: 100%; text-align: left; margin: 2px 0; }
+  #pop button.opt:hover { background: #3a4150; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Treasure Hunt — Tile Probability Solver</h1>
+  <p>Set the grid size and the treasures hidden in this stage, then dig. Each hidden tile shows the chance it covers a treasure.</p>
+</header>
+
+<div class="wrap">
+  <!-- ============ CONTROLS ============ -->
+  <div class="panel controls">
+    <section>
+      <h2>Stage setup</h2>
+      <div class="row">
+        <label>Grid size <input id="gridSize" type="number" min="2" max="12" value="5" /> × <span id="gridSizeEcho">5</span></label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Treasures in this stage</h2>
+      <table class="pieces">
+        <thead><tr><th>Size</th><th>Count</th><th>Found</th><th></th></tr></thead>
+        <tbody id="pieceRows"></tbody>
+      </table>
+      <div class="row" style="margin-top:10px">
+        <input id="newW" type="number" min="1" max="12" value="1" title="width" />×
+        <input id="newH" type="number" min="1" max="12" value="3" title="height" />
+        <input id="newC" type="number" min="1" max="12" value="1" title="count" />
+        <button id="addPiece">Add</button>
+      </div>
+      <div class="quick-add" id="quickAdd"></div>
+      <div class="hint">Quick-add uses your treasure list (solver only cares about dimensions, so same-size treasures merge).</div>
+    </section>
+
+    <section>
+      <button id="newGame" class="primary">Start / Reset board</button>
+      <button id="clearDigs">Clear digs</button>
+    </section>
+  </div>
+
+  <!-- ============ STAGE ============ -->
+  <div class="panel stage-area">
+    <div id="status">Set up a stage and press “Start / Reset board”.</div>
+    <div id="grid"></div>
+    <div class="legend">
+      <span>0%</span><div class="bar"></div><span>100%</span>
+      <span style="margin-left:14px"><span style="display:inline-block;width:11px;height:11px;background:var(--empty);border-radius:2px;vertical-align:middle"></span> empty</span>
+      <span><span style="display:inline-block;width:11px;height:11px;background:var(--item);border-radius:2px;vertical-align:middle"></span> found</span>
+    </div>
+    <div class="hint">Click a hidden tile → choose <b>Empty</b> or which treasure you hit, then pick the placement that matches the direction it ran. Click a dug tile to clear it.</div>
+  </div>
+</div>
+
+<div id="pop"></div>
+
+<script>
+"use strict";
+
+/* ---------- Known treasure sizes (for quick-add). Solver merges by dimension. ---------- */
+const TREASURES = [
+  ["Zobo Cola", 1, 3], ["Zobo Zine", 2, 2], ["Syringe", 1, 2],
+  ["Trumpet", 1, 3], ["Outdated Console", 1, 2], ["Radio", 2, 3],
+  ["Pirated Magazine", 2, 2], ["TV", 2, 3], ["Cyberlimb", 1, 4],
+  ["Spaceship", 3, 3], ["Statue", 2, 4],
+];
+
+/* ---------- State ---------- */
+const state = {
+  N: 5,
+  pieces: [],          // [{w,h,count}]  (w<=h normalised)  the full stage definition
+  cells: [],           // length N*N: {status:'hidden'|'empty'|'item', type:'WxH'|null}
+};
+
+const $ = sel => document.querySelector(sel);
+const gridEl = $("#grid");
+const popEl = $("#pop");
+
+/* ---------- Piece helpers ---------- */
+const key = (w, h) => { const a = Math.min(w, h), b = Math.max(w, h); return a + "x" + b; };
+
+function pieceByKey(k) { return state.pieces.find(p => key(p.w, p.h) === k); }
+
+function addPiece(w, h, c) {
+  w = +w; h = +h; c = +c;
+  if (!(w >= 1 && h >= 1 && c >= 1)) return;
+  const k = key(w, h);
+  const existing = pieceByKey(k);
+  if (existing) existing.count += c;
+  else state.pieces.push({ w: Math.min(w, h), h: Math.max(w, h), count: c });
+  renderPieceRows();
+}
+
+function foundCountOf(k) {
+  const seen = new Set();
+  let n = 0;
+  state.cells.forEach((c, i) => {
+    if (c.status === "item" && c.type === k && !seen.has(c.itemId)) { seen.add(c.itemId); n++; }
+  });
+  return n;
+}
+
+function remainingOf(p) { return p.count - foundCountOf(key(p.w, p.h)); }
+
+/* ---------- UI: controls ---------- */
+function renderQuickAdd() {
+  const box = $("#quickAdd");
+  box.innerHTML = "";
+  // unique sizes
+  const seen = new Set();
+  TREASURES.forEach(([name, w, h]) => {
+    const k = key(w, h);
+    if (seen.has(k)) return; seen.add(k);
+    const b = document.createElement("button");
+    const names = TREASURES.filter(t => key(t[1], t[2]) === k).map(t => t[0]).join(" / ");
+    b.textContent = `${Math.min(w,h)}×${Math.max(w,h)}`;
+    b.title = names;
+    b.onclick = () => addPiece(w, h, 1);
+    box.appendChild(b);
+  });
+}
+
+function renderPieceRows() {
+  const tb = $("#pieceRows");
+  tb.innerHTML = "";
+  if (!state.pieces.length) {
+    tb.innerHTML = `<tr><td colspan="4" style="color:var(--muted)">No treasures yet — add some.</td></tr>`;
+    return;
+  }
+  state.pieces.forEach((p, idx) => {
+    const k = key(p.w, p.h);
+    const found = foundCountOf(k);
+    const tr = document.createElement("tr");
+    if (found >= p.count) tr.className = "done";
+    tr.innerHTML =
+      `<td>${p.w}×${p.h}</td>` +
+      `<td>${p.count}</td>` +
+      `<td>${found}/${p.count}</td>` +
+      `<td><button data-i="${idx}" class="danger del">✕</button></td>`;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll(".del").forEach(b => b.onclick = () => {
+    state.pieces.splice(+b.dataset.i, 1); renderPieceRows();
+  });
+}
+
+/* ---------- Board lifecycle ---------- */
+function newGame() {
+  state.N = Math.max(2, Math.min(12, +$("#gridSize").value || 5));
+  const N = state.N;
+  state.cells = Array.from({ length: N * N }, () => ({ status: "hidden", type: null, itemId: 0 }));
+  buildGrid();
+  recompute();
+}
+
+function clearDigs() {
+  state.cells.forEach(c => { c.status = "hidden"; c.type = null; c.itemId = 0; });
+  renderPieceRows();
+  recompute();
+}
+
+function buildGrid() {
+  const N = state.N;
+  gridEl.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
+  gridEl.style.maxWidth = Math.min(560, N * 64) + "px";
+  gridEl.innerHTML = "";
+  for (let i = 0; i < N * N; i++) {
+    const d = document.createElement("div");
+    d.className = "cell";
+    d.dataset.i = i;
+    d.onclick = e => onCellClick(i, e);
+    gridEl.appendChild(d);
+  }
+}
+
+/* ============================================================
+   SOLVER
+   Goal: place every *remaining* piece in the still-hidden cells
+   (no overlap; touching allowed; rotations allowed). For each
+   hidden cell, probability = fraction of valid full layouts
+   that cover it. Exact enumeration when small, else Monte-Carlo.
+   ============================================================ */
+const EXACT_LEAF_BUDGET = 400000;
+const EXACT_NODE_BUDGET = 6000000;
+const MC_SAMPLES = 40000;
+const MC_TIME_MS = 300;
+
+function buildPlacements(N, blocked, w, h) {
+  // returns array of Int32Array (cell indices) for both orientations, fully on free cells
+  const out = [];
+  const orients = (w === h) ? [[w, h]] : [[w, h], [h, w]];
+  for (const [pw, ph] of orients) {
+    for (let r = 0; r + ph <= N; r++) {
+      for (let c = 0; c + pw <= N; c++) {
+        const cells = [];
+        let ok = true;
+        for (let dr = 0; dr < ph && ok; dr++)
+          for (let dc = 0; dc < pw; dc++) {
+            const idx = (r + dr) * N + (c + dc);
+            if (blocked[idx]) { ok = false; break; }
+            cells.push(idx);
+          }
+        if (ok) out.push(Int32Array.from(cells));
+      }
+    }
+  }
+  return out;
+}
+
+function solve() {
+  const N = state.N, M = N * N;
+  const blocked = new Uint8Array(M);          // empty or already-found-item cells
+  state.cells.forEach((c, i) => { if (c.status !== "hidden") blocked[i] = 1; });
+
+  // remaining pieces, grouped by type (contiguous) for identical-piece dedup
+  const groups = [];
+  state.pieces.forEach(p => {
+    const rem = remainingOf(p);
+    if (rem > 0) groups.push({ w: p.w, h: p.h, rem });
+  });
+
+  // placements per group
+  const placements = groups.map(g => buildPlacements(N, blocked, g.w, g.h));
+
+  // expanded list of single pieces (grouped), each pointing at its placement array
+  const expanded = [];
+  groups.forEach((g, gi) => {
+    if (placements[gi].length === 0 && g.rem > 0) expanded.push({ gi, impossible: true });
+    for (let k = 0; k < g.rem; k++) expanded.push({ gi });
+  });
+
+  const cover = new Float64Array(M);
+  const hidden = []; for (let i = 0; i < M; i++) if (!blocked[i]) hidden.push(i);
+
+  // No remaining pieces -> everything hidden is 0%
+  if (expanded.length === 0) {
+    return { cover, total: 1, mode: "exact", hidden, blocked, ok: true };
+  }
+  if (expanded.some(e => e.impossible)) {
+    return { cover, total: 0, mode: "exact", hidden, blocked, ok: false };
+  }
+
+  // ---- try EXACT ----
+  const exact = tryExact(expanded, placements, M, cover);
+  if (exact.ok) return { cover, total: exact.total, mode: "exact", hidden, blocked, ok: exact.total > 0 };
+
+  // ---- fall back to MONTE-CARLO ----
+  cover.fill(0);
+  const mc = monteCarlo(expanded, placements, M, cover);
+  return { cover, total: mc.success, mode: "mc", samples: mc.tried, hidden, blocked, ok: mc.success > 0 };
+}
+
+function tryExact(expanded, placements, M, cover) {
+  const dyn = new Uint8Array(M);
+  const stack = [];              // currently covered cell indices
+  let total = 0, nodes = 0;
+  let aborted = false;
+
+  function dfs(i, start) {
+    if (aborted) return;
+    if (++nodes > EXACT_NODE_BUDGET) { aborted = true; return; }
+    if (i === expanded.length) {
+      total++;
+      if (total > EXACT_LEAF_BUDGET) { aborted = true; return; }
+      for (let s = 0; s < stack.length; s++) cover[stack[s]]++;
+      return;
+    }
+    const gi = expanded[i].gi;
+    const pls = placements[gi];
+    const sameAsPrev = i > 0 && expanded[i - 1].gi === gi;
+    const from = sameAsPrev ? start + 1 : 0;
+    for (let j = from; j < pls.length && !aborted; j++) {
+      const cells = pls[j];
+      let clash = false;
+      for (let t = 0; t < cells.length; t++) if (dyn[cells[t]]) { clash = true; break; }
+      if (clash) continue;
+      for (let t = 0; t < cells.length; t++) { dyn[cells[t]] = 1; stack.push(cells[t]); }
+      dfs(i + 1, j);
+      for (let t = 0; t < cells.length; t++) { dyn[cells[t]] = 0; stack.pop(); }
+    }
+  }
+
+  dfs(0, -1);
+  if (aborted) return { ok: false };
+  return { ok: true, total };
+}
+
+function monteCarlo(expanded, placements, M, cover) {
+  const dyn = new Uint8Array(M);
+  const order = expanded.map((e, i) => i);
+  let success = 0, tried = 0;
+  const t0 = performance.now();
+
+  while (tried < MC_SAMPLES) {
+    tried++;
+    // shuffle placement order of pieces to reduce sequential bias
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    dyn.fill(0);
+    const placed = [];
+    let ok = true;
+    for (let oi = 0; oi < order.length; oi++) {
+      const gi = expanded[order[oi]].gi;
+      const pls = placements[gi];
+      // collect valid placements
+      const valid = [];
+      for (let j = 0; j < pls.length; j++) {
+        const cells = pls[j];
+        let clash = false;
+        for (let t = 0; t < cells.length; t++) if (dyn[cells[t]]) { clash = true; break; }
+        if (!clash) valid.push(cells);
+      }
+      if (valid.length === 0) { ok = false; break; }
+      const cells = valid[(Math.random() * valid.length) | 0];
+      for (let t = 0; t < cells.length; t++) { dyn[cells[t]] = 1; placed.push(cells[t]); }
+    }
+    if (ok) {
+      success++;
+      for (let s = 0; s < placed.length; s++) cover[placed[s]]++;
+    }
+    if ((tried & 1023) === 0 && performance.now() - t0 > MC_TIME_MS) break;
+  }
+  return { success, tried };
+}
+
+/* ---------- Render heatmap ---------- */
+let lastResult = null;
+
+function recompute() {
+  const res = solve();
+  lastResult = res;
+  const N = state.N;
+  const cellsEl = gridEl.children;
+
+  for (let i = 0; i < N * N; i++) {
+    const el = cellsEl[i];
+    const c = state.cells[i];
+    el.classList.remove("hl", "dim");
+    if (c.status === "empty") {
+      el.className = "cell empty"; el.innerHTML = "✕"; el.style.background = "";
+      continue;
+    }
+    if (c.status === "item") {
+      el.className = "cell item";
+      el.innerHTML = `100%<span class="sub">${c.type}</span>`;
+      el.style.background = "";
+      continue;
+    }
+    // hidden
+    el.className = "cell";
+    let p = (res.total > 0) ? res.cover[i] / res.total : NaN;
+    if (!isFinite(p)) {
+      el.style.background = "#3a3030"; el.innerHTML = "?";
+    } else {
+      p = Math.max(0, Math.min(1, p));
+      el.style.background = heat(p);
+      el.style.color = p > 0.55 ? "#1a1a1a" : "#eef";
+      el.innerHTML = (p * 100).toFixed(p >= 0.995 ? 0 : (p < 0.1 ? 1 : 0)) + "%";
+    }
+  }
+
+  // status line
+  const remList = state.pieces
+    .filter(p => remainingOf(p) > 0)
+    .map(p => `${p.w}×${p.h}×${remainingOf(p)}`).join(", ") || "none";
+  let msg = `Remaining to find: ${remList}. `;
+  if (!res.ok && res.total === 0) {
+    msg += `<span class="warn">No valid layout fits these treasures in the remaining tiles — check your digs.</span>`;
+  } else if (res.mode === "exact") {
+    msg += `Exact over ${res.total.toLocaleString()} layout${res.total === 1 ? "" : "s"}.`;
+  } else {
+    const rej = res.samples ? (100 * (1 - res.total / res.samples)).toFixed(0) : 0;
+    msg += `Estimated from ${res.total.toLocaleString()} samples (${rej}% rejected) — too many layouts to count exactly.`;
+  }
+  $("#status").innerHTML = msg;
+}
+
+function heat(p) {
+  // blue (cold) -> red (hot)
+  const hue = 240 * (1 - p);
+  return `hsl(${hue} 70% ${38 + 14 * p}%)`;
+}
+
+/* ---------- Interaction: clicking cells ---------- */
+function hidePop() { popEl.style.display = "none"; clearHighlights(); }
+function clearHighlights() {
+  gridEl.querySelectorAll(".cell.hl,.cell.dim").forEach(el => el.classList.remove("hl", "dim"));
+}
+
+function onCellClick(i, ev) {
+  ev.stopPropagation();
+  const c = state.cells[i];
+  if (c.status === "empty" || c.status === "item") {
+    openClearMenu(i, ev);
+  } else {
+    openDigMenu(i, ev);
+  }
+}
+
+function placePop(ev) {
+  popEl.style.display = "block";
+  const pad = 8, w = popEl.offsetWidth, h = popEl.offsetHeight;
+  let x = ev.clientX + 6, y = ev.clientY + 6;
+  if (x + w + pad > innerWidth) x = innerWidth - w - pad;
+  if (y + h + pad > innerHeight) y = innerHeight - h - pad;
+  popEl.style.left = x + "px";
+  popEl.style.top = y + "px";
+}
+
+function openDigMenu(i, ev) {
+  popEl.innerHTML = `<div class="ttl">Tile ${cellLabel(i)} — what did you dig?</div>`;
+  const empty = mkBtn("⬜ Empty (nothing)", () => { setEmpty(i); hidePop(); });
+  popEl.appendChild(empty);
+
+  let any = false;
+  state.pieces.forEach(p => {
+    if (remainingOf(p) <= 0) return;
+    any = true;
+    const k = key(p.w, p.h);
+    const names = TREASURES.filter(t => key(t[1], t[2]) === k).map(t => t[0]).join(" / ");
+    const b = mkBtn(`🟨 ${p.w}×${p.h}  (${remainingOf(p)} left)`, () => openPlacementPicker(i, p, ev));
+    b.title = names;
+    popEl.appendChild(b);
+  });
+  if (!any) {
+    const n = document.createElement("div");
+    n.className = "ttl"; n.textContent = "All treasures already found.";
+    popEl.appendChild(n);
+  }
+  popEl.appendChild(mkBtn("Cancel", hidePop));
+  placePop(ev);
+}
+
+function openPlacementPicker(i, piece, ev) {
+  // all placements of this piece that COVER tile i and lie entirely on hidden cells
+  const N = state.N;
+  const blocked = new Uint8Array(N * N);
+  state.cells.forEach((c, idx) => { if (c.status !== "hidden") blocked[idx] = 1; });
+  const all = buildPlacements(N, blocked, piece.w, piece.h);
+  const cands = all.filter(cells => cells.includes(i));
+
+  popEl.innerHTML = `<div class="ttl">Which way did the ${piece.w}×${piece.h} run? (hover to preview)</div>`;
+  if (cands.length === 0) {
+    popEl.appendChild(document.createElement("div")).className = "ttl";
+    popEl.lastChild.textContent = "No legal placement fits here. Clear some tiles?";
+  }
+  cands.forEach((cells, ci) => {
+    const b = mkBtn("▸ " + placementLabel(cells), () => { commitItem(piece, cells); hidePop(); });
+    b.onmouseenter = () => previewCells(cells);
+    b.onmouseleave = clearHighlights;
+    popEl.appendChild(b);
+  });
+  popEl.appendChild(mkBtn("← Back", () => openDigMenu(i, ev)));
+  placePop(ev);
+}
+
+function openClearMenu(i, ev) {
+  const c = state.cells[i];
+  popEl.innerHTML = `<div class="ttl">Tile ${cellLabel(i)} — ${c.status === "item" ? "found " + c.type : "empty"}</div>`;
+  if (c.status === "item") {
+    popEl.appendChild(mkBtn("↩ Clear this treasure", () => { clearItem(c.itemId); hidePop(); }));
+  } else {
+    popEl.appendChild(mkBtn("↩ Back to hidden", () => { state.cells[i] = { status: "hidden", type: null, itemId: 0 }; recompute(); hidePop(); }));
+  }
+  popEl.appendChild(mkBtn("Cancel", hidePop));
+  placePop(ev);
+}
+
+function mkBtn(txt, fn) {
+  const b = document.createElement("button");
+  b.className = "opt"; b.textContent = txt; b.onclick = fn;
+  return b;
+}
+
+function cellLabel(i) { const N = state.N; return `r${(i / N | 0) + 1}c${(i % N) + 1}`; }
+
+function placementLabel(cells) {
+  const N = state.N;
+  const rs = cells.map(x => x / N | 0), cs = cells.map(x => x % N);
+  const r0 = Math.min(...rs) + 1, r1 = Math.max(...rs) + 1;
+  const c0 = Math.min(...cs) + 1, c1 = Math.max(...cs) + 1;
+  const horiz = (r0 === r1);
+  return `${horiz ? "↔ horizontal" : "↕ vertical"}  (r${r0}c${c0}→r${r1}c${c1})`;
+}
+
+function previewCells(cells) {
+  clearHighlights();
+  const kids = gridEl.children;
+  for (let i = 0; i < kids.length; i++) kids[i].classList.add("dim");
+  cells.forEach(idx => { kids[idx].classList.remove("dim"); kids[idx].classList.add("hl"); });
+}
+
+/* ---------- State mutations ---------- */
+function setEmpty(i) { state.cells[i] = { status: "empty", type: null, itemId: 0 }; recompute(); }
+
+let itemCounter = 1;
+function commitItem(piece, cells) {
+  const id = itemCounter++;
+  const k = key(piece.w, piece.h);
+  cells.forEach(idx => { state.cells[idx] = { status: "item", type: k, itemId: id }; });
+  renderPieceRows();
+  recompute();
+}
+function clearItem(id) {
+  state.cells.forEach((c, i) => { if (c.status === "item" && c.itemId === id) state.cells[i] = { status: "hidden", type: null, itemId: 0 }; });
+  renderPieceRows();
+  recompute();
+}
+
+/* ---------- Wiring ---------- */
+$("#gridSize").addEventListener("input", e => $("#gridSizeEcho").textContent = e.target.value);
+$("#addPiece").onclick = () => addPiece($("#newW").value, $("#newH").value, $("#newC").value);
+$("#newGame").onclick = newGame;
+$("#clearDigs").onclick = clearDigs;
+document.addEventListener("click", e => { if (!popEl.contains(e.target)) hidePop(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") hidePop(); });
+
+/* ---------- Boot ---------- */
+renderQuickAdd();
+// Seed with Stage 1 as an example: 5x5, Zobo Cola 1x3  x3
+addPiece(1, 3, 3);
+renderPieceRows();
+newGame();
+</script>
+</body>
+</html>
