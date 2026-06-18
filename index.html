@@ -56,6 +56,14 @@
     width: 64px;
     font-size: 14px;
   }
+  select {
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 5px 7px;
+    font-size: 14px;
+  }
   button {
     background: var(--panel2);
     border: 1px solid var(--line);
@@ -136,7 +144,18 @@
     <section>
       <h2>Stage setup</h2>
       <div class="row">
+        <label>Preset
+          <select id="stageSelect">
+            <option value="">— custom —</option>
+          </select>
+        </label>
+      </div>
+      <div id="stageInfo" class="hint"></div>
+      <div class="row" style="margin-top:8px">
         <label>Grid size <input id="gridSize" type="number" min="2" max="12" value="5" /> × <span id="gridSizeEcho">5</span></label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label>Pickaxes / tile <input id="pickPerTile" type="number" min="1" max="999" value="15" /></label>
       </div>
     </section>
 
@@ -159,6 +178,12 @@
     <section>
       <button id="newGame" class="primary">Start / Reset board</button>
       <button id="clearDigs">Clear digs</button>
+    </section>
+
+    <section>
+      <h2>Pick-cost estimate</h2>
+      <button id="estimate">Estimate picks to finish</button>
+      <div id="estimateOut" class="hint" style="margin-top:8px"></div>
     </section>
   </div>
 
@@ -187,6 +212,29 @@ const TREASURES = [
   ["Pirated Magazine", 2, 2], ["TV", 2, 3], ["Cyberlimb", 1, 4],
   ["Spaceship", 3, 3], ["Statue", 2, 4],
 ];
+
+/* ---------- Stage presets (from the in-game stage table). ----------
+   pieces: [name, count] using TREASURES sizes; same-size pieces merge in the solver.
+   Stage 12's treasures weren't published, so it loads grid/reward only. */
+const STAGES = [
+  { n: 1,  grid: 5, reward: "60 Pinballs",          pick: 15,  pieces: [["Zobo Cola", 3]] },
+  { n: 2,  grid: 5, reward: "10 Critter Capsules",  pick: 15,  pieces: [["Zobo Zine", 1], ["Syringe", 3]] },
+  { n: 3,  grid: 5, reward: "1 Key + 228k Candy",   pick: 15,  pieces: [["Trumpet", 1], ["Zobo Zine", 1], ["Outdated Console", 2]] },
+  { n: 4,  grid: 6, reward: "180 Pinballs",         pick: 20,  pieces: [["Zobo Cola", 1], ["Outdated Console", 2], ["Radio", 1]] },
+  { n: 5,  grid: 6, reward: "15 Critter Capsules",  pick: 20,  pieces: [["Pirated Magazine", 2], ["Zobo Zine", 2]] },
+  { n: 6,  grid: 6, reward: "1 Key + 457k Candy",   pick: 20,  pieces: [["Zobo Cola", 2], ["Zobo Zine", 1], ["TV", 1]] },
+  { n: 7,  grid: 7, reward: "240 Pinballs",         pick: 25,  pieces: [["Zobo Zine", 1], ["Radio", 1], ["Cyberlimb", 2]] },
+  { n: 8,  grid: 7, reward: "20 Critter Capsules",  pick: 25,  pieces: [["Outdated Console", 2], ["Cyberlimb", 1], ["Spaceship", 1]] },
+  { n: 9,  grid: 7, reward: "1 Key + 914k Candy",   pick: 25,  pieces: [["Syringe", 2], ["Pirated Magazine", 2], ["Statue", 1]] },
+  { n: 10, grid: 7, reward: "600 Pinballs",         pick: 35,  pieces: [["Outdated Console", 2], ["Cyberlimb", 2], ["Spaceship", 1]] },
+  { n: 11, grid: 7, reward: "25 Critter Capsules",  pick: 35,  pieces: [["Zobo Cola", 2], ["Outdated Console", 2], ["Trumpet", 1], ["Statue", 1]] },
+  { n: 12, grid: 7, reward: "1 Key + Candy",        pick: 35,  pieces: [] },
+  { n: 13, grid: 7, reward: "700 Pinballs",         pick: 70,  pieces: [["Outdated Console", 2], ["Statue", 2]] },
+  { n: 14, grid: 7, reward: "25 Critter Capsules",  pick: 70,  pieces: [["Radio", 1], ["Cyberlimb", 2], ["Spaceship", 1]] },
+  { n: 15, grid: 7, reward: "1 Key + 1,918k Candy", pick: 70,  pieces: [["Zobo Cola", 2], ["Syringe", 2], ["TV", 1], ["Statue", 2]] },
+  { n: 16, grid: 7, reward: "800 Pinballs",         pick: 100, pieces: [["Outdated Console", 2], ["Pirated Magazine", 2], ["Statue", 1]] },
+];
+const sizeOf = name => { const t = TREASURES.find(t => t[0] === name); return [t[1], t[2]]; };
 
 /* ---------- State ---------- */
 const state = {
@@ -225,6 +273,34 @@ function foundCountOf(k) {
 
 function remainingOf(p) { return p.count - foundCountOf(key(p.w, p.h)); }
 
+/* ---------- UI: stage presets ---------- */
+function populateStages() {
+  const sel = $("#stageSelect");
+  STAGES.forEach(s => {
+    const o = document.createElement("option");
+    o.value = s.n;
+    o.textContent = `Stage ${s.n}  (${s.grid}×${s.grid})`;
+    sel.appendChild(o);
+  });
+}
+
+function loadStage(n) {
+  const s = STAGES.find(s => s.n === +n);
+  if (!s) return;
+  state.pieces = [];
+  s.pieces.forEach(([name, count]) => { const [w, h] = sizeOf(name); addPiece(w, h, count); });
+  renderPieceRows();   // refresh even when the stage has no published treasures
+  $("#gridSize").value = s.grid;
+  $("#gridSizeEcho").textContent = s.grid;
+  $("#pickPerTile").value = s.pick;
+  $("#stageSelect").value = s.n;
+  const list = s.pieces.length
+    ? s.pieces.map(([name, c]) => { const [w, h] = sizeOf(name); return `${name} ${w}×${h}×${c}`; }).join(", ")
+    : "treasures not published — add them manually";
+  $("#stageInfo").innerHTML = `Reward: <b>${s.reward}</b> · ${s.pick} pickaxes/tile<br>${list}`;
+  newGame();
+}
+
 /* ---------- UI: controls ---------- */
 function renderQuickAdd() {
   const box = $("#quickAdd");
@@ -238,7 +314,7 @@ function renderQuickAdd() {
     const names = TREASURES.filter(t => key(t[1], t[2]) === k).map(t => t[0]).join(" / ");
     b.textContent = `${Math.min(w,h)}×${Math.max(w,h)}`;
     b.title = names;
-    b.onclick = () => addPiece(w, h, 1);
+    b.onclick = () => { addPiece(w, h, 1); markCustom(); };
     box.appendChild(b);
   });
 }
@@ -263,7 +339,7 @@ function renderPieceRows() {
     tb.appendChild(tr);
   });
   tb.querySelectorAll(".del").forEach(b => b.onclick = () => {
-    state.pieces.splice(+b.dataset.i, 1); renderPieceRows();
+    state.pieces.splice(+b.dataset.i, 1); renderPieceRows(); markCustom();
   });
 }
 
@@ -448,6 +524,129 @@ function monteCarlo(expanded, placements, M, cover) {
   return { success, tried };
 }
 
+/* ============================================================
+   PICK-COST ESTIMATOR
+   "Average picks to fully solve, from the current board."
+   Hitting any one tile of a treasure reveals the whole thing,
+   so solving = digging until every treasure has been hit once.
+   We Monte-Carlo it: sample real hidden layouts, simulate the
+   greedy strategy (always dig the highest-coverage hidden tile),
+   and count tiles dug. Picks = tiles dug x pickaxes-per-tile.
+   ============================================================ */
+const EST_TRIALS = 600;
+const EST_TIME_MS = 1500;
+
+// Place the remaining (unfound) pieces on the currently-hidden cells, no overlap.
+// Returns { owner } where owner[cell] = treasure index (>=0) or -1 for empty.
+function sampleLayout(N, M, baseKnown, types, placeByType) {
+  const occ = baseKnown.slice();
+  const owner = new Int32Array(M).fill(-1);
+  const insts = [];
+  types.forEach((t, ti) => { for (let k = 0; k < t.rem; k++) insts.push(ti); });
+  for (let i = insts.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [insts[i], insts[j]] = [insts[j], insts[i]]; }
+
+  const treasures = [];
+  for (const ti of insts) {
+    const pls = placeByType[ti];
+    const valid = [];
+    for (let p = 0; p < pls.length; p++) {
+      const cells = pls[p];
+      let ok = true;
+      for (let c = 0; c < cells.length; c++) if (occ[cells[c]]) { ok = false; break; }
+      if (ok) valid.push(cells);
+    }
+    if (valid.length === 0) return null;            // layout doesn't fit -> reject
+    const cells = valid[(Math.random() * valid.length) | 0];
+    const id = treasures.length;
+    for (let c = 0; c < cells.length; c++) { occ[cells[c]] = 1; owner[cells[c]] = id; }
+    treasures.push({ ti, cells });
+  }
+  return { owner, treasures };
+}
+
+// Simulate greedy digging against a known layout; return number of tiles dug to find all treasures.
+function simulateGreedy(N, M, baseKnown, types, placeByType, layout, score) {
+  const known = baseKnown.slice();
+  const rem = types.map(t => t.rem);
+  let toFind = layout.treasures.length, digs = 0;
+
+  while (toFind > 0) {
+    score.fill(0);
+    for (let ti = 0; ti < types.length; ti++) {
+      if (rem[ti] === 0) continue;
+      const pls = placeByType[ti], wt = rem[ti];
+      for (let p = 0; p < pls.length; p++) {
+        const cells = pls[p];
+        let ok = true;
+        for (let c = 0; c < cells.length; c++) if (known[cells[c]]) { ok = false; break; }
+        if (!ok) continue;
+        for (let c = 0; c < cells.length; c++) score[cells[c]] += wt;
+      }
+    }
+    let best = -1, bestS = -1;
+    for (let i = 0; i < M; i++) if (!known[i] && score[i] > bestS) { bestS = score[i]; best = i; }
+    if (best < 0) break;                            // nothing left to dig (safety)
+    digs++;
+    const o = layout.owner[best];
+    if (o < 0) { known[best] = 1; }                 // empty tile
+    else {                                          // hit a treasure -> reveal all its tiles
+      const tr = layout.treasures[o];
+      for (let c = 0; c < tr.cells.length; c++) known[tr.cells[c]] = 1;
+      rem[tr.ti]--; toFind--;
+    }
+  }
+  return digs;
+}
+
+function estimateSolve() {
+  const N = state.N, M = N * N;
+  const baseKnown = new Uint8Array(M);
+  state.cells.forEach((c, i) => { if (c.status !== "hidden") baseKnown[i] = 1; });
+
+  const types = [];
+  state.pieces.forEach(p => { const r = remainingOf(p); if (r > 0) types.push({ w: p.w, h: p.h, rem: r }); });
+  const totalTreasures = types.reduce((a, t) => a + t.rem, 0);
+  if (totalTreasures === 0) return { done: true };
+
+  const placeByType = types.map(t => buildPlacements(N, baseKnown, t.w, t.h));
+  if (placeByType.some(pls => pls.length === 0)) return { impossible: true };
+
+  const score = new Float64Array(M);
+  const results = [];
+  let rejected = 0;
+  const t0 = performance.now();
+  for (let trial = 0; trial < EST_TRIALS; trial++) {
+    const layout = sampleLayout(N, M, baseKnown, types, placeByType);
+    if (!layout) { rejected++; if (rejected > EST_TRIALS * 4) break; trial--; continue; }
+    results.push(simulateGreedy(N, M, baseKnown, types, placeByType, layout, score));
+    if ((trial & 15) === 0 && performance.now() - t0 > EST_TIME_MS) break;
+  }
+  if (results.length === 0) return { impossible: true };
+
+  results.sort((a, b) => a - b);
+  const n = results.length;
+  const mean = results.reduce((a, b) => a + b, 0) / n;
+  const pct = q => results[Math.min(n - 1, Math.max(0, Math.round(q * (n - 1))))];
+  return { mean, p10: pct(0.10), p90: pct(0.90), min: results[0], max: results[n - 1], trials: n, totalTreasures };
+}
+
+function runEstimate() {
+  const out = $("#estimateOut");
+  const pick = Math.max(1, +$("#pickPerTile").value || 1);
+  out.textContent = "Simulating…";
+  // let the "Simulating…" paint before the blocking compute
+  setTimeout(() => {
+    const r = estimateSolve();
+    if (r.done) { out.innerHTML = `<span style="color:var(--accent)">All treasures already found — 0 picks left.</span>`; return; }
+    if (r.impossible) { out.innerHTML = `<span class="warn">Can't place the remaining treasures in the hidden tiles — check the board.</span>`; return; }
+    const f = x => Math.round(x).toLocaleString();
+    out.innerHTML =
+      `<b>≈ ${r.mean.toFixed(1)} tiles</b> to finish (greedy play)<br>` +
+      `<b>≈ ${f(r.mean * pick)} pickaxes</b> &nbsp;(${pick}/tile)<br>` +
+      `<span style="color:var(--muted)">usually ${r.p10}–${r.p90} tiles · range ${r.min}–${r.max} · ${r.trials} sims · ignores bombs</span>`;
+  }, 20);
+}
+
 /* ---------- Render heatmap ---------- */
 let lastResult = null;
 
@@ -498,6 +697,7 @@ function recompute() {
     msg += `Estimated from ${res.total.toLocaleString()} samples (${rej}% rejected) — too many layouts to count exactly.`;
   }
   $("#status").innerHTML = msg;
+  $("#estimateOut").textContent = "";   // board changed -> previous estimate is stale
 }
 
 function heat(p) {
@@ -637,19 +837,20 @@ function clearItem(id) {
 }
 
 /* ---------- Wiring ---------- */
-$("#gridSize").addEventListener("input", e => $("#gridSizeEcho").textContent = e.target.value);
-$("#addPiece").onclick = () => addPiece($("#newW").value, $("#newH").value, $("#newC").value);
+const markCustom = () => { $("#stageSelect").value = ""; };
+$("#stageSelect").onchange = e => { if (e.target.value) loadStage(e.target.value); };
+$("#gridSize").addEventListener("input", e => { $("#gridSizeEcho").textContent = e.target.value; markCustom(); });
+$("#addPiece").onclick = () => { addPiece($("#newW").value, $("#newH").value, $("#newC").value); markCustom(); };
 $("#newGame").onclick = newGame;
 $("#clearDigs").onclick = clearDigs;
+$("#estimate").onclick = runEstimate;
 document.addEventListener("click", e => { if (!popEl.contains(e.target)) hidePop(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") hidePop(); });
 
 /* ---------- Boot ---------- */
 renderQuickAdd();
-// Seed with Stage 1 as an example: 5x5, Zobo Cola 1x3  x3
-addPiece(1, 3, 3);
-renderPieceRows();
-newGame();
+populateStages();
+loadStage(1);   // start on Stage 1
 </script>
 </body>
 </html>
