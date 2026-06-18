@@ -7,7 +7,7 @@ A single-page web app that helps you play the **Treasure Hunt** event efficientl
 ## What it does
 
 - **Probability heatmap** — every hidden tile is colored blue→red by how likely it is to contain part of a treasure, given everything you've dug so far.
-- **Stage presets** — pick any of the 16 stages to auto-fill the grid size, treasures, and pickaxes-per-tile. (Stage 12's treasures weren't published, so it loads the grid only — add them manually.)
+- **Stage presets** — pick any of the 16 stages to auto-fill the grid size, treasures, and pickaxes-per-tile.
 - **Pick-cost estimator** — estimates the average number of tiles (and pickaxes) needed to finish the stage from the current board, with a typical range.
 - **Manual setup** — set any grid size and add treasures by dimension for custom boards.
 

@@ -215,8 +215,10 @@ const TREASURES = [
 
 /* ---------- Stage presets (from the in-game stage table). ----------
    pieces: [name, count] using TREASURES sizes; same-size pieces merge in the solver.
-   Stage 12's treasures weren't published, so it loads grid size only. */
+   Stage 12's 2×3 and 1×2 are labelled Radio / Outdated Console, but could be
+   TV / Syringe (same sizes) — labels only, no effect on the probabilities. */
 const STAGES = [
+  { n: 0,  grid: 5, pick: 15,  pieces: [] }, // default empty stage
   { n: 1,  grid: 5, pick: 15,  pieces: [["Zobo Cola", 3]] },
   { n: 2,  grid: 5, pick: 15,  pieces: [["Zobo Zine", 1], ["Syringe", 3]] },
   { n: 3,  grid: 5, pick: 15,  pieces: [["Trumpet", 1], ["Zobo Zine", 1], ["Outdated Console", 2]] },
@@ -228,7 +230,7 @@ const STAGES = [
   { n: 9,  grid: 7, pick: 25,  pieces: [["Syringe", 2], ["Pirated Magazine", 2], ["Statue", 1]] },
   { n: 10, grid: 7, pick: 35,  pieces: [["Outdated Console", 2], ["Cyberlimb", 2], ["Spaceship", 1]] },
   { n: 11, grid: 7, pick: 35,  pieces: [["Zobo Cola", 2], ["Outdated Console", 2], ["Trumpet", 1], ["Statue", 1]] },
-  { n: 12, grid: 7, pick: 35,  pieces: [] },
+  { n: 12, grid: 7, pick: 35,  pieces: [["Cyberlimb", 2], ["Radio", 1], ["Outdated Console", 2], ["Spaceship", 1]] },
   { n: 13, grid: 7, pick: 70,  pieces: [["Outdated Console", 2], ["Statue", 2]] },
   { n: 14, grid: 7, pick: 70,  pieces: [["Radio", 1], ["Cyberlimb", 2], ["Spaceship", 1]] },
   { n: 15, grid: 7, pick: 70,  pieces: [["Zobo Cola", 2], ["Syringe", 2], ["TV", 1], ["Statue", 2]] },

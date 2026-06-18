@@ -73,7 +73,7 @@ test("marking a treasure via the placement submenu keeps the popover open and ma
   assert.strictEqual(errors.length, 0, errors.join("\n"));
 });
 
-test("stage presets load grid + treasures; Stage 12 has no published treasures", () => {
+test("stage presets load grid size, treasures, and pickaxes-per-tile", () => {
   const { window, doc } = boot();
   assert.strictEqual(doc.querySelectorAll("#stageSelect option").length, 17, "custom + 16 stages");
 
@@ -84,9 +84,9 @@ test("stage presets load grid + treasures; Stage 12 has no published treasures",
   assert.ok(rows9.some(t => /2×4/.test(t)), "Stage 9 includes a 2×4 Statue");
 
   loadStage(window, doc, 12);
-  const rows12 = [...doc.querySelectorAll("#pieceRows tr")].map(r => r.textContent.trim());
-  assert.strictEqual(rows12.length, 1);
-  assert.match(rows12[0], /No treasures/);
+  const rows12 = [...doc.querySelectorAll("#pieceRows tr")].map(r => r.textContent);
+  assert.ok(rows12.some(t => /3×3/.test(t)), "Stage 12 includes a 3×3 Spaceship");
+  assert.ok(rows12.some(t => /1×4/.test(t)), "Stage 12 includes a 1×4 Cyberlimb");
 });
 
 test("editing pieces switches the preset dropdown to custom", () => {
