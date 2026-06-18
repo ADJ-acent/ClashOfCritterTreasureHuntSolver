@@ -593,7 +593,11 @@ function openClearMenu(i, ev) {
 
 function mkBtn(txt, fn) {
   const b = document.createElement("button");
-  b.className = "opt"; b.textContent = txt; b.onclick = fn;
+  b.className = "opt"; b.textContent = txt;
+  // Stop the click bubbling to the document "close on outside click" handler.
+  // Submenu buttons rebuild popEl.innerHTML, which detaches the clicked button;
+  // without this, popEl.contains(target) becomes false and the popover self-closes.
+  b.onclick = e => { e.stopPropagation(); fn(); };
   return b;
 }
 
