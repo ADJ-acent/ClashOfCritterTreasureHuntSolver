@@ -75,7 +75,7 @@ test("marking a treasure via the placement submenu keeps the popover open and ma
 
 test("stage presets load grid size, treasures, and pickaxes-per-tile", () => {
   const { window, doc } = boot();
-  assert.strictEqual(doc.querySelectorAll("#stageSelect option").length, 17, "custom + 16 stages");
+  assert.strictEqual(doc.querySelectorAll("#stageSelect option").length, 18, "custom + 17 stages");
 
   loadStage(window, doc, 9);
   assert.strictEqual(doc.querySelector("#gridSize").value, "7");
