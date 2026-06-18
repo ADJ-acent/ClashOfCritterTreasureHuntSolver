@@ -215,24 +215,24 @@ const TREASURES = [
 
 /* ---------- Stage presets (from the in-game stage table). ----------
    pieces: [name, count] using TREASURES sizes; same-size pieces merge in the solver.
-   Stage 12's treasures weren't published, so it loads grid/reward only. */
+   Stage 12's treasures weren't published, so it loads grid size only. */
 const STAGES = [
-  { n: 1,  grid: 5, reward: "60 Pinballs",          pick: 15,  pieces: [["Zobo Cola", 3]] },
-  { n: 2,  grid: 5, reward: "10 Critter Capsules",  pick: 15,  pieces: [["Zobo Zine", 1], ["Syringe", 3]] },
-  { n: 3,  grid: 5, reward: "1 Key + 228k Candy",   pick: 15,  pieces: [["Trumpet", 1], ["Zobo Zine", 1], ["Outdated Console", 2]] },
-  { n: 4,  grid: 6, reward: "180 Pinballs",         pick: 20,  pieces: [["Zobo Cola", 1], ["Outdated Console", 2], ["Radio", 1]] },
-  { n: 5,  grid: 6, reward: "15 Critter Capsules",  pick: 20,  pieces: [["Pirated Magazine", 2], ["Zobo Zine", 2]] },
-  { n: 6,  grid: 6, reward: "1 Key + 457k Candy",   pick: 20,  pieces: [["Zobo Cola", 2], ["Zobo Zine", 1], ["TV", 1]] },
-  { n: 7,  grid: 7, reward: "240 Pinballs",         pick: 25,  pieces: [["Zobo Zine", 1], ["Radio", 1], ["Cyberlimb", 2]] },
-  { n: 8,  grid: 7, reward: "20 Critter Capsules",  pick: 25,  pieces: [["Outdated Console", 2], ["Cyberlimb", 1], ["Spaceship", 1]] },
-  { n: 9,  grid: 7, reward: "1 Key + 914k Candy",   pick: 25,  pieces: [["Syringe", 2], ["Pirated Magazine", 2], ["Statue", 1]] },
-  { n: 10, grid: 7, reward: "600 Pinballs",         pick: 35,  pieces: [["Outdated Console", 2], ["Cyberlimb", 2], ["Spaceship", 1]] },
-  { n: 11, grid: 7, reward: "25 Critter Capsules",  pick: 35,  pieces: [["Zobo Cola", 2], ["Outdated Console", 2], ["Trumpet", 1], ["Statue", 1]] },
-  { n: 12, grid: 7, reward: "1 Key + Candy",        pick: 35,  pieces: [] },
-  { n: 13, grid: 7, reward: "700 Pinballs",         pick: 70,  pieces: [["Outdated Console", 2], ["Statue", 2]] },
-  { n: 14, grid: 7, reward: "25 Critter Capsules",  pick: 70,  pieces: [["Radio", 1], ["Cyberlimb", 2], ["Spaceship", 1]] },
-  { n: 15, grid: 7, reward: "1 Key + 1,918k Candy", pick: 70,  pieces: [["Zobo Cola", 2], ["Syringe", 2], ["TV", 1], ["Statue", 2]] },
-  { n: 16, grid: 7, reward: "800 Pinballs",         pick: 100, pieces: [["Outdated Console", 2], ["Pirated Magazine", 2], ["Statue", 1]] },
+  { n: 1,  grid: 5, pick: 15,  pieces: [["Zobo Cola", 3]] },
+  { n: 2,  grid: 5, pick: 15,  pieces: [["Zobo Zine", 1], ["Syringe", 3]] },
+  { n: 3,  grid: 5, pick: 15,  pieces: [["Trumpet", 1], ["Zobo Zine", 1], ["Outdated Console", 2]] },
+  { n: 4,  grid: 6, pick: 20,  pieces: [["Zobo Cola", 1], ["Outdated Console", 2], ["Radio", 1]] },
+  { n: 5,  grid: 6, pick: 20,  pieces: [["Pirated Magazine", 2], ["Zobo Zine", 2]] },
+  { n: 6,  grid: 6, pick: 20,  pieces: [["Zobo Cola", 2], ["Zobo Zine", 1], ["TV", 1]] },
+  { n: 7,  grid: 7, pick: 25,  pieces: [["Zobo Zine", 1], ["Radio", 1], ["Cyberlimb", 2]] },
+  { n: 8,  grid: 7, pick: 25,  pieces: [["Outdated Console", 2], ["Cyberlimb", 1], ["Spaceship", 1]] },
+  { n: 9,  grid: 7, pick: 25,  pieces: [["Syringe", 2], ["Pirated Magazine", 2], ["Statue", 1]] },
+  { n: 10, grid: 7, pick: 35,  pieces: [["Outdated Console", 2], ["Cyberlimb", 2], ["Spaceship", 1]] },
+  { n: 11, grid: 7, pick: 35,  pieces: [["Zobo Cola", 2], ["Outdated Console", 2], ["Trumpet", 1], ["Statue", 1]] },
+  { n: 12, grid: 7, pick: 35,  pieces: [] },
+  { n: 13, grid: 7, pick: 70,  pieces: [["Outdated Console", 2], ["Statue", 2]] },
+  { n: 14, grid: 7, pick: 70,  pieces: [["Radio", 1], ["Cyberlimb", 2], ["Spaceship", 1]] },
+  { n: 15, grid: 7, pick: 70,  pieces: [["Zobo Cola", 2], ["Syringe", 2], ["TV", 1], ["Statue", 2]] },
+  { n: 16, grid: 7, pick: 100, pieces: [["Outdated Console", 2], ["Pirated Magazine", 2], ["Statue", 1]] },
 ];
 const sizeOf = name => { const t = TREASURES.find(t => t[0] === name); return [t[1], t[2]]; };
 
@@ -297,7 +297,7 @@ function loadStage(n) {
   const list = s.pieces.length
     ? s.pieces.map(([name, c]) => { const [w, h] = sizeOf(name); return `${name} ${w}×${h}×${c}`; }).join(", ")
     : "treasures not published — add them manually";
-  $("#stageInfo").innerHTML = `Reward: <b>${s.reward}</b> · ${s.pick} pickaxes/tile<br>${list}`;
+  $("#stageInfo").innerHTML = `<b>${s.pick}</b> pickaxes/tile<br>${list}`;
   newGame();
 }
 
