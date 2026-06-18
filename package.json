@@ -1,0 +1,12 @@
+{
+  "name": "clash-of-critter-treasure-hunt-solver",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Treasure Hunt tile probability solver (single-page web app).",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
+}
