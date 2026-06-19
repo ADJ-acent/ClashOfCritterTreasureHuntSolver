@@ -23,6 +23,12 @@
     background: var(--bg);
     color: var(--text);
     line-height: 1.4;
+    /* Flex column so the footer can sit at the bottom of the viewport when the
+       content is short (desktop), and simply at the end of the scroll otherwise
+       (mobile) — no position:fixed, so it never overlays content. */
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
   header {
     padding: 16px 20px;
@@ -241,6 +247,13 @@
     <div class="hint">Click a hidden tile → choose <b>Empty</b> or which treasure you hit, then pick the placement that matches the direction it ran. Located treasures still need digging out — click one to mark it ✓ dug. The ★ marks the highest-probability unknown tile(s) to dig next.</div>
   </div>
 </div>
+
+<footer style="width:100%;max-width:980px;margin:auto auto 0;padding:16px 14px;text-align:center;color:var(--muted);font-size:12px;line-height:1.7;border-top:1px solid var(--line)">
+  © 2026 Andy Jiang ·
+  Source code: <a href="https://github.com/adj-acent/ClashOfCritterTreasureHuntSolver" target="_blank" rel="noopener" style="color:var(--accent)">GitHub</a> ·
+  <a href="https://github.com/adj-acent/ClashOfCritterTreasureHuntSolver/blob/main/LICENSE" target="_blank" rel="noopener" style="color:var(--accent)">Non-commercial use only — PolyForm-NC&nbsp;1.0.0</a><br>
+  Fan-made tool — not affiliated with or endorsed by the game or its publisher.
+</footer>
 
 <div id="pop"></div>
 
@@ -1169,5 +1182,10 @@ renderQuickAdd();
 populateStages();
 loadStage(1);   // start on Stage 1
 </script>
+
+<!-- Visitor analytics: GoatCounter — privacy-friendly, no cookies, no consent banner.
+     Dashboard: https://adjacent.goatcounter.com/ -->
+<script data-goatcounter="https://adjacent.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>

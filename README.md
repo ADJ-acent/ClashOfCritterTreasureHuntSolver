@@ -53,3 +53,9 @@ gh pr merge --squash --delete-branch
 ```
 
 GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs `npm test` on every PR and on pushes to `main`.
+
+## License
+
+© 2026 Andy Jiang. Licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE) — non-commercial use, modification, and sharing are permitted (keep the copyright/`Required Notice`); **commercial use is not.**
+
+This is a fan-made tool, not affiliated with or endorsed by the game it references or its publisher; game names and trademarks belong to their respective owners.
