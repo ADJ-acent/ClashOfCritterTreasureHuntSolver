@@ -135,7 +135,38 @@
   #pop .ttl { font-size: 11px; color: var(--muted); padding: 3px 6px 6px; }
   #pop button { display: block; width: 100%; text-align: left; margin: 2px 0; }
   #pop button.opt:hover { background: #3a4150; }
+  #pop button.opt.sel { background: #3a4150; outline: 2px solid var(--accent); outline-offset: -2px; }
+  #pop button.primary { text-align: center; background: var(--accent); color: #1a1a1a; font-weight: 600; margin-top: 6px; }
+  #pop button.place { display: flex; align-items: center; gap: 8px; }
+  #pop button.place span:last-child { flex: 1; }
+  .mini { display: inline-grid; gap: 1px; width: 46px; flex: 0 0 auto; }
+  .mini span { aspect-ratio: 1 / 1; background: #2c2f37; border-radius: 1px; }
+  .mini span.f { background: var(--item); }
+  .mini span.f.dug { background: #7a5f16; }       /* the tile you actually dug */
   .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* taps feel instant (no 300ms double-tap-zoom wait) */
+  .cell, button, select { touch-action: manipulation; }
+
+  /* ---------- Mobile ---------- */
+  @media (max-width: 720px) {
+    .wrap { padding: 12px; gap: 12px; }
+    .controls { width: 100%; }
+    /* Grid first so the bottom-sheet picker covers the setup, not the board. */
+    .stage-area { min-width: 0; flex-basis: auto; width: 100%; order: -1; }
+    input[type=number], select { font-size: 16px; }   /* >=16px stops iOS zoom-on-focus */
+    /* popover becomes a bottom sheet: thumb-reachable, big targets, no finger occlusion */
+    #pop.sheet {
+      left: 0; right: 0; bottom: 0; top: auto;
+      width: 100%; min-width: 0;
+      border-radius: 14px 14px 0 0;
+      max-height: 78vh; overflow-y: auto;
+      padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
+    }
+    #pop.sheet .ttl { font-size: 13px; }
+    #pop.sheet button { padding: 11px 12px; font-size: 15px; }
+    .mini { width: 54px; }
+  }
 </style>
 </head>
 <body>
@@ -802,6 +833,15 @@ function onCellClick(i, ev) {
 
 function placePop(ev) {
   popEl.style.display = "block";
+  // On phones: render as a bottom sheet (CSS-positioned). matchMedia is guarded
+  // because jsdom (tests) doesn't implement it — there we fall through to anchored.
+  const mobile = window.matchMedia && window.matchMedia("(max-width: 720px)").matches;
+  if (mobile) {
+    popEl.classList.add("sheet");
+    popEl.style.left = ""; popEl.style.top = "";
+    return;
+  }
+  popEl.classList.remove("sheet");
   const pad = 8, w = popEl.offsetWidth, h = popEl.offsetHeight;
   let x = ev.clientX + 6, y = ev.clientY + 6;
   if (x + w + pad > innerWidth) x = innerWidth - w - pad;
@@ -811,6 +851,7 @@ function placePop(ev) {
 }
 
 function openDigMenu(i, ev) {
+  clearHighlights();   // drop any placement preview when returning to this menu
   popEl.innerHTML = `<div class="ttl">Tile ${cellLabel(i)} — what did you dig?</div>`;
   const empty = mkBtn("⬜ Empty (nothing)", () => { setEmpty(i); hidePop(); });
   popEl.appendChild(empty);
@@ -834,30 +875,90 @@ function openDigMenu(i, ev) {
   placePop(ev);
 }
 
+// A tiny N×N picture of where a candidate treasure sits (so picking a placement
+// never depends on seeing the main grid — important when a bottom sheet covers it).
+function miniDiagram(cells, dugIdx) {
+  const N = state.N, set = new Set(cells);
+  const g = document.createElement("span");
+  g.className = "mini";
+  g.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
+  for (let idx = 0; idx < N * N; idx++) {
+    const s = document.createElement("span");
+    if (set.has(idx)) s.className = idx === dugIdx ? "f dug" : "f";
+    g.appendChild(s);
+  }
+  return g;
+}
+
+// One candidate row with a mini-diagram + label (used by the touch UI).
+function candidateButton(cells, dugIdx) {
+  const b = document.createElement("button");
+  b.className = "opt place";
+  b.appendChild(miniDiagram(cells, dugIdx));
+  const lbl = document.createElement("span");
+  lbl.textContent = placementLabel(cells);
+  b.appendChild(lbl);
+  return b;
+}
+
 function openPlacementPicker(i, piece, ev) {
-  // all placements of this piece that COVER tile i and lie entirely on hidden cells
+  // placements of this piece that COVER tile i and lie entirely on hidden cells
   const N = state.N;
   const blocked = new Uint8Array(N * N);
   state.cells.forEach((c, idx) => { if (c.status !== "hidden") blocked[idx] = 1; });
-  const all = buildPlacements(N, blocked, piece.w, piece.h);
-  const cands = all.filter(cells => cells.includes(i));
+  const cands = buildPlacements(N, blocked, piece.w, piece.h).filter(cells => cells.includes(i));
 
-  popEl.innerHTML = `<div class="ttl">Which way did the ${piece.w}×${piece.h} run? (hover to preview)</div>`;
+  // Touch devices can't hover to preview, so they get a different picker.
+  const touch = !!(window.matchMedia && window.matchMedia("(hover: none)").matches);
+  const hint = touch ? "tap to preview, then Place it" : "hover to preview, click to place";
+  popEl.innerHTML = `<div class="ttl">Which way did the ${piece.w}×${piece.h} run? <span style="opacity:.6">(${hint})</span></div>`;
+
   if (cands.length === 0) {
-    popEl.appendChild(document.createElement("div")).className = "ttl";
-    popEl.lastChild.textContent = "No legal placement fits here. Clear some tiles?";
+    const n = document.createElement("div"); n.className = "ttl";
+    n.textContent = "No legal placement fits here. Clear some tiles?";
+    popEl.appendChild(n);
+    popEl.appendChild(mkBtn("← Back", () => openDigMenu(i, ev)));
+    placePop(ev);
+    return;
   }
-  cands.forEach((cells, ci) => {
-    const b = mkBtn("▸ " + placementLabel(cells), () => { commitItem(piece, cells, i); hidePop(); });
-    b.onmouseenter = () => previewCells(cells);
-    b.onmouseleave = clearHighlights;
-    popEl.appendChild(b);
-  });
-  popEl.appendChild(mkBtn("← Back", () => openDigMenu(i, ev)));
-  placePop(ev);
+
+  if (touch) {
+    // Mobile: select-then-place. Tap a row to preview it (grid + mini-diagram),
+    // then tap the confirm button — no hover, and no selection drift on the way down.
+    let selected = 0;
+    const rows = [];
+    const select = idx => {
+      selected = idx;
+      previewCells(cands[idx]);
+      rows.forEach((b, k) => b.classList.toggle("sel", k === idx));
+    };
+    cands.forEach((cells, ci) => {
+      const b = candidateButton(cells, i);
+      b.onclick = e => { e.stopPropagation(); select(ci); };
+      rows.push(b);
+      popEl.appendChild(b);
+    });
+    popEl.appendChild(mkBtn("✓ Place it", () => { commitItem(piece, cands[selected], i); hidePop(); }, "primary"));
+    popEl.appendChild(mkBtn("← Back", () => openDigMenu(i, ev)));
+    placePop(ev);
+    select(0);   // auto-preview the first candidate
+  } else {
+    // Desktop (mouse): same mini-diagram rows, faster interaction — hover previews,
+    // a single click places it (no travel to a confirm button).
+    cands.forEach(cells => {
+      const b = candidateButton(cells, i);
+      b.onmouseenter = () => previewCells(cells);
+      b.onmouseleave = clearHighlights;
+      b.onclick = e => { e.stopPropagation(); commitItem(piece, cells, i); hidePop(); };
+      popEl.appendChild(b);
+    });
+    popEl.appendChild(mkBtn("← Back", () => openDigMenu(i, ev)));
+    placePop(ev);
+  }
 }
 
 function openClearMenu(i, ev) {
+  clearHighlights();
   const c = state.cells[i];
   if (c.status === "item") {
     popEl.innerHTML = `<div class="ttl">Tile ${cellLabel(i)} — ${c.type} treasure (${c.dug ? "dug out" : "located, not dug"})</div>`;
@@ -872,9 +973,9 @@ function openClearMenu(i, ev) {
   placePop(ev);
 }
 
-function mkBtn(txt, fn) {
+function mkBtn(txt, fn, cls) {
   const b = document.createElement("button");
-  b.className = "opt"; b.textContent = txt;
+  b.className = "opt" + (cls ? " " + cls : ""); b.textContent = txt;
   // Stop the click bubbling to the document "close on outside click" handler.
   // Submenu buttons rebuild popEl.innerHTML, which detaches the clicked button;
   // without this, popEl.contains(target) becomes false and the popover self-closes.

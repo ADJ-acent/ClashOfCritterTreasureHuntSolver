@@ -70,7 +70,18 @@ Caveats: the per-dig score sums placements per treasure independently (a fast pr
 
 ## Interaction
 
-Clicking a cell opens a popover (`#pop`). Hidden tile → "Empty" or pick a treasure size, then choose the placement that matches the direction it ran (the candidate placements covering the clicked tile are offered, which resolves the middle-tile ambiguity). On placement, `commitItem` marks the **clicked** tile `dug:true` and the rest of the footprint `dug:false`. Clicking a located treasure tile toggles it buried ↔ dug out (so the estimate stays exact) or clears the whole treasure; an empty tile can go back to hidden. All popover buttons `stopPropagation` so the document-level "close on outside click" handler doesn't fire on them — the bug that originally made treasure-marking silently self-close the popover (regression-tested).
+Clicking a cell opens a popover (`#pop`). Hidden tile → "Empty" or pick a treasure size, then the placement picker offers every candidate placement that covers the clicked tile (resolving the middle-tile ambiguity), in **one of two UIs** chosen by `(hover: none)`:
+
+Both UIs show a `miniDiagram` of where the candidate sits on the board (so the choice doesn't depend on seeing the main grid, which a bottom sheet may cover); they differ only in interaction:
+
+- **Desktop (mouse):** **previews on hover and commits on a single click**. No confirm button.
+- **Touch:** **select-then-place** — tapping a row previews it and a primary "Place it" button commits the selection.
+
+The split exists because hover-to-preview + a separate confirm button forces the mouse to travel *over the other options* to reach it, changing the selection on the way — fine on touch, annoying with a mouse. On placement, `commitItem` marks the **clicked** tile `dug:true` and the rest of the footprint `dug:false`. Clicking a located treasure tile toggles it buried ↔ dug out (so the estimate stays exact) or clears the whole treasure; an empty tile can go back to hidden. All popover buttons `stopPropagation` so the document-level "close on outside click" handler doesn't fire on them — the bug that originally made treasure-marking silently self-close the popover (regression-tested).
+
+## Responsive / mobile
+
+A single `@media (max-width: 720px)` breakpoint stacks the controls and board full-width (dropping the desktop `min-width` that caused horizontal scroll), **orders the board above the controls** (`order: -1`) so the bottom-sheet picker covers the setup rather than the board, bumps inputs to 16px (stops iOS zoom-on-focus), and turns the popover into a **bottom sheet** with larger tap targets. `placePop()` decides anchored-vs-sheet at open time via `matchMedia("(max-width: 720px)")`, and the placement picker switches its interaction via `matchMedia("(hover: none)")` (both guarded — jsdom doesn't implement `matchMedia`, so tests default to the desktop/anchored path and opt into mobile with a shim). `touch-action: manipulation` removes the double-tap-zoom delay on cells and buttons.
 
 ## Presets
 

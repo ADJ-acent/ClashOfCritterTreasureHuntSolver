@@ -16,7 +16,7 @@ A single-page web app that helps you play the **Treasure Hunt** event efficientl
 1. Pick a stage from the **Preset** dropdown (or set the grid size and add treasures manually).
 2. Click a hidden tile and tell the app what you found:
    - **Empty** — marks the tile as dug-and-empty.
-   - **A treasure** — choose its size, then pick the placement that matches the direction it ran. The clicked tile is marked **dug** (✓) and the rest of the footprint is shown **located but buried** (⛏, hatched) — you still have to dig those out to collect it.
+   - **A treasure** — choose its size, then pick the placement that matches the direction it ran. Each option shows a little diagram of where the treasure sits on the board. On desktop, hover to preview and click to place; on touch, tap to preview then tap **Place it**. The clicked tile is marked **dug** (✓) and the rest of the footprint is shown **located but buried** (⛏, hatched) — you still have to dig those out to collect it.
 3. The heatmap recalculates after every dig. The **★** marks the best unknown tile(s) to dig next. Dig unknown tiles to locate treasures (and trigger bombs); dig out the located treasures last. Click a buried tile to mark it ✓ dug as you uncover it.
 4. Click **Estimate picks to finish** any time to see the expected remaining cost.
 
