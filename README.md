@@ -10,6 +10,7 @@ A single-page web app that helps you play the **Treasure Hunt** event efficientl
 - **Stage presets** — pick any of the 16 stages to auto-fill the grid size, treasures, and pickaxes-per-tile.
 - **Pick-cost estimator** — estimates the average number of tiles (and pickaxes) needed to finish the stage from the current board, with a typical range.
 - **Manual setup** — set any grid size and add treasures by dimension for custom boards.
+- **Exact probabilities (DP) toggle** — on by default, computes exact heatmaps for every stage with a dynamic-programming solver (usually as fast as or faster than the sampler); turn it off on low-end devices to use the time-capped Monte-Carlo sampler, which has a more predictable worst case on the densest boards.
 
 ## How to use it
 
@@ -22,7 +23,7 @@ A single-page web app that helps you play the **Treasure Hunt** event efficientl
 
 ## How the math works
 
-- **Probabilities:** the app considers every way the remaining treasures can be placed in the hidden tiles without overlapping (rotations allowed, touching allowed) and consistent with what you've dug. Each tile's probability is the fraction of those layouts that cover it. Small boards are solved **exactly**; large boards fall back to **Monte-Carlo sampling** (the status line tells you which).
+- **Probabilities:** the app considers every way the remaining treasures can be placed in the hidden tiles without overlapping (rotations allowed, touching allowed) and consistent with what you've dug. Each tile's probability is the fraction of those layouts that cover it. With **Exact probabilities (DP)** on (the default), a dynamic-programming solver computes these *exactly* for every real stage — even the dense ones with hundreds of millions of layouts — in well under a second. Turn the toggle off (or on very large custom boards) and it falls back to **Monte-Carlo sampling** — approximate (and slightly biased toward over-stating the top tile), but hard-capped at a fixed time budget, so it has a lower, more predictable worst case on the very densest boards. The status line tells you which engine ran.
 - **Pick-cost estimate:** finding a treasure isn't collecting it — every treasure tile has to be dug out. So picks-to-finish = the empty tiles you waste while hunting for unlocated treasures (estimated by sampling many real layouts and simulating greedy play) **plus** every treasure tile still to dig (unlocated treasure areas + buried tiles of located ones). It ignores bombs, which only make the real cost lower.
 
 ## Development
