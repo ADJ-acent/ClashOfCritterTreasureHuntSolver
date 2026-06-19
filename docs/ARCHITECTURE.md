@@ -6,15 +6,19 @@ The whole app is one static file, [`index.html`](../index.html) — HTML + CSS +
 
 ## The model
 
-A stage is an `N×N` grid plus a known multiset of rectangular treasures (e.g. Stage 15 = 1×3 ×2, 1×2 ×2, 2×3 ×1, 2×4 ×2). Every cell is in one of three states:
+A stage is an `N×N` grid plus a known multiset of rectangular treasures (e.g. Stage 15 = 1×3 ×2, 1×2 ×2, 2×3 ×1, 2×4 ×2). Every cell has a `status`, and `item` cells also carry a `dug` flag:
 
-| Status   | Meaning                                  | Shown as            |
-|----------|------------------------------------------|---------------------|
-| `hidden` | not yet dug                              | heatmap % + color   |
-| `empty`  | dug, nothing there                       | ✕ (probability 0)   |
-| `item`   | part of a fully-located treasure         | 100%, treasure size |
+| Status   | `dug`  | Meaning                              | Shown as                     |
+|----------|--------|--------------------------------------|------------------------------|
+| `hidden` | —      | not yet dug, content unknown         | heatmap % + color (★ = best) |
+| `empty`  | —      | dug, nothing there                   | ✕ (probability 0)            |
+| `item`   | `false`| located treasure tile, still buried  | ⛏, hatched gold (still to dig) |
+| `item`   | `true` | treasure tile dug out                | ✓, solid gold                |
 
-The key simplification (a deliberate game-rule choice): when you dig one tile of a treasure you learn its **whole footprint** ("tile + direction = full spot"). So a found treasure is removed from the puzzle entirely and all its tiles become `item`. There are never "partially known" treasures. That means the solver only ever has to **place the remaining pieces into the still-hidden cells with no overlap** — no "must-cover" constraints to track.
+Two deliberate game-rule choices drive this:
+
+1. **One dig reveals the whole footprint** ("tile + direction = full spot"). So a *located* treasure is removed from the placement puzzle entirely and all its tiles become `item`; there are never "partially known" treasures. The solver only ever has to **place the remaining (unlocated) pieces into the still-hidden cells with no overlap** — no "must-cover" constraints.
+2. **Finding ≠ collecting.** Locating a treasure (one hit) is not the same as digging it up — every tile must still be dug out individually, each costing pickaxes. The tile you clicked to locate it is `dug:true`; the rest are `dug:false` (buried). This only matters for the **estimator**; the probability solver treats any `item` tile, buried or dug, as "known" and excludes it.
 
 `state` holds it all:
 
@@ -22,11 +26,11 @@ The key simplification (a deliberate game-rule choice): when you dig one tile of
 state = {
   N,            // grid size
   pieces,       // [{ w, h, count }] normalised so w <= h; the stage definition
-  cells,        // length N*N of { status, type, itemId }
+  cells,        // length N*N of { status, type, itemId, dug }
 }
 ```
 
-Pieces are keyed by sorted dimensions (`"1x3"`), because the math only depends on size — same-size treasures (Radio/TV, Syringe/Outdated Console) merge. `remainingOf(piece)` = `count − (treasures of that size already found)`.
+Pieces are keyed by sorted dimensions (`"1x3"`), because the math only depends on size — same-size treasures (Radio/TV, Syringe/Outdated Console) merge. `remainingOf(piece)` = `count − (treasures of that size already located)`.
 
 ## Solver — per-tile probability
 
@@ -41,22 +45,32 @@ The status line reports which engine ran and over how many layouts/samples. `tot
 
 ## Estimator — picks to finish
 
-Because hitting one tile of a treasure reveals all of it, "solving the stage" = digging until every treasure has been hit once. `estimateSolve()` Monte-Carlos this:
+Solving a stage means **digging out every treasure tile**, not merely locating each treasure. So:
 
-1. Take the current board (already-dug cells stay known) and the remaining pieces.
-2. For each trial: `sampleLayout()` drops the remaining treasures onto the hidden cells at random (reject + resample if they don't fit) — that's the trial's ground truth.
-3. `simulateGreedy()` plays the strategy the heatmap recommends: score each hidden tile by how many still-valid placements cover it, dig the highest, reveal whatever's there, repeat until all treasures are hit. Count the digs.
-4. Aggregate across trials: mean, 10th/90th percentile, min/max. Picks = mean tiles × pickaxes-per-tile.
+```
+picks to finish = empty tiles wasted while hunting unlocated treasures   (stochastic)
+                + every treasure tile still to dig                        (fixed)
+                  = unlocated treasure areas + buried tiles of located treasures
+```
 
-Caveats (also surfaced in prior discussion): the per-dig score sums placements per treasure independently (a fast proxy, not the exact conditional probability of the heatmap), the greedy strategy is near-optimal not provably optimal, and bombs are ignored (they only make the real cost lower). Bounded by `EST_TRIALS` / `EST_TIME_MS`.
+Only the empty-hunt cost is random, so `estimateSolve()` Monte-Carlos just that and adds the fixed treasure-tile cost:
+
+1. Take the current board. `baseKnown` = every non-`hidden` tile (empties **and** located treasures), so the hunt only ever digs unknown tiles — matching the in-game advice to dig unknowns (they locate treasures and can spawn bombs) and defer digging out located treasures. Count `buriedCount` (located tiles with `dug:false`) and the `unlocatedArea` (Σ area of still-unlocated treasures).
+2. For each trial: `sampleLayout()` drops the unlocated treasures onto the hidden cells at random (reject + resample if they don't fit) — the trial's ground truth.
+3. `simulateGreedy()` digs the highest-coverage unknown tile until every treasure is located, returning only the count of **empty** tiles dug. Each trial's total = that + `fixed` (`unlocatedArea + buriedCount`).
+4. Aggregate: mean, 10th/90th percentile, min/max. Picks = mean tiles × pickaxes-per-tile.
+
+Special cases: nothing left → "done"; everything located but still buried → deterministic (`mean = buriedCount`, no simulation).
+
+Caveats: the per-dig score sums placements per treasure independently (a fast proxy, not the exact conditional probability of the heatmap), the greedy strategy is near-optimal not provably optimal, and bombs are ignored (they only make the real cost lower). Bounded by `EST_TRIALS` / `EST_TIME_MS`.
 
 ## Render
 
-`recompute()` runs the solver and paints each cell: ✕ for empty, the size label for found treasures, and a blue→red heatmap (`heat()`) with a % for hidden cells. It also finds the highest-probability hidden tile(s) and marks them with the `★` `best` highlight (ties — common by symmetry — are all marked; `BEST_EPS` folds exact-fraction ties together without letting Monte-Carlo noise over-highlight). Found treasures are excluded since they're already revealed.
+`recompute()` runs the solver and paints each cell: ✕ for empty, ⛏ on hatched gold for buried treasure tiles and ✓ on solid gold for dug-out ones, and a blue→red heatmap (`heat()`) with a % for hidden cells. It also finds the highest-probability hidden tile(s) and marks them with the `★` `best` highlight (ties — common by symmetry — are all marked; `BEST_EPS` folds exact-fraction ties together without letting Monte-Carlo noise over-highlight). Located treasures are excluded from the highlight since the best *next* dig is always an unknown tile.
 
 ## Interaction
 
-Clicking a cell opens a popover (`#pop`). Hidden tile → "Empty" or pick a treasure size, then choose the placement that matches the direction it ran (the candidate placements covering the clicked tile are offered, which resolves the middle-tile ambiguity). Dug tile → clear it. All popover buttons `stopPropagation` so the document-level "close on outside click" handler doesn't fire on them — the bug that originally made treasure-marking silently self-close the popover (regression-tested).
+Clicking a cell opens a popover (`#pop`). Hidden tile → "Empty" or pick a treasure size, then choose the placement that matches the direction it ran (the candidate placements covering the clicked tile are offered, which resolves the middle-tile ambiguity). On placement, `commitItem` marks the **clicked** tile `dug:true` and the rest of the footprint `dug:false`. Clicking a located treasure tile toggles it buried ↔ dug out (so the estimate stays exact) or clears the whole treasure; an empty tile can go back to hidden. All popover buttons `stopPropagation` so the document-level "close on outside click" handler doesn't fire on them — the bug that originally made treasure-marking silently self-close the popover (regression-tested).
 
 ## Presets
 
@@ -64,4 +78,4 @@ Clicking a cell opens a popover (`#pop`). Hidden tile → "Empty" or pick a trea
 
 ## Tests & CI
 
-[`tests/app.test.js`](../tests/app.test.js) loads `index.html` in jsdom and drives the real DOM (`node --test`, i.e. `npm test`). It covers boot, digging, the popover regression, preset loading, the custom-switch, the estimator, and the empty-board path. GitHub Actions runs the suite on every PR and on pushes to `main`; `main` is protected so changes go through PRs with the `test` check passing.
+[`tests/app.test.js`](../tests/app.test.js) loads `index.html` in jsdom and drives the real DOM (`node --test`, i.e. `npm test`). It covers boot, digging, the popover regression, preset loading, the custom-switch, the best-tile highlight, the dug/buried split and toggle, the empty-board path, and the estimator (including the regression that it counts every treasure tile, not one hit per treasure). GitHub Actions runs the suite on every PR and on pushes to `main`; `main` is protected so changes go through PRs with the `test` check passing.

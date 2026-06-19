@@ -106,7 +106,11 @@
     transition: background .12s, border-color .12s;
   }
   .cell.empty { background: var(--empty); color: #5a5f6a; cursor: pointer; }
-  .cell.item  { background: var(--item); color: #20160a; }
+  .cell.item  { background: var(--item); color: #20160a; }        /* dug-out treasure (solid) */
+  .cell.item.buried {                                             /* located but not dug yet */
+    background: repeating-linear-gradient(45deg, var(--item) 0 5px, #9b7b29 5px 10px);
+    color: #20160a;
+  }
   .cell .sub { position: absolute; bottom: 2px; right: 4px; font-size: 9px; font-weight: 500; opacity: .8; }
   .cell .star { position: absolute; top: 1px; left: 3px; font-size: 10px; color: #fff; text-shadow: 0 0 3px #000; }
   .cell.best { border-color: #fff; box-shadow: 0 0 0 2px #fff, 0 0 10px 2px rgba(255,255,255,.55); z-index: 1; }
@@ -196,10 +200,11 @@
     <div class="legend">
       <span>0%</span><div class="bar"></div><span>100%</span>
       <span style="margin-left:14px"><span style="display:inline-block;width:11px;height:11px;background:var(--empty);border-radius:2px;vertical-align:middle"></span> empty</span>
-      <span><span style="display:inline-block;width:11px;height:11px;background:var(--item);border-radius:2px;vertical-align:middle"></span> found</span>
+      <span><span style="display:inline-block;width:11px;height:11px;background:repeating-linear-gradient(45deg,var(--item) 0 3px,#9b7b29 3px 6px);border-radius:2px;vertical-align:middle"></span> ⛏ located (buried)</span>
+      <span><span style="display:inline-block;width:11px;height:11px;background:var(--item);border-radius:2px;vertical-align:middle"></span> ✓ dug out</span>
       <span style="margin-left:14px">★ best tile to dig</span>
     </div>
-    <div class="hint">Click a hidden tile → choose <b>Empty</b> or which treasure you hit, then pick the placement that matches the direction it ran. Click a dug tile to clear it. The ★ marks the highest-probability tile(s).</div>
+    <div class="hint">Click a hidden tile → choose <b>Empty</b> or which treasure you hit, then pick the placement that matches the direction it ran. Located treasures still need digging out — click one to mark it ✓ dug. The ★ marks the highest-probability unknown tile(s) to dig next.</div>
   </div>
 </div>
 
@@ -558,11 +563,15 @@ function monteCarlo(expanded, placements, M, cover) {
 /* ============================================================
    PICK-COST ESTIMATOR
    "Average picks to fully solve, from the current board."
-   Hitting any one tile of a treasure reveals the whole thing,
-   so solving = digging until every treasure has been hit once.
-   We Monte-Carlo it: sample real hidden layouts, simulate the
-   greedy strategy (always dig the highest-coverage hidden tile),
-   and count tiles dug. Picks = tiles dug x pickaxes-per-tile.
+   Finding a treasure (one hit reveals its footprint) is NOT the
+   same as collecting it: every tile of every treasure must be dug
+   out. So picks to finish = (empty tiles wasted while hunting for
+   the unlocated treasures) + (all treasure tiles still to dig:
+   unlocated areas + buried tiles of located treasures).
+   Only the empty-hunt cost is stochastic, so we Monte-Carlo just
+   that (greedy: dig the highest-coverage unknown tile) and add the
+   fixed treasure-tile cost. Picks = tiles x pickaxes-per-tile.
+   Bombs are ignored (they only make the real cost lower).
    ============================================================ */
 const EST_TRIALS = 600;
 const EST_TIME_MS = 1500;
@@ -595,11 +604,14 @@ function sampleLayout(N, M, baseKnown, types, placeByType) {
   return { owner, treasures };
 }
 
-// Simulate greedy digging against a known layout; return number of tiles dug to find all treasures.
+// Simulate greedy play against a known layout: dig only unknown tiles (the strategy
+// the heatmap recommends) until every treasure is located, deferring the dig-out of
+// located treasures. Returns the number of *empty* tiles dug along the way — the only
+// stochastic cost. Treasure tiles are a fixed cost handled by the caller.
 function simulateGreedy(N, M, baseKnown, types, placeByType, layout, score) {
   const known = baseKnown.slice();
   const rem = types.map(t => t.rem);
-  let toFind = layout.treasures.length, digs = 0;
+  let toFind = layout.treasures.length, empties = 0;
 
   while (toFind > 0) {
     score.fill(0);
@@ -617,31 +629,44 @@ function simulateGreedy(N, M, baseKnown, types, placeByType, layout, score) {
     let best = -1, bestS = -1;
     for (let i = 0; i < M; i++) if (!known[i] && score[i] > bestS) { bestS = score[i]; best = i; }
     if (best < 0) break;                            // nothing left to dig (safety)
-    digs++;
     const o = layout.owner[best];
-    if (o < 0) { known[best] = 1; }                 // empty tile
-    else {                                          // hit a treasure -> reveal all its tiles
+    if (o < 0) { known[best] = 1; empties++; }      // wasted empty dig
+    else {                                          // located a treasure -> reveal footprint, dig it out later
       const tr = layout.treasures[o];
       for (let c = 0; c < tr.cells.length; c++) known[tr.cells[c]] = 1;
       rem[tr.ti]--; toFind--;
     }
   }
-  return digs;
+  return empties;
 }
 
 function estimateSolve() {
   const N = state.N, M = N * N;
-  const baseKnown = new Uint8Array(M);
+  const baseKnown = new Uint8Array(M);            // 1 = not an unknown tile (empty or located treasure)
   state.cells.forEach((c, i) => { if (c.status !== "hidden") baseKnown[i] = 1; });
 
+  // Tiles of already-located treasures that still need digging out (dug:false).
+  let buriedCount = 0;
+  state.cells.forEach(c => { if (c.status === "item" && !c.dug) buriedCount++; });
+
+  // Unlocated treasures (positions unknown) — these drive the search simulation.
   const types = [];
   state.pieces.forEach(p => { const r = remainingOf(p); if (r > 0) types.push({ w: p.w, h: p.h, rem: r }); });
-  const totalTreasures = types.reduce((a, t) => a + t.rem, 0);
-  if (totalTreasures === 0) return { done: true };
+  const numUnlocated = types.reduce((a, t) => a + t.rem, 0);
+  const unlocatedArea = types.reduce((a, t) => a + t.rem * t.w * t.h, 0);
+
+  if (numUnlocated === 0 && buriedCount === 0) return { done: true };
+  // Everything is located: only the deterministic dig-out of buried tiles remains.
+  if (numUnlocated === 0) {
+    return { mean: buriedCount, p10: buriedCount, p90: buriedCount, min: buriedCount, max: buriedCount, trials: 0, deterministic: true };
+  }
 
   const placeByType = types.map(t => buildPlacements(N, baseKnown, t.w, t.h));
   if (placeByType.some(pls => pls.length === 0)) return { impossible: true };
 
+  // Total picks to finish = empty digs while hunting (stochastic) + every treasure
+  // tile that still has to be dug out (unlocated areas + buried located tiles).
+  const fixed = unlocatedArea + buriedCount;
   const score = new Float64Array(M);
   const results = [];
   let rejected = 0;
@@ -649,7 +674,7 @@ function estimateSolve() {
   for (let trial = 0; trial < EST_TRIALS; trial++) {
     const layout = sampleLayout(N, M, baseKnown, types, placeByType);
     if (!layout) { rejected++; if (rejected > EST_TRIALS * 4) break; trial--; continue; }
-    results.push(simulateGreedy(N, M, baseKnown, types, placeByType, layout, score));
+    results.push(simulateGreedy(N, M, baseKnown, types, placeByType, layout, score) + fixed);
     if ((trial & 15) === 0 && performance.now() - t0 > EST_TIME_MS) break;
   }
   if (results.length === 0) return { impossible: true };
@@ -658,7 +683,7 @@ function estimateSolve() {
   const n = results.length;
   const mean = results.reduce((a, b) => a + b, 0) / n;
   const pct = q => results[Math.min(n - 1, Math.max(0, Math.round(q * (n - 1))))];
-  return { mean, p10: pct(0.10), p90: pct(0.90), min: results[0], max: results[n - 1], trials: n, totalTreasures };
+  return { mean, p10: pct(0.10), p90: pct(0.90), min: results[0], max: results[n - 1], trials: n };
 }
 
 function runEstimate() {
@@ -668,13 +693,16 @@ function runEstimate() {
   // let the "Simulating…" paint before the blocking compute
   setTimeout(() => {
     const r = estimateSolve();
-    if (r.done) { out.innerHTML = `<span style="color:var(--accent)">All treasures already found — 0 picks left.</span>`; return; }
+    if (r.done) { out.innerHTML = `<span style="color:var(--accent)">All treasures dug out — 0 picks left.</span>`; return; }
     if (r.impossible) { out.innerHTML = `<span class="warn">Can't place the remaining treasures in the hidden tiles — check the board.</span>`; return; }
     const f = x => Math.round(x).toLocaleString();
+    const detail = r.deterministic
+      ? `all treasures located — just dig them out · ignores bombs`
+      : `usually ${r.p10}–${r.p90} tiles · range ${r.min}–${r.max} · ${r.trials} sims · ignores bombs`;
     out.innerHTML =
-      `<b>≈ ${r.mean.toFixed(1)} tiles</b> to finish (greedy play)<br>` +
+      `<b>≈ ${r.mean.toFixed(1)} tiles</b> to fully dig up (greedy play)<br>` +
       `<b>≈ ${f(r.mean * pick)} pickaxes</b> &nbsp;(${pick}/tile)<br>` +
-      `<span style="color:var(--muted)">usually ${r.p10}–${r.p90} tiles · range ${r.min}–${r.max} · ${r.trials} sims · ignores bombs</span>`;
+      `<span style="color:var(--muted)">${detail}</span>`;
   }, 20);
 }
 
@@ -710,8 +738,9 @@ function recompute() {
       continue;
     }
     if (c.status === "item") {
-      el.className = "cell item";
-      el.innerHTML = `100%<span class="sub">${c.type}</span>`;
+      // located treasure: ⛏ buried (hatched, still to dig) vs ✓ dug-out (solid)
+      el.className = "cell item" + (c.dug ? "" : " buried");
+      el.innerHTML = `${c.dug ? "✓" : "⛏"}<span class="sub">${c.type}</span>`;
       el.style.background = "";
       continue;
     }
@@ -819,7 +848,7 @@ function openPlacementPicker(i, piece, ev) {
     popEl.lastChild.textContent = "No legal placement fits here. Clear some tiles?";
   }
   cands.forEach((cells, ci) => {
-    const b = mkBtn("▸ " + placementLabel(cells), () => { commitItem(piece, cells); hidePop(); });
+    const b = mkBtn("▸ " + placementLabel(cells), () => { commitItem(piece, cells, i); hidePop(); });
     b.onmouseenter = () => previewCells(cells);
     b.onmouseleave = clearHighlights;
     popEl.appendChild(b);
@@ -830,10 +859,13 @@ function openPlacementPicker(i, piece, ev) {
 
 function openClearMenu(i, ev) {
   const c = state.cells[i];
-  popEl.innerHTML = `<div class="ttl">Tile ${cellLabel(i)} — ${c.status === "item" ? "found " + c.type : "empty"}</div>`;
   if (c.status === "item") {
+    popEl.innerHTML = `<div class="ttl">Tile ${cellLabel(i)} — ${c.type} treasure (${c.dug ? "dug out" : "located, not dug"})</div>`;
+    if (c.dug) popEl.appendChild(mkBtn("⛏ Mark as still buried", () => { setDug(i, false); hidePop(); }));
+    else       popEl.appendChild(mkBtn("✓ Mark as dug out", () => { setDug(i, true); hidePop(); }));
     popEl.appendChild(mkBtn("↩ Clear this treasure", () => { clearItem(c.itemId); hidePop(); }));
   } else {
+    popEl.innerHTML = `<div class="ttl">Tile ${cellLabel(i)} — empty</div>`;
     popEl.appendChild(mkBtn("↩ Back to hidden", () => { state.cells[i] = { status: "hidden", type: null, itemId: 0 }; recompute(); hidePop(); }));
   }
   popEl.appendChild(mkBtn("Cancel", hidePop));
@@ -872,10 +904,12 @@ function previewCells(cells) {
 function setEmpty(i) { state.cells[i] = { status: "empty", type: null, itemId: 0 }; recompute(); }
 
 let itemCounter = 1;
-function commitItem(piece, cells) {
+function commitItem(piece, cells, dugIdx) {
   const id = itemCounter++;
   const k = key(piece.w, piece.h);
-  cells.forEach(idx => { state.cells[idx] = { status: "item", type: k, itemId: id }; });
+  // The tile you clicked is the one you actually dug to locate it; the rest are
+  // known-but-buried (you still have to dig them out to collect the treasure).
+  cells.forEach(idx => { state.cells[idx] = { status: "item", type: k, itemId: id, dug: idx === dugIdx }; });
   renderPieceRows();
   recompute();
 }
@@ -884,6 +918,7 @@ function clearItem(id) {
   renderPieceRows();
   recompute();
 }
+function setDug(i, val) { state.cells[i].dug = val; recompute(); }
 
 /* ---------- Wiring ---------- */
 const markCustom = () => { $("#stageSelect").value = ""; };
