@@ -108,6 +108,8 @@
   .cell.empty { background: var(--empty); color: #5a5f6a; cursor: pointer; }
   .cell.item  { background: var(--item); color: #20160a; }
   .cell .sub { position: absolute; bottom: 2px; right: 4px; font-size: 9px; font-weight: 500; opacity: .8; }
+  .cell .star { position: absolute; top: 1px; left: 3px; font-size: 10px; color: #fff; text-shadow: 0 0 3px #000; }
+  .cell.best { border-color: #fff; box-shadow: 0 0 0 2px #fff, 0 0 10px 2px rgba(255,255,255,.55); z-index: 1; }
   .cell.hl { border-color: #fff; }
   .cell.dim { opacity: .35; }
   .legend { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 12px; color: var(--muted); }
@@ -195,8 +197,9 @@
       <span>0%</span><div class="bar"></div><span>100%</span>
       <span style="margin-left:14px"><span style="display:inline-block;width:11px;height:11px;background:var(--empty);border-radius:2px;vertical-align:middle"></span> empty</span>
       <span><span style="display:inline-block;width:11px;height:11px;background:var(--item);border-radius:2px;vertical-align:middle"></span> found</span>
+      <span style="margin-left:14px">★ best tile to dig</span>
     </div>
-    <div class="hint">Click a hidden tile → choose <b>Empty</b> or which treasure you hit, then pick the placement that matches the direction it ran. Click a dug tile to clear it.</div>
+    <div class="hint">Click a hidden tile → choose <b>Empty</b> or which treasure you hit, then pick the placement that matches the direction it ran. Click a dug tile to clear it. The ★ marks the highest-probability tile(s).</div>
   </div>
 </div>
 
@@ -204,6 +207,27 @@
 
 <script>
 "use strict";
+
+/* ============================================================================
+   TREASURE HUNT SOLVER — single-file app (no build step).
+   See docs/ARCHITECTURE.md for the full design write-up.
+
+   Layout of this script, top to bottom:
+     1. DATA          TREASURES (sizes) and STAGES (presets).
+     2. STATE         `state` = grid size + the stage's pieces + per-cell status.
+     3. PIECE HELPERS  normalise/merge pieces by dimension; count remaining.
+     4. UI: CONTROLS   presets dropdown, piece editor, quick-add.
+     5. SOLVER         per-tile probability that a tile covers a treasure.
+                       Exact enumeration when small; Monte-Carlo when not.
+     6. ESTIMATOR      simulate greedy play to estimate picks needed to finish.
+     7. RENDER         paint the heatmap + mark the best tile(s) to dig.
+     8. INTERACTION    click a tile -> popover -> mark empty / place a treasure.
+     9. WIRING + BOOT  event handlers, then load Stage 1.
+
+   Core model: every cell is hidden / empty / item. A "found" treasure is fully
+   located (you learn its footprint from one dig), so the solver only ever has
+   to place the *remaining* pieces into the still-hidden cells with no overlap.
+   ============================================================================ */
 
 /* ---------- Known treasure sizes (for quick-add). Solver merges by dimension. ---------- */
 const TREASURES = [
@@ -218,7 +242,6 @@ const TREASURES = [
    Stage 12's 2×3 and 1×2 are labelled Radio / Outdated Console, but could be
    TV / Syringe (same sizes) — labels only, no effect on the probabilities. */
 const STAGES = [
-  { n: 0,  grid: 5, pick: 15,  pieces: [] }, // default empty stage
   { n: 1,  grid: 5, pick: 15,  pieces: [["Zobo Cola", 3]] },
   { n: 2,  grid: 5, pick: 15,  pieces: [["Zobo Zine", 1], ["Syringe", 3]] },
   { n: 3,  grid: 5, pick: 15,  pieces: [["Trumpet", 1], ["Zobo Zine", 1], ["Outdated Console", 2]] },
@@ -236,6 +259,12 @@ const STAGES = [
   { n: 15, grid: 7, pick: 70,  pieces: [["Zobo Cola", 2], ["Syringe", 2], ["TV", 1], ["Statue", 2]] },
   { n: 16, grid: 7, pick: 100, pieces: [["Outdated Console", 2], ["Pirated Magazine", 2], ["Statue", 1]] },
 ];
+// Stages loadable by the test suite but hidden from the dropdown (e.g. an empty
+// board for the "nothing left to find" path). Negative n keeps them out of sight.
+const HIDDEN_STAGES = [
+  { n: -1, grid: 5, pick: 15, pieces: [] }, // empty board — used by tests only
+];
+const ALL_STAGES = STAGES.concat(HIDDEN_STAGES);   // dropdown shows STAGES; loadStage() accepts either
 const sizeOf = name => { const t = TREASURES.find(t => t[0] === name); return [t[1], t[2]]; };
 
 /* ---------- State ---------- */
@@ -287,7 +316,7 @@ function populateStages() {
 }
 
 function loadStage(n) {
-  const s = STAGES.find(s => s.n === +n);
+  const s = ALL_STAGES.find(s => s.n === +n);
   if (!s) return;
   state.pieces = [];
   s.pieces.forEach(([name, count]) => { const [w, h] = sizeOf(name); addPiece(w, h, count); });
@@ -658,10 +687,24 @@ function recompute() {
   const N = state.N;
   const cellsEl = gridEl.children;
 
+  // Best tile(s) to dig next = highest-probability hidden tile (found treasures
+  // are already revealed, so they're excluded). Ties (common, esp. by symmetry)
+  // are all highlighted. BEST_EPS folds exact-fraction ties together while
+  // staying tight enough that Monte-Carlo noise doesn't over-highlight.
+  const BEST_EPS = 1e-6;
+  let maxP = 0;
+  if (res.total > 0) {
+    for (let i = 0; i < N * N; i++) {
+      if (state.cells[i].status !== "hidden") continue;
+      const p = res.cover[i] / res.total;
+      if (isFinite(p) && p > maxP) maxP = p;
+    }
+  }
+
   for (let i = 0; i < N * N; i++) {
     const el = cellsEl[i];
     const c = state.cells[i];
-    el.classList.remove("hl", "dim");
+    el.classList.remove("hl", "dim", "best");
     if (c.status === "empty") {
       el.className = "cell empty"; el.innerHTML = "✕"; el.style.background = "";
       continue;
@@ -682,6 +725,10 @@ function recompute() {
       el.style.background = heat(p);
       el.style.color = p > 0.55 ? "#1a1a1a" : "#eef";
       el.innerHTML = (p * 100).toFixed(p >= 0.995 ? 0 : (p < 0.1 ? 1 : 0)) + "%";
+      if (maxP > 0 && p >= maxP - BEST_EPS) {
+        el.classList.add("best");
+        el.insertAdjacentHTML("beforeend", '<span class="star">★</span>');
+      }
     }
   }
 

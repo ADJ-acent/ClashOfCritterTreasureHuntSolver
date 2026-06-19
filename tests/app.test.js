@@ -31,6 +31,9 @@ function loadStage(win, doc, n) {
   sel.dispatchEvent(new win.Event("change", { bubbles: true }));
 }
 
+// Hidden stages aren't in the dropdown, so load them via the global loader directly.
+const loadHidden = (win, n) => win.loadStage(n);
+
 const popButtons = doc => [...doc.querySelectorAll("#pop button")];
 const cells = doc => [...doc.querySelector("#grid").children];
 
@@ -75,7 +78,7 @@ test("marking a treasure via the placement submenu keeps the popover open and ma
 
 test("stage presets load grid size, treasures, and pickaxes-per-tile", () => {
   const { window, doc } = boot();
-  assert.strictEqual(doc.querySelectorAll("#stageSelect option").length, 18, "custom + 17 stages");
+  assert.strictEqual(doc.querySelectorAll("#stageSelect option").length, 17, "custom + 16 stages (test stage is hidden)");
 
   loadStage(window, doc, 9);
   assert.strictEqual(doc.querySelector("#gridSize").value, "7");
@@ -112,9 +115,24 @@ test("pick-cost estimator returns at least one dig per treasure", async () => {
 
 test("estimator reports 'already found' when nothing remains", async () => {
   const { window, doc } = boot();
-  // Custom empty stage: clear pieces, no treasures to find.
-  loadStage(window, doc, 0); // Stage 0 has no treasures defined
+  loadHidden(window, -1); // hidden empty test stage (not shown in the dropdown)
   click(window, doc.querySelector("#estimate"));
   await new Promise(r => setTimeout(r, 80));
   assert.match(doc.querySelector("#estimateOut").textContent, /already found|0 picks/i);
+});
+
+test("highlights the best hidden tile(s) but never empties or found treasures", () => {
+  const { window, doc } = boot(); // Stage 1: three 1×3 on a 5×5
+  // At least one best tile is marked on a fresh board.
+  assert.ok(cells(doc).some(c => /best/.test(c.className)), "a best tile should be highlighted");
+
+  // Best tiles are the maximum-probability hidden tiles.
+  const pct = el => parseFloat(el.textContent);
+  const best = cells(doc).filter(c => /best/.test(c.className));
+  const maxPct = Math.max(...cells(doc).filter(c => !/empty|item/.test(c.className)).map(pct));
+  best.forEach(c => assert.ok(Math.abs(pct(c) - maxPct) < 0.6, "best tile is at (rounded) max probability"));
+
+  // An empty test board has no treasures left -> nothing highlighted.
+  loadHidden(window, -1);
+  assert.strictEqual(cells(doc).filter(c => /best/.test(c.className)).length, 0, "no best tile when nothing remains");
 });

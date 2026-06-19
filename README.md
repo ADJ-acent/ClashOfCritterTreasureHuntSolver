@@ -27,7 +27,7 @@ A single-page web app that helps you play the **Treasure Hunt** event efficientl
 
 ## Development
 
-Everything lives in a single static file, [`index.html`](index.html) — no build step. Open it in a browser to run it.
+Everything lives in a single static file, [`index.html`](index.html) — no build step. Open it in a browser to run it. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for how the solver, estimator, and rendering are put together.
 
 ### Tests
 
