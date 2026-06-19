@@ -100,15 +100,18 @@ test("editing pieces switches the preset dropdown to custom", () => {
   assert.strictEqual(doc.querySelector("#stageSelect").value, "", "manual edit -> custom");
 });
 
-test("pick-cost estimator returns at least one dig per treasure", async () => {
+// Regression: finding a treasure isn't collecting it — every treasure tile must be
+// dug out. Stage 1 = three 1×3 = 9 treasure tiles, so the estimate must be >= 9.
+// (The old model counted ~1 dig per treasure and reported well under 9.)
+test("pick-cost estimator counts every treasure tile, not one hit per treasure", async () => {
   const { window, doc, errors } = boot();
-  loadStage(window, doc, 1); // three 1×3 treasures
+  loadStage(window, doc, 1); // three 1×3 = 9 treasure tiles
   click(window, doc.querySelector("#estimate"));
   await new Promise(r => setTimeout(r, 80)); // runEstimate defers compute via setTimeout
 
   const txt = doc.querySelector("#estimateOut").textContent;
   const tiles = parseFloat((txt.match(/([\d.]+) tiles/) || [])[1]);
-  assert.ok(tiles >= 3, `mean tiles (${tiles}) must be >= 3 treasures`);
+  assert.ok(tiles >= 9, `mean tiles (${tiles}) must be >= 9 (all treasure tiles dug out)`);
   assert.match(txt, /pickaxes/);
   assert.strictEqual(errors.length, 0, errors.join("\n"));
 });
@@ -135,4 +138,31 @@ test("highlights the best hidden tile(s) but never empties or found treasures", 
   // An empty test board has no treasures left -> nothing highlighted.
   loadHidden(window, -1);
   assert.strictEqual(cells(doc).filter(c => /best/.test(c.className)).length, 0, "no best tile when nothing remains");
+});
+
+// Helper: locate a treasure of the given size at a cell (clicks tile -> size -> first placement).
+function placeTreasure(win, doc, cellIndex, sizeRe) {
+  click(win, cells(doc)[cellIndex]);
+  click(win, popButtons(doc).find(b => sizeRe.test(b.textContent)));
+  click(win, popButtons(doc).find(b => /horizontal|vertical/.test(b.textContent)));
+}
+
+test("locating a treasure digs the clicked tile and leaves the rest buried", () => {
+  const { window, doc } = boot(); // Stage 1, 1×3
+  placeTreasure(window, doc, 0, /1×3/);
+  const item = cells(doc).filter(c => /\bitem\b/.test(c.className));
+  assert.strictEqual(item.length, 3, "a 1×3 occupies 3 tiles");
+  assert.strictEqual(item.filter(c => !/buried/.test(c.className)).length, 1, "only the clicked tile is dug");
+  assert.strictEqual(item.filter(c => /buried/.test(c.className)).length, 2, "the other 2 tiles are buried");
+});
+
+test("a buried treasure tile can be toggled to dug out", () => {
+  const { window, doc } = boot();
+  placeTreasure(window, doc, 0, /1×3/);
+  const buried = cells(doc).find(c => /buried/.test(c.className));
+  click(window, buried);
+  const markDug = popButtons(doc).find(b => /dug out/i.test(b.textContent));
+  assert.ok(markDug, "clicking a buried tile offers 'Mark as dug out'");
+  click(window, markDug);
+  assert.ok(/\bitem\b/.test(buried.className) && !/buried/.test(buried.className), "tile is now dug out");
 });

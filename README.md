@@ -16,14 +16,14 @@ A single-page web app that helps you play the **Treasure Hunt** event efficientl
 1. Pick a stage from the **Preset** dropdown (or set the grid size and add treasures manually).
 2. Click a hidden tile and tell the app what you found:
    - **Empty** — marks the tile as dug-and-empty.
-   - **A treasure** — choose its size, then pick the placement that matches the direction it ran. Hitting any one tile reveals the whole treasure, so its full footprint gets marked.
-3. The heatmap recalculates after every dig. Dig the hottest tiles to find treasures fastest.
+   - **A treasure** — choose its size, then pick the placement that matches the direction it ran. The clicked tile is marked **dug** (✓) and the rest of the footprint is shown **located but buried** (⛏, hatched) — you still have to dig those out to collect it.
+3. The heatmap recalculates after every dig. The **★** marks the best unknown tile(s) to dig next. Dig unknown tiles to locate treasures (and trigger bombs); dig out the located treasures last. Click a buried tile to mark it ✓ dug as you uncover it.
 4. Click **Estimate picks to finish** any time to see the expected remaining cost.
 
 ## How the math works
 
 - **Probabilities:** the app considers every way the remaining treasures can be placed in the hidden tiles without overlapping (rotations allowed, touching allowed) and consistent with what you've dug. Each tile's probability is the fraction of those layouts that cover it. Small boards are solved **exactly**; large boards fall back to **Monte-Carlo sampling** (the status line tells you which).
-- **Pick-cost estimate:** because hitting one tile of a treasure reveals all of it, "solving" means digging until every treasure has been hit once. The app samples many real layouts, simulates the greedy strategy (always dig the highest-coverage tile), and averages the tiles dug. It ignores bombs, which only make the real cost lower.
+- **Pick-cost estimate:** finding a treasure isn't collecting it — every treasure tile has to be dug out. So picks-to-finish = the empty tiles you waste while hunting for unlocated treasures (estimated by sampling many real layouts and simulating greedy play) **plus** every treasure tile still to dig (unlocated treasure areas + buried tiles of located ones). It ignores bombs, which only make the real cost lower.
 
 ## Development
 
