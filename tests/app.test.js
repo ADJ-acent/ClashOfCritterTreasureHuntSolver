@@ -213,3 +213,21 @@ test("popover renders as a bottom sheet on small screens", () => {
   click(window, cells(doc)[0]); // opens the dig menu -> placePop()
   assert.ok(doc.querySelector("#pop").classList.contains("sheet"), "popover should be a bottom sheet on mobile");
 });
+
+test("DP toggle: exact on a dense stage where DFS bails, falls back to MC when off", () => {
+  const { window, doc, errors } = boot();
+  loadStage(window, doc, 13); // 7x7, ~556k layouts -> DFS bails (>EXACT_LEAF_BUDGET)
+  const status = () => doc.querySelector("#status").textContent;
+  // default ON -> exact via the profile DP (no Monte-Carlo sampling)
+  assert.match(status(), /Exact over [\d,]+ layouts \(DP\)/);
+  assert.strictEqual(errors.length, 0, errors.join("\n"));
+  // OFF -> graceful fallback to the Monte-Carlo estimate
+  const cb = doc.querySelector("#dpToggle");
+  cb.checked = false;
+  cb.dispatchEvent(new window.Event("change", { bubbles: true }));
+  assert.match(status(), /Estimated from/);
+  // back ON -> exact again
+  cb.checked = true;
+  cb.dispatchEvent(new window.Event("change", { bubbles: true }));
+  assert.match(status(), /\(DP\)/);
+});
