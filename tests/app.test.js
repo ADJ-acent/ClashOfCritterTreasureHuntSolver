@@ -34,6 +34,12 @@ function loadStage(win, doc, n) {
 // Hidden stages aren't in the dropdown, so load them via the global loader directly.
 const loadHidden = (win, n) => win.loadStage(n);
 
+// jsdom has no matchMedia (=> desktop/hover flow by default). Call this to simulate
+// a touch device: matchMedia matches both the no-hover and phone-width queries.
+const setMobile = win => {
+  win.matchMedia = q => ({ matches: /hover:\s*none/.test(q) || /max-width:\s*720px/.test(q), media: q, addEventListener() {}, removeEventListener() {} });
+};
+
 const popButtons = doc => [...doc.querySelectorAll("#pop button")];
 const cells = doc => [...doc.querySelector("#grid").children];
 
@@ -57,9 +63,9 @@ test("digging an empty tile marks it and recomputes", () => {
 
 // Regression: opening the placement submenu used to self-close the popover
 // (the clicked button was detached by innerHTML rebuild, so the outside-click
-// handler hid it). It must stay open and let you mark the treasure.
-test("marking a treasure via the placement submenu keeps the popover open and marks tiles", () => {
-  const { window, doc, errors } = boot();
+// handler hid it). On desktop a single click on a placement commits it.
+test("desktop: placement submenu stays open and a click places the treasure", () => {
+  const { window, doc, errors } = boot();   // jsdom has no matchMedia -> desktop (hover) flow
   click(window, cells(doc)[0]);
   const sizeBtn = popButtons(doc).find(b => /1×3/.test(b.textContent));
   assert.ok(sizeBtn, "1×3 option should be offered");
@@ -67,13 +73,28 @@ test("marking a treasure via the placement submenu keeps the popover open and ma
 
   const pop = doc.querySelector("#pop");
   assert.strictEqual(pop.style.display, "block", "popover must stay open after opening submenu");
+  assert.ok(!popButtons(doc).some(b => /Place it/i.test(b.textContent)), "desktop has no separate Place-it button");
 
   const opt = popButtons(doc).find(b => /horizontal|vertical/.test(b.textContent));
   assert.ok(opt, "at least one placement option should be offered");
-  click(window, opt);
-
-  assert.strictEqual(cells(doc).filter(c => /item/.test(c.className)).length, 3, "a 1×3 should mark 3 tiles");
+  click(window, opt); // desktop: a single click commits
+  assert.strictEqual(cells(doc).filter(c => /\bitem\b/.test(c.className)).length, 3, "a 1×3 should mark 3 tiles");
   assert.strictEqual(errors.length, 0, errors.join("\n"));
+});
+
+test("mobile: placement is select-then-place (tap previews, Place it commits)", () => {
+  const { window, doc } = boot();
+  setMobile(window);
+  click(window, cells(doc)[0]);
+  click(window, popButtons(doc).find(b => /1×3/.test(b.textContent)));
+  const opt = popButtons(doc).find(b => /horizontal|vertical/.test(b.textContent));
+  assert.ok(opt, "a candidate should be offered");
+  click(window, opt); // selects/previews only
+  assert.strictEqual(cells(doc).filter(c => /\bitem\b/.test(c.className)).length, 0, "tapping a row must not commit");
+  const place = popButtons(doc).find(b => /Place it/i.test(b.textContent));
+  assert.ok(place, "a 'Place it' button should appear on touch");
+  click(window, place);
+  assert.strictEqual(cells(doc).filter(c => /\bitem\b/.test(c.className)).length, 3, "Place it commits the 3 tiles");
 });
 
 test("stage presets load grid size, treasures, and pickaxes-per-tile", () => {
@@ -144,7 +165,7 @@ test("highlights the best hidden tile(s) but never empties or found treasures", 
 function placeTreasure(win, doc, cellIndex, sizeRe) {
   click(win, cells(doc)[cellIndex]);
   click(win, popButtons(doc).find(b => sizeRe.test(b.textContent)));
-  click(win, popButtons(doc).find(b => /horizontal|vertical/.test(b.textContent)));
+  click(win, popButtons(doc).find(b => /horizontal|vertical/.test(b.textContent))); // desktop: a click places it
 }
 
 test("locating a treasure digs the clicked tile and leaves the rest buried", () => {
@@ -165,4 +186,30 @@ test("a buried treasure tile can be toggled to dug out", () => {
   assert.ok(markDug, "clicking a buried tile offers 'Mark as dug out'");
   click(window, markDug);
   assert.ok(/\bitem\b/.test(buried.className) && !/buried/.test(buried.className), "tile is now dug out");
+});
+
+test("mobile placement picker shows a mini-diagram for each candidate", () => {
+  const { window, doc } = boot();
+  setMobile(window);
+  click(window, cells(doc)[0]);
+  click(window, popButtons(doc).find(b => /1×3/.test(b.textContent)));
+  const minis = doc.querySelectorAll("#pop .mini").length;
+  const cands = popButtons(doc).filter(b => /horizontal|vertical/.test(b.textContent)).length;
+  assert.ok(cands > 0 && minis === cands, "every candidate row has its own mini-diagram");
+});
+
+test("desktop placement picker also shows mini-diagrams", () => {
+  const { window, doc } = boot(); // no matchMedia -> desktop flow
+  click(window, cells(doc)[0]);
+  click(window, popButtons(doc).find(b => /1×3/.test(b.textContent)));
+  const minis = doc.querySelectorAll("#pop .mini").length;
+  const cands = popButtons(doc).filter(b => /horizontal|vertical/.test(b.textContent)).length;
+  assert.ok(cands > 0 && minis === cands, "desktop rows have mini-diagrams too");
+});
+
+test("popover renders as a bottom sheet on small screens", () => {
+  const { window, doc } = boot();
+  setMobile(window);
+  click(window, cells(doc)[0]); // opens the dig menu -> placePop()
+  assert.ok(doc.querySelector("#pop").classList.contains("sheet"), "popover should be a bottom sheet on mobile");
 });
