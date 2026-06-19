@@ -227,8 +227,8 @@
   <!-- ============ STAGE ============ -->
   <div class="panel stage-area">
     <div id="status">Set up a stage and press “Start / Reset board”.</div>
-    <label class="dp-toggle" style="display:flex;align-items:center;gap:6px;margin:6px 0;font-size:13px;cursor:pointer" title="Compute exact probabilities with a dynamic-programming solver instead of Monte-Carlo sampling. More accurate on dense boards, but uses more CPU — turn off on low-end devices.">
-      <input type="checkbox" id="dpToggle" /> Exact probabilities (DP) <span class="hint" style="display:inline">— more accurate, more CPU</span>
+    <label class="dp-toggle" style="display:flex;align-items:center;gap:6px;margin:6px 0;font-size:13px;cursor:pointer" title="Compute exact probabilities with a dynamic-programming solver instead of Monte-Carlo sampling. Usually as fast or faster, but on the densest stages it can take ~0.5–0.7s and (unlike sampling) isn't time-capped — turn it off on low-end devices.">
+      <input type="checkbox" id="dpToggle" /> Exact probabilities (DP) <span class="hint" style="display:inline">— exact, not sampled</span>
     </label>
     <div id="grid"></div>
     <div class="legend">
