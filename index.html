@@ -227,6 +227,9 @@
   <!-- ============ STAGE ============ -->
   <div class="panel stage-area">
     <div id="status">Set up a stage and press “Start / Reset board”.</div>
+    <label class="dp-toggle" style="display:flex;align-items:center;gap:6px;margin:6px 0;font-size:13px;cursor:pointer" title="Compute exact probabilities with a dynamic-programming solver instead of Monte-Carlo sampling. More accurate on dense boards, but uses more CPU — turn off on low-end devices.">
+      <input type="checkbox" id="dpToggle" /> Exact probabilities (DP) <span class="hint" style="display:inline">— more accurate, more CPU</span>
+    </label>
     <div id="grid"></div>
     <div class="legend">
       <span>0%</span><div class="bar"></div><span>100%</span>
@@ -450,6 +453,12 @@ const EXACT_LEAF_BUDGET = 400000;
 const EXACT_NODE_BUDGET = 6000000;
 const MC_SAMPLES = 40000;
 const MC_TIME_MS = 300;
+// Profile-DP exact engine: gives exact per-cell probabilities (no MC sampling
+// error) for boards up to DP_MAX_N, in well under a second even for the densest
+// real stage. Gated by a user toggle (it's heavier on low-end devices) and a
+// state budget so a pathological manual board falls back to DFS/MC. See dpSolve().
+const DP_MAX_N = 8;
+const DP_STATE_BUDGET = 1500000;
 
 function buildPlacements(N, blocked, w, h) {
   // returns array of Int32Array (cell indices) for both orientations, fully on free cells
@@ -504,6 +513,15 @@ function solve() {
   }
   if (expanded.some(e => e.impossible)) {
     return { cover, total: 0, mode: "exact", hidden, blocked, ok: false };
+  }
+
+  // ---- EXACT via profile DP (toggleable; exact + fast for N <= DP_MAX_N) ----
+  if (dpEnabled() && N <= DP_MAX_N) {
+    const dp = dpSolve(N, blocked, groups);   // groups are {w,h,rem}
+    if (dp) {                                  // null => over state budget; fall back
+      for (let i = 0; i < M; i++) cover[i] = dp.cover[i];
+      return { cover, total: dp.total, mode: "dp", hidden, blocked, ok: dp.total > 0 };
+    }
   }
 
   // ---- try EXACT ----
@@ -589,6 +607,117 @@ function monteCarlo(expanded, placements, M, cover) {
     if ((tried & 1023) === 0 && performance.now() - t0 > MC_TIME_MS) break;
   }
   return { success, tried };
+}
+
+/* ============================================================
+   EXACT SOLVER — profile (broken-plug) DP
+   Same answer as tryExact (per-cell coverage over all valid no-overlap
+   layouts) but counts instead of enumerating, so it stays exact on the dense
+   stages where DFS blows up and the app would otherwise fall to Monte-Carlo.
+
+   Scan cells row-major. State = (row, P[], counts[]):
+     P[c]     = # rows from the current row downward that column c is already
+                occupied by a rectangle whose top is at/above this row.
+     counts[] = remaining pieces per type.
+   At a free top cell you leave it empty or drop a piece's top-left corner.
+   Pass 1 (DProw) memoises B(s) = # completions from each row-entry state.
+   Pass 2 walks rows forward tracking F(s) = # prefixes reaching s; for every way
+   to fill a row (entry s -> exit s', occupying a set of cells) it adds F(s)·B(s')
+   to each occupied cell. Each layout is counted once at its row-r filling, so
+   this yields exact coverage in ~2x the total-count cost. Returns null if the
+   state count exceeds DP_STATE_BUDGET (pathological board -> caller falls back).
+   ============================================================ */
+function dpEnabled() {
+  const el = document.getElementById("dpToggle");
+  return el ? el.checked : true;
+}
+function dpSolve(N, blocked, types) {
+  const M = N * N, T = types.length;
+  if (T === 0) return { cover: new Float64Array(M), total: 1 };
+  const oris = types.map(t => (t.w === t.h) ? [[t.w, t.h]] : [[t.w, t.h], [t.h, t.w]]);
+  let Hmax = 1; for (const t of types) Hmax = Math.max(Hmax, t.w, t.h);
+  const PB = Hmax, Pmax = Math.pow(PB, N);
+  const countRadix = types.map(t => t.rem + 1);
+  let countMax = 1; for (const r of countRadix) countMax *= r;
+  const encCounts = cn => { let k = 0; for (let i = T - 1; i >= 0; i--) k = k * countRadix[i] + cn[i]; return k; };
+  const encP = P => { let k = 0; for (let c = N - 1; c >= 0; c--) k = k * PB + P[c]; return k; };
+  const fullKey = (r, P, counts) => (r * Pmax + encP(P)) * countMax + encCounts(counts);
+
+  // pass 1: B(s) = completions from each row-entry state
+  const memo = new Map();
+  let aborted = false;
+  function DProw(r, P, counts) {
+    if (aborted) return 0;
+    if (r === N) { for (let i = 0; i < T; i++) if (counts[i] !== 0) return 0; return 1; }
+    const key = fullKey(r, P, counts);
+    const c = memo.get(key); if (c !== undefined) return c;
+    const v = fillCount(r, 0, P, counts, new Int32Array(N));
+    memo.set(key, v);
+    if (memo.size > DP_STATE_BUDGET) aborted = true;
+    return v;
+  }
+  function fillCount(r, c, P, counts, nextP) {
+    if (aborted) return 0;
+    if (c === N) return DProw(r + 1, nextP, counts);
+    if (P[c] > 0) { nextP[c] = P[c] - 1; return fillCount(r, c + 1, P, counts, nextP); }
+    let total = 0; nextP[c] = 0; total += fillCount(r, c + 1, P, counts, nextP);
+    if (!blocked[r * N + c]) for (let t = 0; t < T && !aborted; t++) { if (!counts[t]) continue;
+      for (const [pw, ph] of oris[t]) {
+        if (c + pw > N || r + ph > N) continue;
+        let ok = true;
+        for (let cc = c; cc < c + pw && ok; cc++) if (P[cc] !== 0) ok = false;
+        for (let rr = r; rr < r + ph && ok; rr++) for (let cc = c; cc < c + pw; cc++) if (blocked[rr * N + cc]) { ok = false; break; }
+        if (!ok) continue;
+        counts[t]--; for (let cc = c; cc < c + pw; cc++) nextP[cc] = ph - 1;
+        total += fillCount(r, c + pw, P, counts, nextP); counts[t]++;
+      }
+    }
+    return total;
+  }
+  const full = Int32Array.from(types.map(t => t.rem));
+  const total = DProw(0, new Int32Array(N), full);
+  if (aborted) return null;
+
+  // pass 2: forward F + coverage
+  const cover = new Float64Array(M);
+  if (total === 0) return { cover, total };
+  function enumFill(r, c, P, counts, nextP, occ, cb) {
+    if (c === N) { cb(nextP, counts, occ); return; }
+    if (P[c] > 0) { nextP[c] = P[c] - 1; occ.push(c); enumFill(r, c + 1, P, counts, nextP, occ, cb); occ.pop(); return; }
+    nextP[c] = 0; enumFill(r, c + 1, P, counts, nextP, occ, cb);
+    if (!blocked[r * N + c]) for (let t = 0; t < T; t++) { if (!counts[t]) continue;
+      for (const [pw, ph] of oris[t]) {
+        if (c + pw > N || r + ph > N) continue;
+        let ok = true;
+        for (let cc = c; cc < c + pw && ok; cc++) if (P[cc] !== 0) ok = false;
+        for (let rr = r; rr < r + ph && ok; rr++) for (let cc = c; cc < c + pw; cc++) if (blocked[rr * N + cc]) { ok = false; break; }
+        if (!ok) continue;
+        counts[t]--; const base = occ.length;
+        for (let cc = c; cc < c + pw; cc++) { nextP[cc] = ph - 1; occ.push(cc); }
+        enumFill(r, c + pw, P, counts, nextP, occ, cb); occ.length = base; counts[t]++;
+      }
+    }
+  }
+  let cur = new Map();   // rowKey -> { P, counts, F }
+  cur.set(encP(new Int32Array(N)) * countMax + encCounts(full), { P: new Int32Array(N), counts: full.slice(), F: 1 });
+  for (let r = 0; r < N; r++) {
+    const nxt = new Map();
+    for (const [, st] of cur) {
+      const Fs = st.F;
+      enumFill(r, 0, st.P, st.counts, new Int32Array(N), [], (exitP, exitCounts, occList) => {
+        let B;   // terminal-row exit states aren't memoised (DProw's base case)
+        if (r + 1 === N) { B = 1; for (let i = 0; i < T; i++) if (exitCounts[i]) { B = 0; break; } }
+        else B = memo.get(fullKey(r + 1, exitP, exitCounts)) || 0;
+        const fkey = encP(exitP) * countMax + encCounts(exitCounts);
+        let e = nxt.get(fkey);
+        if (!e) { e = { P: Int32Array.from(exitP), counts: Int32Array.from(exitCounts), F: 0 }; nxt.set(fkey, e); }
+        e.F += Fs;
+        if (B > 0) { const w = Fs * B; for (const cc of occList) cover[r * N + cc] += w; }
+      });
+    }
+    cur = nxt;
+  }
+  return { cover, total };
 }
 
 /* ============================================================
@@ -799,8 +928,8 @@ function recompute() {
   let msg = `Remaining to find: ${remList}. `;
   if (!res.ok && res.total === 0) {
     msg += `<span class="warn">No valid layout fits these treasures in the remaining tiles — check your digs.</span>`;
-  } else if (res.mode === "exact") {
-    msg += `Exact over ${res.total.toLocaleString()} layout${res.total === 1 ? "" : "s"}.`;
+  } else if (res.mode === "exact" || res.mode === "dp") {
+    msg += `Exact over ${res.total.toLocaleString()} layout${res.total === 1 ? "" : "s"}${res.mode === "dp" ? " (DP)" : ""}.`;
   } else {
     const rej = res.samples ? (100 * (1 - res.total / res.samples)).toFixed(0) : 0;
     msg += `Estimated from ${res.total.toLocaleString()} samples (${rej}% rejected) — too many layouts to count exactly.`;
@@ -1029,10 +1158,13 @@ $("#addPiece").onclick = () => { addPiece($("#newW").value, $("#newH").value, $(
 $("#newGame").onclick = newGame;
 $("#clearDigs").onclick = clearDigs;
 $("#estimate").onclick = runEstimate;
+$("#dpToggle").onchange = e => { try { localStorage.setItem("th.dp", e.target.checked ? "1" : "0"); } catch (_) {} recompute(); };
 document.addEventListener("click", e => { if (!popEl.contains(e.target)) hidePop(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") hidePop(); });
 
 /* ---------- Boot ---------- */
+try { $("#dpToggle").checked = (localStorage.getItem("th.dp") ?? "1") !== "0"; }
+catch (_) { $("#dpToggle").checked = true; }   // default ON; persisted opt-out
 renderQuickAdd();
 populateStages();
 loadStage(1);   // start on Stage 1
