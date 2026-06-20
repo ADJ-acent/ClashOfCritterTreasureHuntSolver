@@ -3,7 +3,59 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Treasure Hunt — Probability Solver</title>
+
+<!-- Google Search Console ownership verification (keep this; removing it un-verifies the site) -->
+<meta name="google-site-verification" content="fGwtbJfe_ClbO0XRU523D6bJ_AjwEHXk6AG-Jv6pVxU" />
+
+<!-- The JS rewrites document.title from the app.pageTitle i18n string on load; this static title is the
+     no-JS / first-paint fallback and is kept in sync with the English app.pageTitle. -->
+<title>Clash of Critters Treasure Hunt Probability Solver</title>
+<meta name="description" content="Free Clash of Critters Treasure Hunt solver: see each hidden tile's odds of covering a treasure, find the best tile to dig, and estimate the picks needed to finish every stage." />
+<link rel="canonical" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/" />
+<meta name="robots" content="index, follow" />
+<meta name="theme-color" content="#15171c" />
+<link rel="icon" href="icon.png" type="image/png" />
+
+<!-- Open Graph (link previews on Discord, Reddit, forums, etc.) -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Clash of Critters Treasure Hunt Solver" />
+<meta property="og:title" content="Clash of Critters Treasure Hunt Probability Solver" />
+<meta property="og:description" content="See each hidden tile's odds of covering a treasure, find the best tile to dig, and estimate the picks needed to finish every stage." />
+<meta property="og:url" content="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/" />
+<meta property="og:image" content="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/icon.png" />
+<meta property="og:image:width" content="512" />
+<meta property="og:image:height" content="512" />
+
+<!-- Twitter / X card -->
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Clash of Critters Treasure Hunt Probability Solver" />
+<meta name="twitter:description" content="See each hidden tile's odds of covering a treasure, find the best tile to dig, and estimate the picks needed to finish every stage." />
+<meta name="twitter:image" content="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/icon.png" />
+
+<!-- Structured data: tells Google this is a free browser-based tool -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Clash of Critters Treasure Hunt Solver",
+  "url": "https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/",
+  "image": "https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/icon.png",
+  "description": "Free Clash of Critters Treasure Hunt solver: see each hidden tile's odds of covering a treasure, find the best tile to dig, and estimate the picks needed to finish every stage.",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Any (modern web browser)",
+  "browserRequirements": "Requires JavaScript",
+  "inLanguage": ["en", "de", "es", "pt", "fr", "ru", "zh-Hans", "zh-Hant", "ko", "ja"],
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Person", "name": "Andy Jiang" },
+  "about": {
+    "@type": "VideoGame",
+    "name": "Clash of Critters",
+    "alternateName": ["モンスターサバイバル", "塔塔冒险队", "塔塔冒險隊", "뚜까펫: 서바이벌"],
+    "publisher": { "@type": "Organization", "name": "Farlight Games" }
+  }
+}
+</script>
 <style>
   :root {
     --bg: #15171c;
@@ -25,7 +77,7 @@
     line-height: 1.4;
     /* Flex column so the footer can sit at the bottom of the viewport when the
        content is short (desktop), and simply at the end of the scroll otherwise
-       (mobile) — no position:fixed, so it never overlays content. */
+       (mobile). No position:fixed, so it never overlays content. */
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -184,8 +236,8 @@
 <body>
 <header>
   <div class="head-main">
-    <h1 data-i18n="app.title">Treasure Hunt — Tile Probability Solver</h1>
-    <p data-i18n="app.subtitle">Set the grid size and the treasures hidden in this stage, then dig. Each hidden tile shows the chance it covers a treasure.</p>
+    <h1 data-i18n="app.title">Clash of Critters Treasure Hunt Probability Solver</h1>
+    <p data-i18n="app.subtitle">A probability heatmap for the Clash of Critters Treasure Hunt event. Set the grid size and the treasures hidden in this stage, then dig. Each hidden tile shows the chance it covers a treasure.</p>
   </div>
   <select id="langSelect" title="Language" aria-label="Language" data-i18n-title="lang.label"></select>
 </header>
@@ -198,7 +250,7 @@
       <div class="row">
         <label><span data-i18n="setup.preset">Preset</span>
           <select id="stageSelect">
-            <option value="" data-i18n="stage.custom">— custom —</option>
+            <option value="" data-i18n="stage.custom">(custom)</option>
           </select>
         </label>
       </div>
@@ -224,7 +276,7 @@
         <button id="addPiece" data-i18n="setup.add">Add</button>
       </div>
       <div class="quick-add" id="quickAdd"></div>
-      <div class="hint" data-i18n="setup.quickAddHint">Quick-add buttons are common treasure sizes — the solver only cares about dimensions, so same-size treasures merge.</div>
+      <div class="hint" data-i18n="setup.quickAddHint">Quick-add buttons are common treasure sizes. The solver only cares about dimensions, so same-size treasures merge.</div>
     </section>
 
     <section>
@@ -242,8 +294,8 @@
   <!-- ============ STAGE ============ -->
   <div class="panel stage-area">
     <div id="status" data-i18n="board.statusInitial">Set up a stage and press “Start / Reset board”.</div>
-    <label class="dp-toggle" style="display:flex;align-items:center;gap:6px;margin:6px 0;font-size:13px;cursor:pointer" title="Compute exact probabilities with a dynamic-programming solver instead of Monte-Carlo sampling. Usually as fast or faster, but on the densest stages it can take ~0.5–0.7s and (unlike sampling) isn't time-capped — turn it off on low-end devices." data-i18n-title="dp.title">
-      <input type="checkbox" id="dpToggle" /> <span data-i18n="dp.label">Exact probabilities (DP)</span> <span class="hint" style="display:inline" data-i18n="dp.sub">— exact, not sampled</span>
+    <label class="dp-toggle" style="display:flex;align-items:center;gap:6px;margin:6px 0;font-size:13px;cursor:pointer" title="Compute exact probabilities with a dynamic-programming solver instead of Monte-Carlo sampling. Usually as fast or faster, but on the densest stages it can take ~0.5–0.7s and (unlike sampling) isn't time-capped. Turn it off on low-end devices." data-i18n-title="dp.title">
+      <input type="checkbox" id="dpToggle" /> <span data-i18n="dp.label">Exact probabilities (DP)</span> <span class="hint" style="display:inline" data-i18n="dp.sub">exact, not sampled</span>
     </label>
     <div id="grid"></div>
     <div class="legend">
@@ -253,7 +305,7 @@
       <span><span style="display:inline-block;width:11px;height:11px;background:var(--item);border-radius:2px;vertical-align:middle"></span> <span data-i18n="legend.dugOut">✓ dug out</span></span>
       <span style="margin-left:14px" data-i18n="legend.best">★ best tile to dig</span>
     </div>
-    <div class="hint" data-i18n-html="board.hint">Click a hidden tile → choose <b>Empty</b> or which treasure you hit, then pick the placement that matches the direction it ran. Located treasures still need digging out — click one to mark it ✓ dug. The ★ marks the highest-probability unknown tile(s) to dig next.</div>
+    <div class="hint" data-i18n-html="board.hint">Click a hidden tile → choose <b>Empty</b> or which treasure you hit, then pick the placement that matches the direction it ran. Located treasures still need digging out. Click one to mark it ✓ dug. The ★ marks the highest-probability unknown tile(s) to dig next.</div>
   </div>
 </div>
 
@@ -261,8 +313,8 @@
   © 2026 Andy Jiang ·
   <span data-i18n="footer.source">Source code:</span> <a href="https://github.com/adj-acent/ClashOfCritterTreasureHuntSolver" target="_blank" rel="noopener" style="color:var(--accent)">GitHub</a> ·
   <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" style="color:var(--accent)" title="Leave feedback, bugs, or suggestions" data-i18n="footer.feedback" data-i18n-title="footer.feedbackTitle">💬 Feedback</a> ·
-  <a href="https://github.com/adj-acent/ClashOfCritterTreasureHuntSolver/blob/main/LICENSE" target="_blank" rel="noopener" style="color:var(--accent)" data-i18n="footer.license">Non-commercial use only — PolyForm-NC&nbsp;1.0.0</a><br>
-  <span data-i18n="footer.disclaimer">Fan-made tool — not affiliated with or endorsed by the game or its publisher.</span>
+  <a href="https://github.com/adj-acent/ClashOfCritterTreasureHuntSolver/blob/main/LICENSE" target="_blank" rel="noopener" style="color:var(--accent)" data-i18n="footer.license">Non-commercial use only. PolyForm-NC&nbsp;1.0.0</a><br>
+  <span data-i18n="footer.disclaimer">Fan-made tool. Not affiliated with or endorsed by the game or its publisher.</span>
 </footer>
 
 <div id="pop"></div>
@@ -271,7 +323,7 @@
 "use strict";
 
 /* ============================================================================
-   TREASURE HUNT SOLVER — single-file app (no build step).
+   TREASURE HUNT SOLVER. Single-file app (no build step).
    See docs/ARCHITECTURE.md for the full design write-up.
 
    Layout of this script, top to bottom:
@@ -303,7 +355,7 @@ const TREASURES = [
 /* ---------- Stage presets (from the in-game stage table). ----------
    pieces: [name, count] using TREASURES sizes; same-size pieces merge in the solver.
    Stage 12's 2×3 and 1×2 are labelled Radio / Outdated Console, but could be
-   TV / Syringe (same sizes) — labels only, no effect on the probabilities. */
+   TV / Syringe (same sizes). Labels only, no effect on the probabilities. */
 const STAGES = [
   { n: 1,  grid: 5, pick: 15,  pieces: [["Zobo Cola", 3]] },
   { n: 2,  grid: 5, pick: 15,  pieces: [["Zobo Zine", 1], ["Syringe", 3]] },
@@ -325,7 +377,7 @@ const STAGES = [
 // Stages loadable by the test suite but hidden from the dropdown (e.g. an empty
 // board for the "nothing left to find" path). Negative n keeps them out of sight.
 const HIDDEN_STAGES = [
-  { n: -1, grid: 5, pick: 15, pieces: [] }, // empty board — used by tests only
+  { n: -1, grid: 5, pick: 15, pieces: [] }, // empty board. Used by tests only
 ];
 const ALL_STAGES = STAGES.concat(HIDDEN_STAGES);   // dropdown shows STAGES; loadStage() accepts either
 const sizeOf = name => { const t = TREASURES.find(t => t[0] === name); return [t[1], t[2]]; };
@@ -342,11 +394,11 @@ const gridEl = $("#grid");
 const popEl = $("#pop");
 
 /* ============================================================
-   I18N — inline UI translations. Kept in this file (no build step,
+   I18N. Inline UI translations. Kept in this file (no build step,
    no fetch) so the app still works opened directly via file://.
    t(key, params) interpolates {placeholder} tokens; plural-sensitive
    entries are {one,few,many,other} objects resolved with Intl.PluralRules.
-   Treasure NAMES are intentionally not translated — the UI shows only
+   Treasure NAMES are intentionally not translated. The UI shows only
    dimensions (w×h), so there are no game-specific terms here.
    ============================================================ */
 const LANGS = [
@@ -356,9 +408,9 @@ const LANGS = [
 ];
 const I18N = {
   en: {
-    "app.pageTitle": "Treasure Hunt — Probability Solver",
-    "app.title": "Treasure Hunt — Tile Probability Solver",
-    "app.subtitle": "Set the grid size and the treasures hidden in this stage, then dig. Each hidden tile shows the chance it covers a treasure.",
+    "app.pageTitle": "Clash of Critters Treasure Hunt Probability Solver",
+    "app.title": "Clash of Critters Treasure Hunt Probability Solver",
+    "app.subtitle": "A probability heatmap for the Clash of Critters Treasure Hunt event. Set the grid size and the treasures hidden in this stage, then dig. Each hidden tile shows the chance it covers a treasure.",
     "lang.label": "Language",
     "setup.heading": "Stage setup",
     "setup.preset": "Preset",
@@ -368,27 +420,27 @@ const I18N = {
     "setup.heightTitle": "height",
     "setup.countTitle": "count",
     "setup.add": "Add",
-    "setup.quickAddHint": "Quick-add buttons are common treasure sizes — the solver only cares about dimensions, so same-size treasures merge.",
-    "setup.notPublished": "treasures not published — add them manually",
+    "setup.quickAddHint": "Quick-add buttons are common treasure sizes. The solver only cares about dimensions, so same-size treasures merge.",
+    "setup.notPublished": "treasures not published. Add them manually",
     "setup.pickInfo": "<b>{pick}</b> pickaxes/tile",
     "pieces.heading": "Treasures in this stage",
     "pieces.colSize": "Size",
     "pieces.colCount": "Count",
     "pieces.colFound": "Found",
-    "pieces.empty": "No treasures yet — add some.",
+    "pieces.empty": "No treasures yet. Add some.",
     "board.start": "Start / Reset board",
     "board.clearDigs": "Clear digs",
     "board.statusInitial": "Set up a stage and press “Start / Reset board”.",
-    "board.hint": "Click a hidden tile → choose <b>Empty</b> or which treasure you hit, then pick the placement that matches the direction it ran. Located treasures still need digging out — click one to mark it ✓ dug. The ★ marks the highest-probability unknown tile(s) to dig next.",
+    "board.hint": "Click a hidden tile → choose <b>Empty</b> or which treasure you hit, then pick the placement that matches the direction it ran. Located treasures still need digging out. Click one to mark it ✓ dug. The ★ marks the highest-probability unknown tile(s) to dig next.",
     "dp.label": "Exact probabilities (DP)",
-    "dp.sub": "— exact, not sampled",
-    "dp.title": "Compute exact probabilities with a dynamic-programming solver instead of Monte-Carlo sampling. Usually as fast or faster, but on the densest stages it can take ~0.5–0.7s and (unlike sampling) isn't time-capped — turn it off on low-end devices.",
+    "dp.sub": "exact, not sampled",
+    "dp.title": "Compute exact probabilities with a dynamic-programming solver instead of Monte-Carlo sampling. Usually as fast or faster, but on the densest stages it can take ~0.5–0.7s and (unlike sampling) isn't time-capped. Turn it off on low-end devices.",
     "estimate.heading": "Pick-cost estimate",
     "estimate.button": "Estimate picks to finish",
     "estimate.simulating": "Simulating…",
-    "estimate.allDug": "All treasures dug out — 0 picks left.",
-    "estimate.impossible": "Can't place the remaining treasures in the hidden tiles — check the board.",
-    "estimate.deterministic": "all treasures located — just dig them out · ignores bombs",
+    "estimate.allDug": "All treasures dug out. 0 picks left.",
+    "estimate.impossible": "Can't place the remaining treasures in the hidden tiles. Check the board.",
+    "estimate.deterministic": "all treasures located. Just dig them out · ignores bombs",
     "estimate.detail": "usually {p10}–{p90} tiles · range {min}–{max} · {trials} sims · ignores bombs",
     "estimate.meanLine": "<b>≈ {mean} tiles</b> to fully dig up (greedy play)",
     "estimate.pickLine": "<b>≈ {picks} pickaxes</b> &nbsp;({pick}/tile)",
@@ -397,18 +449,18 @@ const I18N = {
     "legend.dugOut": "✓ dug out",
     "legend.best": "★ best tile to dig",
     "footer.source": "Source code:",
-    "footer.license": "Non-commercial use only — PolyForm-NC 1.0.0",
-    "footer.disclaimer": "Fan-made tool — not affiliated with or endorsed by the game or its publisher.",
+    "footer.license": "Non-commercial use only. PolyForm-NC 1.0.0",
+    "footer.disclaimer": "Fan-made tool. Not affiliated with or endorsed by the game or its publisher.",
     "footer.feedback": "💬 Feedback",
     "footer.feedbackTitle": "Leave feedback, bugs, or suggestions",
-    "stage.custom": "— custom —",
+    "stage.custom": "(custom)",
     "stage.option": "Stage {n}  ({grid}×{grid})",
     "status.remaining": "Remaining to find: {list}. ",
     "status.none": "none",
-    "status.noLayout": "No valid layout fits these treasures in the remaining tiles — check your digs.",
+    "status.noLayout": "No valid layout fits these treasures in the remaining tiles. Check your digs.",
     "status.exact": { one: "Exact over {total} layout{dp}.", other: "Exact over {total} layouts{dp}." },
-    "status.estimated": { one: "Estimated from {total} sample ({rej}% rejected) — too many layouts to count exactly.", other: "Estimated from {total} samples ({rej}% rejected) — too many layouts to count exactly." },
-    "dig.title": "Tile {label} — what did you dig?",
+    "status.estimated": { one: "Estimated from {total} sample ({rej}% rejected). Too many layouts to count exactly.", other: "Estimated from {total} samples ({rej}% rejected). Too many layouts to count exactly." },
+    "dig.title": "Tile {label}: What did you dig?",
     "dig.empty": "⬜ Empty (nothing)",
     "dig.option": "🟨 {w}×{h}  ({n} left)",
     "dig.allFound": "All treasures already found.",
@@ -422,20 +474,20 @@ const I18N = {
     "place.horizontal": "↔ horizontal",
     "place.vertical": "↕ vertical",
     "place.coords": "(r{r0}c{c0}→r{r1}c{c1})",
-    "clear.itemTitle": "Tile {label} — {dim} treasure ({state})",
+    "clear.itemTitle": "Tile {label}: {dim} treasure ({state})",
     "clear.stateDug": "dug out",
     "clear.stateBuried": "located, not dug",
     "clear.markBuried": "⛏ Mark as still buried",
     "clear.markDug": "✓ Mark as dug out",
     "clear.clearTreasure": "↩ Clear this treasure",
-    "clear.emptyTitle": "Tile {label} — empty",
+    "clear.emptyTitle": "Tile {label}: empty",
     "clear.backToHidden": "↩ Back to hidden",
     "cell.label": "r{r}c{c}",
   },
 
   de: {
-    "app.pageTitle": "Schatzsuche — Wahrscheinlichkeitslöser",
-    "app.title": "Schatzsuche — Feld-Wahrscheinlichkeitslöser",
+    "app.pageTitle": "Wahrscheinlichkeitslöser für die Clash of Critters Schatzsuche",
+    "app.title": "Wahrscheinlichkeitslöser für die Clash of Critters Schatzsuche",
     "app.subtitle": "Lege die Rastergröße und die in dieser Stufe versteckten Schätze fest und grabe dann. Jedes verborgene Feld zeigt die Chance, dass es einen Schatz bedeckt.",
     "lang.label": "Sprache",
     "setup.heading": "Stufen-Einrichtung",
@@ -446,27 +498,27 @@ const I18N = {
     "setup.heightTitle": "Höhe",
     "setup.countTitle": "Anzahl",
     "setup.add": "Hinzufügen",
-    "setup.quickAddHint": "Die Schnellauswahl bietet gängige Schatzgrößen — der Löser betrachtet nur die Maße, daher werden gleich große Schätze zusammengefasst.",
-    "setup.notPublished": "Schätze nicht veröffentlicht — füge sie manuell hinzu",
+    "setup.quickAddHint": "Die Schnellauswahl bietet gängige Schatzgrößen. Der Löser betrachtet nur die Maße, daher werden gleich große Schätze zusammengefasst.",
+    "setup.notPublished": "Schätze nicht veröffentlicht. Füge sie manuell hinzu",
     "setup.pickInfo": "<b>{pick}</b> Spitzhacken/Feld",
     "pieces.heading": "Schätze in dieser Stufe",
     "pieces.colSize": "Größe",
     "pieces.colCount": "Anzahl",
     "pieces.colFound": "Gefunden",
-    "pieces.empty": "Noch keine Schätze — füge welche hinzu.",
+    "pieces.empty": "Noch keine Schätze. Füge welche hinzu.",
     "board.start": "Brett starten / zurücksetzen",
     "board.clearDigs": "Grabungen löschen",
     "board.statusInitial": "Richte eine Stufe ein und drücke „Brett starten / zurücksetzen“.",
-    "board.hint": "Klicke ein verborgenes Feld an → wähle <b>Leer</b> oder welchen Schatz du getroffen hast, und wähle dann die Platzierung, die zur Ausrichtung des Schatzes passt. Gefundene Schätze müssen noch ausgegraben werden — klicke einen an, um ihn als ✓ ausgegraben zu markieren. Der ★ markiert die unbekannten Felder mit der höchsten Wahrscheinlichkeit, die du als Nächstes ausgraben solltest.",
+    "board.hint": "Klicke ein verborgenes Feld an → wähle <b>Leer</b> oder welchen Schatz du getroffen hast, und wähle dann die Platzierung, die zur Ausrichtung des Schatzes passt. Gefundene Schätze müssen noch ausgegraben werden. Klicke einen an, um ihn als ✓ ausgegraben zu markieren. Der ★ markiert die unbekannten Felder mit der höchsten Wahrscheinlichkeit, die du als Nächstes ausgraben solltest.",
     "dp.label": "Exakte Wahrscheinlichkeiten (DP)",
-    "dp.sub": "— exakt, ohne Stichproben",
-    "dp.title": "Berechnet exakte Wahrscheinlichkeiten mit einem Dynamic-Programming-Löser statt Monte-Carlo-Stichproben. Meist genauso schnell oder schneller, aber bei den dichtesten Stufen kann es ~0,5–0,7 s dauern und ist (anders als die Stichprobe) nicht zeitlich begrenzt — auf schwachen Geräten ausschalten.",
+    "dp.sub": "exakt, ohne Stichproben",
+    "dp.title": "Berechnet exakte Wahrscheinlichkeiten mit einem Dynamic-Programming-Löser statt Monte-Carlo-Stichproben. Meist genauso schnell oder schneller, aber bei den dichtesten Stufen kann es ~0,5–0,7 s dauern und ist (anders als die Stichprobe) nicht zeitlich begrenzt. Auf schwachen Geräten ausschalten.",
     "estimate.heading": "Schätzung der Grabungskosten",
     "estimate.button": "Grabungen bis zum Ziel schätzen",
     "estimate.simulating": "Simuliere…",
-    "estimate.allDug": "Alle Schätze ausgegraben — 0 Spitzhacken übrig.",
-    "estimate.impossible": "Die restlichen Schätze passen nicht in die verborgenen Felder — prüfe das Brett.",
-    "estimate.deterministic": "alle Schätze gefunden — nur noch ausgraben · ohne Bomben",
+    "estimate.allDug": "Alle Schätze ausgegraben. 0 Spitzhacken übrig.",
+    "estimate.impossible": "Die restlichen Schätze passen nicht in die verborgenen Felder. Prüfe das Brett.",
+    "estimate.deterministic": "alle Schätze gefunden. Nur noch ausgraben · ohne Bomben",
     "estimate.detail": "meist {p10}–{p90} Felder · Bereich {min}–{max} · {trials} Simulationen · ohne Bomben",
     "estimate.meanLine": "<b>≈ {mean} Felder</b> zum vollständigen Ausgraben (Greedy-Strategie)",
     "estimate.pickLine": "<b>≈ {picks} Spitzhacken</b> &nbsp;({pick}/Feld)",
@@ -475,18 +527,18 @@ const I18N = {
     "legend.dugOut": "✓ ausgegraben",
     "legend.best": "★ bestes Feld zum Graben",
     "footer.source": "Quellcode:",
-    "footer.license": "Nur nicht-kommerzielle Nutzung — PolyForm-NC 1.0.0",
-    "footer.disclaimer": "Fan-Tool — nicht verbunden mit oder unterstützt von dem Spiel oder seinem Herausgeber.",
+    "footer.license": "Nur nicht-kommerzielle Nutzung. PolyForm-NC 1.0.0",
+    "footer.disclaimer": "Fan-Tool. Nicht verbunden mit oder unterstützt von dem Spiel oder seinem Herausgeber.",
     "footer.feedback": "💬 Feedback",
     "footer.feedbackTitle": "Feedback, Fehler oder Vorschläge hinterlassen",
-    "stage.custom": "— benutzerdefiniert —",
+    "stage.custom": "(benutzerdefiniert)",
     "stage.option": "Stufe {n}  ({grid}×{grid})",
     "status.remaining": "Noch zu finden: {list}. ",
     "status.none": "keine",
-    "status.noLayout": "Keine gültige Anordnung passt für diese Schätze in die verbleibenden Felder — prüfe deine Grabungen.",
+    "status.noLayout": "Keine gültige Anordnung passt für diese Schätze in die verbleibenden Felder. Prüfe deine Grabungen.",
     "status.exact": { one: "Exakt über {total} Anordnung{dp}.", other: "Exakt über {total} Anordnungen{dp}." },
-    "status.estimated": { one: "Geschätzt aus {total} Stichprobe ({rej}% verworfen) — zu viele Anordnungen, um exakt zu zählen.", other: "Geschätzt aus {total} Stichproben ({rej}% verworfen) — zu viele Anordnungen, um exakt zu zählen." },
-    "dig.title": "Feld {label} — was hast du getroffen?",
+    "status.estimated": { one: "Geschätzt aus {total} Stichprobe ({rej}% verworfen). Zu viele Anordnungen, um exakt zu zählen.", other: "Geschätzt aus {total} Stichproben ({rej}% verworfen). Zu viele Anordnungen, um exakt zu zählen." },
+    "dig.title": "Feld {label}: Was hast du getroffen?",
     "dig.empty": "⬜ Leer (nichts)",
     "dig.option": "🟨 {w}×{h}  (noch {n})",
     "dig.allFound": "Alle Schätze bereits gefunden.",
@@ -500,20 +552,20 @@ const I18N = {
     "place.horizontal": "↔ horizontal",
     "place.vertical": "↕ vertikal",
     "place.coords": "(r{r0}c{c0}→r{r1}c{c1})",
-    "clear.itemTitle": "Feld {label} — {dim}-Schatz ({state})",
+    "clear.itemTitle": "Feld {label}: {dim}-Schatz ({state})",
     "clear.stateDug": "ausgegraben",
     "clear.stateBuried": "gefunden, nicht ausgegraben",
     "clear.markBuried": "⛏ Als noch vergraben markieren",
     "clear.markDug": "✓ Als ausgegraben markieren",
     "clear.clearTreasure": "↩ Diesen Schatz entfernen",
-    "clear.emptyTitle": "Feld {label} — leer",
+    "clear.emptyTitle": "Feld {label}: leer",
     "clear.backToHidden": "↩ Zurück zu verborgen",
     "cell.label": "r{r}c{c}",
   },
 
   es: {
-    "app.pageTitle": "Búsqueda del tesoro — Solucionador de probabilidades",
-    "app.title": "Búsqueda del tesoro — Solucionador de probabilidad por casilla",
+    "app.pageTitle": "Solucionador de probabilidades para la Búsqueda del tesoro de Clash of Critters",
+    "app.title": "Solucionador de probabilidades para la Búsqueda del tesoro de Clash of Critters",
     "app.subtitle": "Define el tamaño de la cuadrícula y los tesoros ocultos en esta etapa, y luego cava. Cada casilla oculta muestra la probabilidad de que cubra un tesoro.",
     "lang.label": "Idioma",
     "setup.heading": "Configuración de la etapa",
@@ -524,27 +576,27 @@ const I18N = {
     "setup.heightTitle": "alto",
     "setup.countTitle": "cantidad",
     "setup.add": "Añadir",
-    "setup.quickAddHint": "Los botones rápidos son tamaños comunes de tesoro — el solucionador solo considera las dimensiones, así que los tesoros del mismo tamaño se combinan.",
-    "setup.notPublished": "tesoros no publicados — añádelos manualmente",
+    "setup.quickAddHint": "Los botones rápidos son tamaños comunes de tesoro. El solucionador solo considera las dimensiones, así que los tesoros del mismo tamaño se combinan.",
+    "setup.notPublished": "tesoros no publicados. Añádelos manualmente",
     "setup.pickInfo": "<b>{pick}</b> picos/casilla",
     "pieces.heading": "Tesoros en esta etapa",
     "pieces.colSize": "Tamaño",
     "pieces.colCount": "Cantidad",
     "pieces.colFound": "Hallados",
-    "pieces.empty": "Aún no hay tesoros — añade alguno.",
+    "pieces.empty": "Aún no hay tesoros. Añade alguno.",
     "board.start": "Iniciar / Reiniciar tablero",
     "board.clearDigs": "Borrar excavaciones",
     "board.statusInitial": "Configura una etapa y pulsa «Iniciar / Reiniciar tablero».",
-    "board.hint": "Haz clic en una casilla oculta → elige <b>Vacía</b> o qué tesoro encontraste, y luego elige la colocación que coincida con la dirección. Los tesoros localizados aún hay que desenterrarlos — haz clic en uno para marcarlo como ✓ excavado. La ★ marca las casillas desconocidas con mayor probabilidad para cavar a continuación.",
+    "board.hint": "Haz clic en una casilla oculta → elige <b>Vacía</b> o qué tesoro encontraste, y luego elige la colocación que coincida con la dirección. Los tesoros localizados aún hay que desenterrarlos. Haz clic en uno para marcarlo como ✓ excavado. La ★ marca las casillas desconocidas con mayor probabilidad para cavar a continuación.",
     "dp.label": "Probabilidades exactas (DP)",
-    "dp.sub": "— exactas, no muestreadas",
-    "dp.title": "Calcula probabilidades exactas con un solucionador de programación dinámica en lugar de muestreo Monte-Carlo. Suele ser igual de rápido o más, pero en las etapas más densas puede tardar ~0,5–0,7 s y (a diferencia del muestreo) no tiene límite de tiempo — desactívalo en dispositivos de gama baja.",
+    "dp.sub": "exactas, no muestreadas",
+    "dp.title": "Calcula probabilidades exactas con un solucionador de programación dinámica en lugar de muestreo Monte-Carlo. Suele ser igual de rápido o más, pero en las etapas más densas puede tardar ~0,5–0,7 s y (a diferencia del muestreo) no tiene límite de tiempo. Desactívalo en dispositivos de gama baja.",
     "estimate.heading": "Estimación de coste en picos",
     "estimate.button": "Estimar picos para terminar",
     "estimate.simulating": "Simulando…",
-    "estimate.allDug": "Todos los tesoros excavados — 0 picos restantes.",
-    "estimate.impossible": "No caben los tesoros restantes en las casillas ocultas — revisa el tablero.",
-    "estimate.deterministic": "todos los tesoros localizados — solo hay que desenterrarlos · ignora las bombas",
+    "estimate.allDug": "Todos los tesoros excavados. 0 picos restantes.",
+    "estimate.impossible": "No caben los tesoros restantes en las casillas ocultas. Revisa el tablero.",
+    "estimate.deterministic": "todos los tesoros localizados. Solo hay que desenterrarlos · ignora las bombas",
     "estimate.detail": "normalmente {p10}–{p90} casillas · rango {min}–{max} · {trials} simulaciones · ignora las bombas",
     "estimate.meanLine": "<b>≈ {mean} casillas</b> para desenterrar todo (juego voraz)",
     "estimate.pickLine": "<b>≈ {picks} picos</b> &nbsp;({pick}/casilla)",
@@ -553,18 +605,18 @@ const I18N = {
     "legend.dugOut": "✓ excavado",
     "legend.best": "★ mejor casilla para cavar",
     "footer.source": "Código fuente:",
-    "footer.license": "Solo uso no comercial — PolyForm-NC 1.0.0",
-    "footer.disclaimer": "Herramienta de fans — sin afiliación ni respaldo del juego ni de su editor.",
+    "footer.license": "Solo uso no comercial. PolyForm-NC 1.0.0",
+    "footer.disclaimer": "Herramienta de fans. Sin afiliación ni respaldo del juego ni de su editor.",
     "footer.feedback": "💬 Comentarios",
     "footer.feedbackTitle": "Deja comentarios, errores o sugerencias",
-    "stage.custom": "— personalizado —",
+    "stage.custom": "(personalizado)",
     "stage.option": "Etapa {n}  ({grid}×{grid})",
     "status.remaining": "Por encontrar: {list}. ",
     "status.none": "ninguno",
-    "status.noLayout": "Ninguna disposición válida encaja con estos tesoros en las casillas restantes — revisa tus excavaciones.",
+    "status.noLayout": "Ninguna disposición válida encaja con estos tesoros en las casillas restantes. Revisa tus excavaciones.",
     "status.exact": { one: "Exacto sobre {total} disposición{dp}.", other: "Exacto sobre {total} disposiciones{dp}." },
-    "status.estimated": { one: "Estimado a partir de {total} muestra ({rej}% rechazada) — demasiadas disposiciones para contarlas exactamente.", other: "Estimado a partir de {total} muestras ({rej}% rechazadas) — demasiadas disposiciones para contarlas exactamente." },
-    "dig.title": "Casilla {label} — ¿qué excavaste?",
+    "status.estimated": { one: "Estimado a partir de {total} muestra ({rej}% rechazada). Demasiadas disposiciones para contarlas exactamente.", other: "Estimado a partir de {total} muestras ({rej}% rechazadas). Demasiadas disposiciones para contarlas exactamente." },
+    "dig.title": "Casilla {label}: ¿Qué excavaste?",
     "dig.empty": "⬜ Vacía (nada)",
     "dig.option": "🟨 {w}×{h}  ({n} restantes)",
     "dig.allFound": "Todos los tesoros ya encontrados.",
@@ -578,20 +630,20 @@ const I18N = {
     "place.horizontal": "↔ horizontal",
     "place.vertical": "↕ vertical",
     "place.coords": "(r{r0}c{c0}→r{r1}c{c1})",
-    "clear.itemTitle": "Casilla {label} — tesoro {dim} ({state})",
+    "clear.itemTitle": "Casilla {label}: tesoro {dim} ({state})",
     "clear.stateDug": "excavado",
     "clear.stateBuried": "localizado, sin excavar",
     "clear.markBuried": "⛏ Marcar como aún enterrado",
     "clear.markDug": "✓ Marcar como excavado",
     "clear.clearTreasure": "↩ Quitar este tesoro",
-    "clear.emptyTitle": "Casilla {label} — vacía",
+    "clear.emptyTitle": "Casilla {label}: vacía",
     "clear.backToHidden": "↩ Volver a oculta",
     "cell.label": "r{r}c{c}",
   },
 
   pt: {
-    "app.pageTitle": "Caça ao tesouro — Solucionador de probabilidades",
-    "app.title": "Caça ao tesouro — Solucionador de probabilidade por casa",
+    "app.pageTitle": "Solucionador de probabilidades para a Caça ao tesouro de Clash of Critters",
+    "app.title": "Solucionador de probabilidades para a Caça ao tesouro de Clash of Critters",
     "app.subtitle": "Defina o tamanho da grade e os tesouros escondidos nesta fase e depois escave. Cada casa oculta mostra a chance de cobrir um tesouro.",
     "lang.label": "Idioma",
     "setup.heading": "Configuração da fase",
@@ -602,27 +654,27 @@ const I18N = {
     "setup.heightTitle": "altura",
     "setup.countTitle": "quantidade",
     "setup.add": "Adicionar",
-    "setup.quickAddHint": "Os botões rápidos são tamanhos comuns de tesouro — o solucionador só considera as dimensões, então tesouros do mesmo tamanho são agrupados.",
-    "setup.notPublished": "tesouros não publicados — adicione-os manualmente",
+    "setup.quickAddHint": "Os botões rápidos são tamanhos comuns de tesouro. O solucionador só considera as dimensões, então tesouros do mesmo tamanho são agrupados.",
+    "setup.notPublished": "tesouros não publicados. Adicione-os manualmente",
     "setup.pickInfo": "<b>{pick}</b> picaretas/casa",
     "pieces.heading": "Tesouros nesta fase",
     "pieces.colSize": "Tamanho",
     "pieces.colCount": "Qtd.",
     "pieces.colFound": "Achados",
-    "pieces.empty": "Ainda não há tesouros — adicione alguns.",
+    "pieces.empty": "Ainda não há tesouros. Adicione alguns.",
     "board.start": "Iniciar / Reiniciar tabuleiro",
     "board.clearDigs": "Limpar escavações",
     "board.statusInitial": "Configure uma fase e pressione “Iniciar / Reiniciar tabuleiro”.",
-    "board.hint": "Clique numa casa oculta → escolha <b>Vazia</b> ou qual tesouro você achou e depois escolha a posição que combina com a direção. Tesouros localizados ainda precisam ser desenterrados — clique em um para marcá-lo como ✓ escavado. A ★ marca as casas desconhecidas com maior probabilidade para escavar em seguida.",
+    "board.hint": "Clique numa casa oculta → escolha <b>Vazia</b> ou qual tesouro você achou e depois escolha a posição que combina com a direção. Tesouros localizados ainda precisam ser desenterrados. Clique em um para marcá-lo como ✓ escavado. A ★ marca as casas desconhecidas com maior probabilidade para escavar em seguida.",
     "dp.label": "Probabilidades exatas (DP)",
-    "dp.sub": "— exatas, não amostradas",
-    "dp.title": "Calcula probabilidades exatas com um solucionador de programação dinâmica em vez de amostragem Monte-Carlo. Geralmente tão rápido ou mais, mas nas fases mais densas pode levar ~0,5–0,7 s e (ao contrário da amostragem) não tem limite de tempo — desative em aparelhos fracos.",
+    "dp.sub": "exatas, não amostradas",
+    "dp.title": "Calcula probabilidades exatas com um solucionador de programação dinâmica em vez de amostragem Monte-Carlo. Geralmente tão rápido ou mais, mas nas fases mais densas pode levar ~0,5–0,7 s e (ao contrário da amostragem) não tem limite de tempo. Desative em aparelhos fracos.",
     "estimate.heading": "Estimativa de custo em picaretas",
     "estimate.button": "Estimar picaretas até terminar",
     "estimate.simulating": "Simulando…",
-    "estimate.allDug": "Todos os tesouros escavados — 0 picaretas restantes.",
-    "estimate.impossible": "Os tesouros restantes não cabem nas casas ocultas — verifique o tabuleiro.",
-    "estimate.deterministic": "todos os tesouros localizados — só falta desenterrá-los · ignora bombas",
+    "estimate.allDug": "Todos os tesouros escavados. 0 picaretas restantes.",
+    "estimate.impossible": "Os tesouros restantes não cabem nas casas ocultas. Verifique o tabuleiro.",
+    "estimate.deterministic": "todos os tesouros localizados. Só falta desenterrá-los · ignora bombas",
     "estimate.detail": "geralmente {p10}–{p90} casas · faixa {min}–{max} · {trials} simulações · ignora bombas",
     "estimate.meanLine": "<b>≈ {mean} casas</b> para escavar tudo (jogo guloso)",
     "estimate.pickLine": "<b>≈ {picks} picaretas</b> &nbsp;({pick}/casa)",
@@ -631,18 +683,18 @@ const I18N = {
     "legend.dugOut": "✓ escavado",
     "legend.best": "★ melhor casa para escavar",
     "footer.source": "Código-fonte:",
-    "footer.license": "Apenas uso não comercial — PolyForm-NC 1.0.0",
-    "footer.disclaimer": "Ferramenta de fãs — sem afiliação ou endosso do jogo ou da sua editora.",
+    "footer.license": "Apenas uso não comercial. PolyForm-NC 1.0.0",
+    "footer.disclaimer": "Ferramenta de fãs. Sem afiliação ou endosso do jogo ou da sua editora.",
     "footer.feedback": "💬 Feedback",
     "footer.feedbackTitle": "Deixe feedback, erros ou sugestões",
-    "stage.custom": "— personalizado —",
+    "stage.custom": "(personalizado)",
     "stage.option": "Fase {n}  ({grid}×{grid})",
     "status.remaining": "A encontrar: {list}. ",
     "status.none": "nenhum",
-    "status.noLayout": "Nenhuma disposição válida encaixa estes tesouros nas casas restantes — verifique suas escavações.",
+    "status.noLayout": "Nenhuma disposição válida encaixa estes tesouros nas casas restantes. Verifique suas escavações.",
     "status.exact": { one: "Exato sobre {total} disposição{dp}.", other: "Exato sobre {total} disposições{dp}." },
-    "status.estimated": { one: "Estimado a partir de {total} amostra ({rej}% rejeitada) — disposições demais para contar exatamente.", other: "Estimado a partir de {total} amostras ({rej}% rejeitadas) — disposições demais para contar exatamente." },
-    "dig.title": "Casa {label} — o que você escavou?",
+    "status.estimated": { one: "Estimado a partir de {total} amostra ({rej}% rejeitada). Disposições demais para contar exatamente.", other: "Estimado a partir de {total} amostras ({rej}% rejeitadas). Disposições demais para contar exatamente." },
+    "dig.title": "Casa {label}: O que você escavou?",
     "dig.empty": "⬜ Vazia (nada)",
     "dig.option": "🟨 {w}×{h}  ({n} restantes)",
     "dig.allFound": "Todos os tesouros já encontrados.",
@@ -656,20 +708,20 @@ const I18N = {
     "place.horizontal": "↔ horizontal",
     "place.vertical": "↕ vertical",
     "place.coords": "(r{r0}c{c0}→r{r1}c{c1})",
-    "clear.itemTitle": "Casa {label} — tesouro {dim} ({state})",
+    "clear.itemTitle": "Casa {label}: tesouro {dim} ({state})",
     "clear.stateDug": "escavado",
     "clear.stateBuried": "localizado, não escavado",
     "clear.markBuried": "⛏ Marcar como ainda enterrado",
     "clear.markDug": "✓ Marcar como escavado",
     "clear.clearTreasure": "↩ Remover este tesouro",
-    "clear.emptyTitle": "Casa {label} — vazia",
+    "clear.emptyTitle": "Casa {label}: vazia",
     "clear.backToHidden": "↩ Voltar para oculta",
     "cell.label": "r{r}c{c}",
   },
 
   fr: {
-    "app.pageTitle": "Chasse au trésor — Solveur de probabilités",
-    "app.title": "Chasse au trésor — Solveur de probabilité par case",
+    "app.pageTitle": "Solveur de probabilités pour la Chasse au trésor de Clash of Critters",
+    "app.title": "Solveur de probabilités pour la Chasse au trésor de Clash of Critters",
     "app.subtitle": "Définis la taille de la grille et les trésors cachés dans ce niveau, puis creuse. Chaque case cachée affiche la probabilité qu'elle recouvre un trésor.",
     "lang.label": "Langue",
     "setup.heading": "Configuration du niveau",
@@ -680,27 +732,27 @@ const I18N = {
     "setup.heightTitle": "hauteur",
     "setup.countTitle": "nombre",
     "setup.add": "Ajouter",
-    "setup.quickAddHint": "Les boutons rapides correspondent aux tailles de trésor courantes — le solveur ne considère que les dimensions, donc les trésors de même taille sont regroupés.",
-    "setup.notPublished": "trésors non publiés — ajoute-les manuellement",
+    "setup.quickAddHint": "Les boutons rapides correspondent aux tailles de trésor courantes. Le solveur ne considère que les dimensions, donc les trésors de même taille sont regroupés.",
+    "setup.notPublished": "trésors non publiés. Ajoute-les manuellement",
     "setup.pickInfo": "<b>{pick}</b> pioches/case",
     "pieces.heading": "Trésors de ce niveau",
     "pieces.colSize": "Taille",
     "pieces.colCount": "Nombre",
     "pieces.colFound": "Trouvés",
-    "pieces.empty": "Aucun trésor pour l'instant — ajoutes-en.",
+    "pieces.empty": "Aucun trésor pour l'instant. Ajoutes-en.",
     "board.start": "Démarrer / Réinitialiser le plateau",
     "board.clearDigs": "Effacer les fouilles",
     "board.statusInitial": "Configure un niveau et appuie sur « Démarrer / Réinitialiser le plateau ».",
-    "board.hint": "Clique sur une case cachée → choisis <b>Vide</b> ou quel trésor tu as touché, puis choisis le placement correspondant à la direction. Les trésors localisés doivent encore être déterrés — clique sur l'un d'eux pour le marquer ✓ déterré. Le ★ indique la ou les cases inconnues les plus probables à creuser ensuite.",
+    "board.hint": "Clique sur une case cachée → choisis <b>Vide</b> ou quel trésor tu as touché, puis choisis le placement correspondant à la direction. Les trésors localisés doivent encore être déterrés. Clique sur l'un d'eux pour le marquer ✓ déterré. Le ★ indique la ou les cases inconnues les plus probables à creuser ensuite.",
     "dp.label": "Probabilités exactes (DP)",
-    "dp.sub": "— exactes, non échantillonnées",
-    "dp.title": "Calcule des probabilités exactes avec un solveur de programmation dynamique au lieu d'un échantillonnage Monte-Carlo. Généralement aussi rapide ou plus, mais sur les niveaux les plus denses cela peut prendre ~0,5–0,7 s et (contrairement à l'échantillonnage) n'est pas limité dans le temps — désactive-le sur les appareils peu puissants.",
+    "dp.sub": "exactes, non échantillonnées",
+    "dp.title": "Calcule des probabilités exactes avec un solveur de programmation dynamique au lieu d'un échantillonnage Monte-Carlo. Généralement aussi rapide ou plus, mais sur les niveaux les plus denses cela peut prendre ~0,5–0,7 s et (contrairement à l'échantillonnage) n'est pas limité dans le temps. Désactive-le sur les appareils peu puissants.",
     "estimate.heading": "Estimation du coût en pioches",
     "estimate.button": "Estimer les pioches pour finir",
     "estimate.simulating": "Simulation…",
-    "estimate.allDug": "Tous les trésors déterrés — 0 pioches restantes.",
-    "estimate.impossible": "Impossible de placer les trésors restants dans les cases cachées — vérifie le plateau.",
-    "estimate.deterministic": "tous les trésors localisés — il ne reste qu'à les déterrer · ignore les bombes",
+    "estimate.allDug": "Tous les trésors déterrés. 0 pioches restantes.",
+    "estimate.impossible": "Impossible de placer les trésors restants dans les cases cachées. Vérifie le plateau.",
+    "estimate.deterministic": "tous les trésors localisés. Il ne reste qu'à les déterrer · ignore les bombes",
     "estimate.detail": "généralement {p10}–{p90} cases · plage {min}–{max} · {trials} simulations · ignore les bombes",
     "estimate.meanLine": "<b>≈ {mean} cases</b> à déterrer entièrement (stratégie gloutonne)",
     "estimate.pickLine": "<b>≈ {picks} pioches</b> &nbsp;({pick}/case)",
@@ -709,18 +761,18 @@ const I18N = {
     "legend.dugOut": "✓ déterré",
     "legend.best": "★ meilleure case à creuser",
     "footer.source": "Code source :",
-    "footer.license": "Usage non commercial uniquement — PolyForm-NC 1.0.0",
-    "footer.disclaimer": "Outil de fans — sans affiliation ni approbation du jeu ou de son éditeur.",
+    "footer.license": "Usage non commercial uniquement. PolyForm-NC 1.0.0",
+    "footer.disclaimer": "Outil de fans. Sans affiliation ni approbation du jeu ou de son éditeur.",
     "footer.feedback": "💬 Commentaires",
     "footer.feedbackTitle": "Laissez vos commentaires, bugs ou suggestions",
-    "stage.custom": "— personnalisé —",
+    "stage.custom": "(personnalisé)",
     "stage.option": "Niveau {n}  ({grid}×{grid})",
     "status.remaining": "À trouver : {list}. ",
     "status.none": "aucun",
-    "status.noLayout": "Aucune disposition valide ne place ces trésors dans les cases restantes — vérifie tes fouilles.",
+    "status.noLayout": "Aucune disposition valide ne place ces trésors dans les cases restantes. Vérifie tes fouilles.",
     "status.exact": { one: "Exact sur {total} disposition{dp}.", other: "Exact sur {total} dispositions{dp}." },
-    "status.estimated": { one: "Estimé à partir de {total} échantillon ({rej}% rejetés) — trop de dispositions pour les compter exactement.", other: "Estimé à partir de {total} échantillons ({rej}% rejetés) — trop de dispositions pour les compter exactement." },
-    "dig.title": "Case {label} — qu'as-tu creusé ?",
+    "status.estimated": { one: "Estimé à partir de {total} échantillon ({rej}% rejetés). Trop de dispositions pour les compter exactement.", other: "Estimé à partir de {total} échantillons ({rej}% rejetés). Trop de dispositions pour les compter exactement." },
+    "dig.title": "Case {label} : qu'as-tu creusé ?",
     "dig.empty": "⬜ Vide (rien)",
     "dig.option": "🟨 {w}×{h}  ({n} restants)",
     "dig.allFound": "Tous les trésors déjà trouvés.",
@@ -734,20 +786,20 @@ const I18N = {
     "place.horizontal": "↔ horizontal",
     "place.vertical": "↕ vertical",
     "place.coords": "(r{r0}c{c0}→r{r1}c{c1})",
-    "clear.itemTitle": "Case {label} — trésor {dim} ({state})",
+    "clear.itemTitle": "Case {label} : trésor {dim} ({state})",
     "clear.stateDug": "déterré",
     "clear.stateBuried": "localisé, non déterré",
     "clear.markBuried": "⛏ Marquer comme encore enfoui",
     "clear.markDug": "✓ Marquer comme déterré",
     "clear.clearTreasure": "↩ Retirer ce trésor",
-    "clear.emptyTitle": "Case {label} — vide",
+    "clear.emptyTitle": "Case {label} : vide",
     "clear.backToHidden": "↩ Revenir en caché",
     "cell.label": "r{r}c{c}",
   },
 
   ru: {
-    "app.pageTitle": "Охота за сокровищами — Решатель вероятностей",
-    "app.title": "Охота за сокровищами — Решатель вероятностей по клеткам",
+    "app.pageTitle": "Решатель вероятностей для «Охоты за сокровищами» в Clash of Critters",
+    "app.title": "Решатель вероятностей для «Охоты за сокровищами» в Clash of Critters",
     "app.subtitle": "Задайте размер сетки и сокровища, спрятанные на этом этапе, затем копайте. Каждая скрытая клетка показывает вероятность того, что под ней сокровище.",
     "lang.label": "Язык",
     "setup.heading": "Настройка этапа",
@@ -758,27 +810,27 @@ const I18N = {
     "setup.heightTitle": "высота",
     "setup.countTitle": "количество",
     "setup.add": "Добавить",
-    "setup.quickAddHint": "Кнопки быстрого добавления — это обычные размеры сокровищ. Решатель учитывает только размеры, поэтому сокровища одного размера объединяются.",
-    "setup.notPublished": "сокровища не опубликованы — добавьте их вручную",
+    "setup.quickAddHint": "Кнопки быстрого добавления предлагают обычные размеры сокровищ. Решатель учитывает только размеры, поэтому сокровища одного размера объединяются.",
+    "setup.notPublished": "сокровища не опубликованы. Добавьте их вручную",
     "setup.pickInfo": "<b>{pick}</b> кирок/клетку",
     "pieces.heading": "Сокровища на этом этапе",
     "pieces.colSize": "Размер",
     "pieces.colCount": "Кол-во",
     "pieces.colFound": "Найдено",
-    "pieces.empty": "Сокровищ пока нет — добавьте.",
+    "pieces.empty": "Сокровищ пока нет. Добавьте.",
     "board.start": "Старт / Сброс поля",
     "board.clearDigs": "Очистить раскопки",
     "board.statusInitial": "Настройте этап и нажмите «Старт / Сброс поля».",
-    "board.hint": "Нажмите на скрытую клетку → выберите <b>Пусто</b> или какое сокровище вы нашли, затем выберите расположение по направлению. Найденные сокровища ещё нужно выкопать — нажмите на одно, чтобы отметить его как ✓ выкопано. ★ отмечает неизвестные клетки с наибольшей вероятностью, которые стоит копать следующими.",
+    "board.hint": "Нажмите на скрытую клетку → выберите <b>Пусто</b> или какое сокровище вы нашли, затем выберите расположение по направлению. Найденные сокровища ещё нужно выкопать. Нажмите на одно, чтобы отметить его как ✓ выкопано. ★ отмечает неизвестные клетки с наибольшей вероятностью, которые стоит копать следующими.",
     "dp.label": "Точные вероятности (DP)",
-    "dp.sub": "— точные, не выборка",
-    "dp.title": "Вычисляет точные вероятности с помощью решателя динамического программирования вместо выборки Монте-Карло. Обычно так же быстро или быстрее, но на самых плотных этапах может занять ~0,5–0,7 с и (в отличие от выборки) не ограничено по времени — отключите на слабых устройствах.",
+    "dp.sub": "точные, не выборка",
+    "dp.title": "Вычисляет точные вероятности с помощью решателя динамического программирования вместо выборки Монте-Карло. Обычно так же быстро или быстрее, но на самых плотных этапах может занять ~0,5–0,7 с и (в отличие от выборки) не ограничено по времени. Отключите на слабых устройствах.",
     "estimate.heading": "Оценка затрат кирок",
     "estimate.button": "Оценить кирки до конца",
     "estimate.simulating": "Симуляция…",
-    "estimate.allDug": "Все сокровища выкопаны — осталось 0 кирок.",
-    "estimate.impossible": "Оставшиеся сокровища не помещаются в скрытые клетки — проверьте поле.",
-    "estimate.deterministic": "все сокровища найдены — осталось только выкопать · без учёта бомб",
+    "estimate.allDug": "Все сокровища выкопаны. Осталось 0 кирок.",
+    "estimate.impossible": "Оставшиеся сокровища не помещаются в скрытые клетки. Проверьте поле.",
+    "estimate.deterministic": "все сокровища найдены. Осталось только выкопать · без учёта бомб",
     "estimate.detail": "обычно {p10}–{p90} клеток · диапазон {min}–{max} · симуляций: {trials} · без учёта бомб",
     "estimate.meanLine": "<b>≈ {mean} клеток</b>, чтобы выкопать всё (жадная игра)",
     "estimate.pickLine": "<b>≈ {picks} кирок</b> &nbsp;({pick}/клетку)",
@@ -787,18 +839,18 @@ const I18N = {
     "legend.dugOut": "✓ выкопано",
     "legend.best": "★ лучшая клетка для копки",
     "footer.source": "Исходный код:",
-    "footer.license": "Только некоммерческое использование — PolyForm-NC 1.0.0",
-    "footer.disclaimer": "Фанатский инструмент — не связан с игрой или её издателем и не одобрен ими.",
+    "footer.license": "Только некоммерческое использование. PolyForm-NC 1.0.0",
+    "footer.disclaimer": "Фанатский инструмент. Не связан с игрой или её издателем и не одобрен ими.",
     "footer.feedback": "💬 Отзывы",
     "footer.feedbackTitle": "Оставьте отзыв, сообщение об ошибке или предложение",
-    "stage.custom": "— пользовательский —",
+    "stage.custom": "(пользовательский)",
     "stage.option": "Этап {n}  ({grid}×{grid})",
     "status.remaining": "Осталось найти: {list}. ",
     "status.none": "нет",
-    "status.noLayout": "Ни одно допустимое расположение этих сокровищ не помещается в оставшиеся клетки — проверьте раскопки.",
+    "status.noLayout": "Ни одно допустимое расположение этих сокровищ не помещается в оставшиеся клетки. Проверьте раскопки.",
     "status.exact": { one: "Точно: {total} раскладка{dp}.", few: "Точно: {total} раскладки{dp}.", many: "Точно: {total} раскладок{dp}.", other: "Точно: {total} раскладок{dp}." },
-    "status.estimated": { one: "Оценка на основе {total} выборки ({rej}% отклонено) — слишком много раскладок для точного подсчёта.", few: "Оценка на основе {total} выборок ({rej}% отклонено) — слишком много раскладок для точного подсчёта.", many: "Оценка на основе {total} выборок ({rej}% отклонено) — слишком много раскладок для точного подсчёта.", other: "Оценка на основе {total} выборок ({rej}% отклонено) — слишком много раскладок для точного подсчёта." },
-    "dig.title": "Клетка {label} — что вы выкопали?",
+    "status.estimated": { one: "Оценка на основе {total} выборки ({rej}% отклонено). Слишком много раскладок для точного подсчёта.", few: "Оценка на основе {total} выборок ({rej}% отклонено). Слишком много раскладок для точного подсчёта.", many: "Оценка на основе {total} выборок ({rej}% отклонено). Слишком много раскладок для точного подсчёта.", other: "Оценка на основе {total} выборок ({rej}% отклонено). Слишком много раскладок для точного подсчёта." },
+    "dig.title": "Клетка {label}: Что вы выкопали?",
     "dig.empty": "⬜ Пусто (ничего)",
     "dig.option": "🟨 {w}×{h}  (осталось {n})",
     "dig.allFound": "Все сокровища уже найдены.",
@@ -812,20 +864,20 @@ const I18N = {
     "place.horizontal": "↔ горизонтально",
     "place.vertical": "↕ вертикально",
     "place.coords": "(r{r0}c{c0}→r{r1}c{c1})",
-    "clear.itemTitle": "Клетка {label} — сокровище {dim} ({state})",
+    "clear.itemTitle": "Клетка {label}: сокровище {dim} ({state})",
     "clear.stateDug": "выкопано",
     "clear.stateBuried": "найдено, не выкопано",
     "clear.markBuried": "⛏ Отметить как ещё закопанное",
     "clear.markDug": "✓ Отметить как выкопанное",
     "clear.clearTreasure": "↩ Убрать это сокровище",
-    "clear.emptyTitle": "Клетка {label} — пусто",
+    "clear.emptyTitle": "Клетка {label}: пусто",
     "clear.backToHidden": "↩ Вернуть в скрытое",
     "cell.label": "r{r}c{c}",
   },
 
   "zh-Hans": {
-    "app.pageTitle": "寻宝 — 概率求解器",
-    "app.title": "寻宝 — 格子概率求解器",
+    "app.pageTitle": "塔塔冒险队挖宝概率求解器",
+    "app.title": "塔塔冒险队挖宝概率求解器",
     "app.subtitle": "设置网格大小和本关卡隐藏的宝藏，然后开挖。每个隐藏格子都会显示它覆盖宝藏的概率。",
     "lang.label": "语言",
     "setup.heading": "关卡设置",
@@ -836,27 +888,27 @@ const I18N = {
     "setup.heightTitle": "高",
     "setup.countTitle": "数量",
     "setup.add": "添加",
-    "setup.quickAddHint": "快速添加按钮是常见的宝藏尺寸——求解器只看尺寸，因此相同尺寸的宝藏会合并。",
-    "setup.notPublished": "未公布宝藏——请手动添加",
+    "setup.quickAddHint": "快速添加按钮是常见的宝藏尺寸。求解器只看尺寸，因此相同尺寸的宝藏会合并。",
+    "setup.notPublished": "未公布宝藏。请手动添加",
     "setup.pickInfo": "<b>{pick}</b> 镐/格",
     "pieces.heading": "本关卡的宝藏",
     "pieces.colSize": "尺寸",
     "pieces.colCount": "数量",
     "pieces.colFound": "已找到",
-    "pieces.empty": "还没有宝藏——添加一些吧。",
+    "pieces.empty": "还没有宝藏。添加一些吧。",
     "board.start": "开始 / 重置棋盘",
     "board.clearDigs": "清除挖掘",
     "board.statusInitial": "设置一个关卡并点击“开始 / 重置棋盘”。",
-    "board.hint": "点击一个隐藏格子 → 选择<b>空</b>或你挖到的宝藏，然后选择与方向相符的摆放。已定位的宝藏仍需挖出——点击它标记为 ✓ 已挖出。★ 标记接下来最值得挖的未知格子（概率最高）。",
+    "board.hint": "点击一个隐藏格子 → 选择<b>空</b>或你挖到的宝藏，然后选择与方向相符的摆放。已定位的宝藏仍需挖出。点击它标记为 ✓ 已挖出。★ 标记接下来最值得挖的未知格子（概率最高）。",
     "dp.label": "精确概率 (DP)",
-    "dp.sub": "— 精确，非采样",
-    "dp.title": "使用动态规划求解器计算精确概率，而非蒙特卡洛采样。通常一样快或更快，但在最密集的关卡可能需要约 0.5–0.7 秒，且（不同于采样）没有时间上限——在低端设备上请关闭。",
+    "dp.sub": "精确，非采样",
+    "dp.title": "使用动态规划求解器计算精确概率，而非蒙特卡洛采样。通常一样快或更快，但在最密集的关卡可能需要约 0.5–0.7 秒，且（不同于采样）没有时间上限。在低端设备上请关闭。",
     "estimate.heading": "镐数估算",
     "estimate.button": "估算完成所需镐数",
     "estimate.simulating": "模拟中…",
-    "estimate.allDug": "所有宝藏已挖出——剩余 0 镐。",
-    "estimate.impossible": "剩余宝藏无法放入隐藏格子——请检查棋盘。",
-    "estimate.deterministic": "所有宝藏已定位——只需挖出 · 不计炸弹",
+    "estimate.allDug": "所有宝藏已挖出。剩余 0 镐。",
+    "estimate.impossible": "剩余宝藏无法放入隐藏格子。请检查棋盘。",
+    "estimate.deterministic": "所有宝藏已定位。只需挖出 · 不计炸弹",
     "estimate.detail": "通常 {p10}–{p90} 格 · 范围 {min}–{max} · {trials} 次模拟 · 不计炸弹",
     "estimate.meanLine": "<b>≈ {mean} 格</b>可全部挖出（贪心策略）",
     "estimate.pickLine": "<b>≈ {picks} 镐</b> &nbsp;（{pick}/格）",
@@ -865,18 +917,18 @@ const I18N = {
     "legend.dugOut": "✓ 已挖出",
     "legend.best": "★ 最佳挖掘格",
     "footer.source": "源代码：",
-    "footer.license": "仅限非商业使用 — PolyForm-NC 1.0.0",
-    "footer.disclaimer": "粉丝制作的工具——与该游戏或其发行商无关联，也未获其认可。",
+    "footer.license": "仅限非商业使用。PolyForm-NC 1.0.0",
+    "footer.disclaimer": "粉丝制作的工具。与该游戏或其发行商无关联，也未获其认可。",
     "footer.feedback": "💬 反馈",
     "footer.feedbackTitle": "留下反馈、错误或建议",
-    "stage.custom": "— 自定义 —",
+    "stage.custom": "(自定义)",
     "stage.option": "关卡 {n}  ({grid}×{grid})",
     "status.remaining": "待找出：{list}。 ",
     "status.none": "无",
-    "status.noLayout": "没有有效布局能把这些宝藏放进剩余格子——请检查你的挖掘。",
+    "status.noLayout": "没有有效布局能把这些宝藏放进剩余格子。请检查你的挖掘。",
     "status.exact": { other: "基于 {total} 种布局精确计算{dp}。" },
-    "status.estimated": { other: "基于 {total} 个样本估算（{rej}% 已拒绝）——布局太多，无法精确计数。" },
-    "dig.title": "格子 {label} — 你挖到了什么？",
+    "status.estimated": { other: "基于 {total} 个样本估算（{rej}% 已拒绝）。布局太多，无法精确计数。" },
+    "dig.title": "格子 {label}：你挖到了什么？",
     "dig.empty": "⬜ 空（什么都没有）",
     "dig.option": "🟨 {w}×{h}  ({n} 剩余)",
     "dig.allFound": "所有宝藏均已找到。",
@@ -890,20 +942,20 @@ const I18N = {
     "place.horizontal": "↔ 横向",
     "place.vertical": "↕ 纵向",
     "place.coords": "(r{r0}c{c0}→r{r1}c{c1})",
-    "clear.itemTitle": "格子 {label} — {dim} 宝藏（{state}）",
+    "clear.itemTitle": "格子 {label}：{dim} 宝藏（{state}）",
     "clear.stateDug": "已挖出",
     "clear.stateBuried": "已定位，未挖出",
     "clear.markBuried": "⛏ 标记为仍埋藏",
     "clear.markDug": "✓ 标记为已挖出",
     "clear.clearTreasure": "↩ 清除此宝藏",
-    "clear.emptyTitle": "格子 {label} — 空",
+    "clear.emptyTitle": "格子 {label}：空",
     "clear.backToHidden": "↩ 恢复为隐藏",
     "cell.label": "r{r}c{c}",
   },
 
   "zh-Hant": {
-    "app.pageTitle": "尋寶 — 機率求解器",
-    "app.title": "尋寶 — 格子機率求解器",
+    "app.pageTitle": "塔塔冒險隊挖寶機率求解器",
+    "app.title": "塔塔冒險隊挖寶機率求解器",
     "app.subtitle": "設定網格大小和本關卡隱藏的寶藏，然後開挖。每個隱藏格子都會顯示它覆蓋寶藏的機率。",
     "lang.label": "語言",
     "setup.heading": "關卡設定",
@@ -914,27 +966,27 @@ const I18N = {
     "setup.heightTitle": "高",
     "setup.countTitle": "數量",
     "setup.add": "新增",
-    "setup.quickAddHint": "快速新增按鈕是常見的寶藏尺寸——求解器只看尺寸，因此相同尺寸的寶藏會合併。",
-    "setup.notPublished": "未公佈寶藏——請手動新增",
+    "setup.quickAddHint": "快速新增按鈕是常見的寶藏尺寸。求解器只看尺寸，因此相同尺寸的寶藏會合併。",
+    "setup.notPublished": "未公佈寶藏。請手動新增",
     "setup.pickInfo": "<b>{pick}</b> 鎬/格",
     "pieces.heading": "本關卡的寶藏",
     "pieces.colSize": "尺寸",
     "pieces.colCount": "數量",
     "pieces.colFound": "已找到",
-    "pieces.empty": "還沒有寶藏——新增一些吧。",
+    "pieces.empty": "還沒有寶藏。新增一些吧。",
     "board.start": "開始 / 重設棋盤",
     "board.clearDigs": "清除挖掘",
     "board.statusInitial": "設定一個關卡並點擊「開始 / 重設棋盤」。",
-    "board.hint": "點擊一個隱藏格子 → 選擇<b>空</b>或你挖到的寶藏，然後選擇與方向相符的擺放。已定位的寶藏仍需挖出——點擊它標記為 ✓ 已挖出。★ 標記接下來最值得挖的未知格子（機率最高）。",
+    "board.hint": "點擊一個隱藏格子 → 選擇<b>空</b>或你挖到的寶藏，然後選擇與方向相符的擺放。已定位的寶藏仍需挖出。點擊它標記為 ✓ 已挖出。★ 標記接下來最值得挖的未知格子（機率最高）。",
     "dp.label": "精確機率 (DP)",
-    "dp.sub": "— 精確，非取樣",
-    "dp.title": "使用動態規劃求解器計算精確機率，而非蒙地卡羅取樣。通常一樣快或更快，但在最密集的關卡可能需要約 0.5–0.7 秒，且（不同於取樣）沒有時間上限——在低階裝置上請關閉。",
+    "dp.sub": "精確，非取樣",
+    "dp.title": "使用動態規劃求解器計算精確機率，而非蒙地卡羅取樣。通常一樣快或更快，但在最密集的關卡可能需要約 0.5–0.7 秒，且（不同於取樣）沒有時間上限。在低階裝置上請關閉。",
     "estimate.heading": "鎬數估算",
     "estimate.button": "估算完成所需鎬數",
     "estimate.simulating": "模擬中…",
-    "estimate.allDug": "所有寶藏已挖出——剩餘 0 鎬。",
-    "estimate.impossible": "剩餘寶藏無法放入隱藏格子——請檢查棋盤。",
-    "estimate.deterministic": "所有寶藏已定位——只需挖出 · 不計炸彈",
+    "estimate.allDug": "所有寶藏已挖出。剩餘 0 鎬。",
+    "estimate.impossible": "剩餘寶藏無法放入隱藏格子。請檢查棋盤。",
+    "estimate.deterministic": "所有寶藏已定位。只需挖出 · 不計炸彈",
     "estimate.detail": "通常 {p10}–{p90} 格 · 範圍 {min}–{max} · {trials} 次模擬 · 不計炸彈",
     "estimate.meanLine": "<b>≈ {mean} 格</b> 可全部挖出（貪婪策略）",
     "estimate.pickLine": "<b>≈ {picks} 鎬</b> &nbsp;({pick}/格)",
@@ -943,18 +995,18 @@ const I18N = {
     "legend.dugOut": "✓ 已挖出",
     "legend.best": "★ 最佳挖掘格",
     "footer.source": "原始碼：",
-    "footer.license": "僅限非商業使用 — PolyForm-NC 1.0.0",
-    "footer.disclaimer": "粉絲製作的工具——與該遊戲或其發行商無關聯，亦未獲其認可。",
+    "footer.license": "僅限非商業使用。PolyForm-NC 1.0.0",
+    "footer.disclaimer": "粉絲製作的工具。與該遊戲或其發行商無關聯，亦未獲其認可。",
     "footer.feedback": "💬 意見回饋",
     "footer.feedbackTitle": "留下意見、錯誤回報或建議",
-    "stage.custom": "— 自訂 —",
+    "stage.custom": "(自訂)",
     "stage.option": "關卡 {n}  ({grid}×{grid})",
     "status.remaining": "待找出：{list}。 ",
     "status.none": "無",
-    "status.noLayout": "沒有有效佈局能把這些寶藏放進剩餘格子——請檢查你的挖掘。",
+    "status.noLayout": "沒有有效佈局能把這些寶藏放進剩餘格子。請檢查你的挖掘。",
     "status.exact": { other: "已精確計算 {total} 種佈局{dp}。" },
-    "status.estimated": { other: "根據 {total} 個樣本估算（{rej}% 已拒絕）—佈局太多，無法精確計數。" },
-    "dig.title": "格子 {label} — 你挖到了什麼？",
+    "status.estimated": { other: "根據 {total} 個樣本估算（{rej}% 已拒絕）。佈局太多，無法精確計數。" },
+    "dig.title": "格子 {label}：你挖到了什麼？",
     "dig.empty": "⬜ 空（什麼都沒有）",
     "dig.option": "🟨 {w}×{h}  ({n} 剩餘)",
     "dig.allFound": "所有寶藏均已找到。",
@@ -968,20 +1020,20 @@ const I18N = {
     "place.horizontal": "↔ 橫向",
     "place.vertical": "↕ 縱向",
     "place.coords": "(r{r0}c{c0}→r{r1}c{c1})",
-    "clear.itemTitle": "格子 {label} — {dim} 寶藏（{state}）",
+    "clear.itemTitle": "格子 {label}：{dim} 寶藏（{state}）",
     "clear.stateDug": "已挖出",
     "clear.stateBuried": "已定位，未挖出",
     "clear.markBuried": "⛏ 標記為仍埋藏",
     "clear.markDug": "✓ 標記為已挖出",
     "clear.clearTreasure": "↩ 清除此寶藏",
-    "clear.emptyTitle": "格子 {label} — 空",
+    "clear.emptyTitle": "格子 {label}：空",
     "clear.backToHidden": "↩ 復原為隱藏",
     "cell.label": "r{r}c{c}",
   },
 
   ko: {
-    "app.pageTitle": "보물찾기 — 확률 솔버",
-    "app.title": "보물찾기 — 칸 확률 솔버",
+    "app.pageTitle": "뚜까펫: 서바이벌 보물찾기 확률 솔버",
+    "app.title": "뚜까펫: 서바이벌 보물찾기 확률 솔버",
     "app.subtitle": "격자 크기와 이 스테이지에 숨겨진 보물을 설정한 뒤 파세요. 각 숨겨진 칸은 보물을 덮고 있을 확률을 보여줍니다.",
     "lang.label": "언어",
     "setup.heading": "스테이지 설정",
@@ -992,27 +1044,27 @@ const I18N = {
     "setup.heightTitle": "높이",
     "setup.countTitle": "개수",
     "setup.add": "추가",
-    "setup.quickAddHint": "빠른 추가 버튼은 흔한 보물 크기입니다 — 솔버는 크기만 보므로 같은 크기의 보물은 합쳐집니다.",
-    "setup.notPublished": "보물이 공개되지 않음 — 직접 추가하세요",
+    "setup.quickAddHint": "빠른 추가 버튼은 흔한 보물 크기입니다. 솔버는 크기만 보므로 같은 크기의 보물은 합쳐집니다.",
+    "setup.notPublished": "보물이 공개되지 않음. 직접 추가하세요",
     "setup.pickInfo": "<b>{pick}</b> 곡괭이/칸",
     "pieces.heading": "이 스테이지의 보물",
     "pieces.colSize": "크기",
     "pieces.colCount": "개수",
     "pieces.colFound": "찾음",
-    "pieces.empty": "아직 보물이 없습니다 — 추가하세요.",
+    "pieces.empty": "아직 보물이 없습니다. 추가하세요.",
     "board.start": "보드 시작 / 초기화",
     "board.clearDigs": "발굴 지우기",
     "board.statusInitial": "스테이지를 설정하고 ‘보드 시작 / 초기화’를 누르세요.",
-    "board.hint": "숨겨진 칸을 클릭 → <b>빈 칸</b> 또는 찾은 보물을 선택한 다음 방향에 맞는 배치를 고르세요. 위치가 확인된 보물도 파내야 합니다 — 칸을 클릭해 ✓ 파냄으로 표시하세요. ★는 다음에 팔 확률이 가장 높은 미지의 칸을 표시합니다.",
+    "board.hint": "숨겨진 칸을 클릭 → <b>빈 칸</b> 또는 찾은 보물을 선택한 다음 방향에 맞는 배치를 고르세요. 위치가 확인된 보물도 파내야 합니다. 칸을 클릭해 ✓ 파냄으로 표시하세요. ★는 다음에 팔 확률이 가장 높은 미지의 칸을 표시합니다.",
     "dp.label": "정확 확률 (DP)",
-    "dp.sub": "— 표본 없이 정확 계산",
-    "dp.title": "몬테카를로 표본 추출 대신 동적 계획법 솔버로 정확한 확률을 계산합니다. 보통 비슷하거나 더 빠르지만 가장 빽빽한 스테이지에서는 약 0.5–0.7초가 걸릴 수 있고 (표본 추출과 달리) 시간 제한이 없습니다 — 저사양 기기에서는 끄세요.",
+    "dp.sub": "표본 없이 정확 계산",
+    "dp.title": "몬테카를로 표본 추출 대신 동적 계획법 솔버로 정확한 확률을 계산합니다. 보통 비슷하거나 더 빠르지만 가장 빽빽한 스테이지에서는 약 0.5–0.7초가 걸릴 수 있고 (표본 추출과 달리) 시간 제한이 없습니다. 저사양 기기에서는 끄세요.",
     "estimate.heading": "곡괭이 비용 추정",
     "estimate.button": "완료까지 곡괭이 추정",
     "estimate.simulating": "시뮬레이션 중…",
-    "estimate.allDug": "모든 보물을 파냈습니다 — 남은 곡괭이 0.",
-    "estimate.impossible": "남은 보물이 숨겨진 칸에 들어가지 않습니다 — 보드를 확인하세요.",
-    "estimate.deterministic": "모든 보물 위치 확인됨 — 파내기만 하면 됨 · 폭탄 무시",
+    "estimate.allDug": "모든 보물을 파냈습니다. 남은 곡괭이 0.",
+    "estimate.impossible": "남은 보물이 숨겨진 칸에 들어가지 않습니다. 보드를 확인하세요.",
+    "estimate.deterministic": "모든 보물 위치 확인됨. 파내기만 하면 됨 · 폭탄 무시",
     "estimate.detail": "보통 {p10}–{p90} 칸 · 범위 {min}–{max} · {trials}회 시뮬레이션 · 폭탄 무시",
     "estimate.meanLine": "<b>≈ {mean} 칸</b>을 모두 파내기 (탐욕적 플레이)",
     "estimate.pickLine": "<b>≈ {picks} 곡괭이</b> &nbsp;({pick}/칸)",
@@ -1021,18 +1073,18 @@ const I18N = {
     "legend.dugOut": "✓ 파냄",
     "legend.best": "★ 팔 최적의 칸",
     "footer.source": "소스 코드:",
-    "footer.license": "비상업적 사용만 허용 — PolyForm-NC 1.0.0",
-    "footer.disclaimer": "팬 제작 도구 — 해당 게임 또는 퍼블리셔와 제휴하거나 보증받지 않았습니다.",
+    "footer.license": "비상업적 사용만 허용. PolyForm-NC 1.0.0",
+    "footer.disclaimer": "팬 제작 도구. 해당 게임 또는 퍼블리셔와 제휴하거나 보증받지 않았습니다.",
     "footer.feedback": "💬 피드백",
     "footer.feedbackTitle": "피드백, 버그 또는 제안을 남겨 주세요",
-    "stage.custom": "— 사용자 지정 —",
+    "stage.custom": "(사용자 지정)",
     "stage.option": "스테이지 {n}  ({grid}×{grid})",
     "status.remaining": "남은 보물: {list}. ",
     "status.none": "없음",
-    "status.noLayout": "남은 칸에 이 보물들을 넣을 수 있는 유효한 배치가 없습니다 — 발굴을 확인하세요.",
+    "status.noLayout": "남은 칸에 이 보물들을 넣을 수 있는 유효한 배치가 없습니다. 발굴을 확인하세요.",
     "status.exact": { other: "{total}개 배치에 대해 정확히 계산{dp}." },
-    "status.estimated": { other: "{total}개 표본으로 추정({rej}% 거부됨) — 배치가 너무 많아 정확히 셀 수 없습니다." },
-    "dig.title": "{label} 칸 — 무엇을 팠나요?",
+    "status.estimated": { other: "{total}개 표본으로 추정({rej}% 거부됨). 배치가 너무 많아 정확히 셀 수 없습니다." },
+    "dig.title": "{label} 칸: 무엇을 팠나요?",
     "dig.empty": "⬜ 빈 칸 (없음)",
     "dig.option": "🟨 {w}×{h}  ({n}개 남음)",
     "dig.allFound": "모든 보물을 이미 찾았습니다.",
@@ -1046,20 +1098,20 @@ const I18N = {
     "place.horizontal": "↔ 가로",
     "place.vertical": "↕ 세로",
     "place.coords": "(r{r0}c{c0}→r{r1}c{c1})",
-    "clear.itemTitle": "{label} 칸 — {dim} 보물 ({state})",
+    "clear.itemTitle": "{label} 칸: {dim} 보물 ({state})",
     "clear.stateDug": "파냄",
     "clear.stateBuried": "위치 확인, 미발굴",
     "clear.markBuried": "⛏ 아직 묻힘으로 표시",
     "clear.markDug": "✓ 파냄으로 표시",
     "clear.clearTreasure": "↩ 이 보물 지우기",
-    "clear.emptyTitle": "{label} 칸 — 비어 있음",
+    "clear.emptyTitle": "{label} 칸: 비어 있음",
     "clear.backToHidden": "↩ 숨김으로 되돌리기",
     "cell.label": "r{r}c{c}",
   },
 
   ja: {
-    "app.pageTitle": "宝探し — 確率ソルバー",
-    "app.title": "宝探し — マス確率ソルバー",
+    "app.pageTitle": "モンスターサバイバルの宝探し確率ソルバー",
+    "app.title": "モンスターサバイバルの宝探し確率ソルバー",
     "app.subtitle": "グリッドのサイズとこのステージに隠された宝を設定して掘りましょう。隠れた各マスには、それが宝を覆っている確率が表示されます。",
     "lang.label": "言語",
     "setup.heading": "ステージ設定",
@@ -1071,26 +1123,26 @@ const I18N = {
     "setup.countTitle": "数",
     "setup.add": "追加",
     "setup.quickAddHint": "クイック追加ボタンはよくある宝のサイズです。ソルバーはサイズだけを見るため、同じサイズの宝はまとめられます。",
-    "setup.notPublished": "宝は未公開です — 手動で追加してください",
+    "setup.notPublished": "宝は未公開です。手動で追加してください",
     "setup.pickInfo": "<b>{pick}</b> ツルハシ/マス",
     "pieces.heading": "このステージの宝",
     "pieces.colSize": "サイズ",
     "pieces.colCount": "数",
     "pieces.colFound": "発見",
-    "pieces.empty": "まだ宝がありません — 追加してください。",
+    "pieces.empty": "まだ宝がありません。追加してください。",
     "board.start": "ボード開始 / リセット",
     "board.clearDigs": "掘削をクリア",
     "board.statusInitial": "ステージを設定して「ボード開始 / リセット」を押してください。",
-    "board.hint": "隠れたマスをクリック → <b>空</b>か当たった宝を選び、伸びている向きに合う配置を選びます。見つけた宝もまだ掘り出す必要があります — マスをクリックして✓掘り出し済みにします。★は次に掘るべき最も確率の高い未知のマスを示します。",
+    "board.hint": "隠れたマスをクリック → <b>空</b>か当たった宝を選び、伸びている向きに合う配置を選びます。見つけた宝もまだ掘り出す必要があります。マスをクリックして✓掘り出し済みにします。★は次に掘るべき最も確率の高い未知のマスを示します。",
     "dp.label": "正確な確率 (DP)",
-    "dp.sub": "— 正確（非サンプリング）",
-    "dp.title": "モンテカルロ・サンプリングではなく動的計画法ソルバーで正確な確率を計算します。通常は同等かより高速ですが、最も密なステージでは約0.5〜0.7秒かかることがあり、（サンプリングと異なり）時間制限がありません — 低スペック端末ではオフにしてください。",
+    "dp.sub": "正確（非サンプリング）",
+    "dp.title": "モンテカルロ・サンプリングではなく動的計画法ソルバーで正確な確率を計算します。通常は同等かより高速ですが、最も密なステージでは約0.5〜0.7秒かかることがあり、（サンプリングと異なり）時間制限がありません。低スペック端末ではオフにしてください。",
     "estimate.heading": "ツルハシ消費の見積もり",
     "estimate.button": "完了までのツルハシを見積もる",
     "estimate.simulating": "シミュレーション中…",
-    "estimate.allDug": "すべての宝を掘り出しました — 残り0ツルハシ。",
-    "estimate.impossible": "残りの宝が隠れたマスに収まりません — ボードを確認してください。",
-    "estimate.deterministic": "すべての宝の位置が判明 — あとは掘り出すだけ · 爆弾は無視",
+    "estimate.allDug": "すべての宝を掘り出しました。残り0ツルハシ。",
+    "estimate.impossible": "残りの宝が隠れたマスに収まりません。ボードを確認してください。",
+    "estimate.deterministic": "すべての宝の位置が判明。あとは掘り出すだけ · 爆弾は無視",
     "estimate.detail": "通常 {p10}–{p90} マス · 範囲 {min}–{max} · {trials}回シミュレーション · 爆弾は無視",
     "estimate.meanLine": "<b>≈ {mean} マス</b>で全部掘り出し（貪欲法）",
     "estimate.pickLine": "<b>≈ {picks} ツルハシ</b> &nbsp;({pick}/マス)",
@@ -1099,18 +1151,18 @@ const I18N = {
     "legend.dugOut": "✓ 掘り出し済み",
     "legend.best": "★ 掘るのに最適なマス",
     "footer.source": "ソースコード:",
-    "footer.license": "非商用利用のみ — PolyForm-NC 1.0.0",
-    "footer.disclaimer": "ファン制作ツール — 当該ゲームや発行元とは無関係で、承認も受けていません。",
+    "footer.license": "非商用利用のみ。PolyForm-NC 1.0.0",
+    "footer.disclaimer": "ファン制作ツール。当該ゲームや発行元とは無関係で、承認も受けていません。",
     "footer.feedback": "💬 フィードバック",
     "footer.feedbackTitle": "フィードバック・バグ・ご提案はこちら",
-    "stage.custom": "— カスタム —",
+    "stage.custom": "(カスタム)",
     "stage.option": "ステージ {n}  ({grid}×{grid})",
     "status.remaining": "発見すべき宝: {list}。 ",
     "status.none": "なし",
-    "status.noLayout": "残りのマスにこれらの宝を収める有効な配置がありません — 掘削を確認してください。",
+    "status.noLayout": "残りのマスにこれらの宝を収める有効な配置がありません。掘削を確認してください。",
     "status.exact": { other: "{total} 通りの配置で正確に計算{dp}。" },
-    "status.estimated": { other: "{total} サンプルから推定（{rej}% 棄却）— 配置が多すぎて正確に数えられません。" },
-    "dig.title": "マス {label} — 何を掘りましたか？",
+    "status.estimated": { other: "{total} サンプルから推定（{rej}% 棄却）。配置が多すぎて正確に数えられません。" },
+    "dig.title": "マス {label}: 何を掘りましたか？",
     "dig.empty": "⬜ 空（何もなし）",
     "dig.option": "🟨 {w}×{h}  （残り{n}）",
     "dig.allFound": "すべての宝はすでに発見済みです。",
@@ -1124,13 +1176,13 @@ const I18N = {
     "place.horizontal": "↔ 横",
     "place.vertical": "↕ 縦",
     "place.coords": "(r{r0}c{c0}→r{r1}c{c1})",
-    "clear.itemTitle": "マス {label} — {dim} の宝（{state}）",
+    "clear.itemTitle": "マス {label}: {dim} の宝（{state}）",
     "clear.stateDug": "掘り出し済み",
     "clear.stateBuried": "位置判明・未掘削",
     "clear.markBuried": "⛏ まだ埋没中としてマーク",
     "clear.markDug": "✓ 掘り出し済みとしてマーク",
     "clear.clearTreasure": "↩ この宝を消去",
-    "clear.emptyTitle": "マス {label} — 空",
+    "clear.emptyTitle": "マス {label}: 空",
     "clear.backToHidden": "↩ 隠れた状態に戻す",
     "cell.label": "r{r}c{c}",
   },
@@ -1198,7 +1250,7 @@ function renderStageInfo() {
 function refreshStageOptions() {
   const sel = $("#stageSelect");
   [...sel.options].forEach(o => {
-    if (o.value === "") return;                 // "— custom —" handled by data-i18n
+    if (o.value === "") return;                 // "custom" handled by data-i18n
     const s = STAGES.find(st => String(st.n) === o.value);
     if (s) o.textContent = t("stage.option", { n: s.n, grid: s.grid });
   });
@@ -1266,7 +1318,7 @@ function loadStage(n) {
   $("#gridSizeEcho").textContent = s.grid;
   $("#pickPerTile").value = s.pick;
   $("#stageSelect").value = s.n;
-  renderStageInfo();   // dimensions only — treasure names are not shown
+  renderStageInfo();   // dimensions only. Treasure names are not shown
   newGame();
 }
 
@@ -1507,7 +1559,7 @@ function monteCarlo(expanded, placements, M, cover) {
 }
 
 /* ============================================================
-   EXACT SOLVER — profile (broken-plug) DP
+   EXACT SOLVER. Profile (broken-plug) DP
    Same answer as tryExact (per-cell coverage over all valid no-overlap
    layouts) but counts instead of enumerating, so it stays exact on the dense
    stages where DFS blows up and the app would otherwise fall to Monte-Carlo.
@@ -1663,7 +1715,7 @@ function sampleLayout(N, M, baseKnown, types, placeByType) {
 
 // Simulate greedy play against a known layout: dig only unknown tiles (the strategy
 // the heatmap recommends) until every treasure is located, deferring the dig-out of
-// located treasures. Returns the number of *empty* tiles dug along the way — the only
+// located treasures. Returns the number of *empty* tiles dug along the way. The only
 // stochastic cost. Treasure tiles are a fixed cost handled by the caller.
 function simulateGreedy(N, M, baseKnown, types, placeByType, layout, score) {
   const known = baseKnown.slice();
@@ -1706,7 +1758,7 @@ function estimateSolve() {
   let buriedCount = 0;
   state.cells.forEach(c => { if (c.status === "item" && !c.dug) buriedCount++; });
 
-  // Unlocated treasures (positions unknown) — these drive the search simulation.
+  // Unlocated treasures (positions unknown). These drive the search simulation.
   const types = [];
   state.pieces.forEach(p => { const r = remainingOf(p); if (r > 0) types.push({ w: p.w, h: p.h, rem: r }); });
   const numUnlocated = types.reduce((a, t) => a + t.rem, 0);
@@ -1860,7 +1912,7 @@ function onCellClick(i, ev) {
 function placePop(ev) {
   popEl.style.display = "block";
   // On phones: render as a bottom sheet (CSS-positioned). matchMedia is guarded
-  // because jsdom (tests) doesn't implement it — there we fall through to anchored.
+  // because jsdom (tests) doesn't implement it. There we fall through to anchored.
   const mobile = window.matchMedia && window.matchMedia("(max-width: 720px)").matches;
   if (mobile) {
     popEl.classList.add("sheet");
@@ -1899,7 +1951,7 @@ function openDigMenu(i, ev) {
 }
 
 // A tiny N×N picture of where a candidate treasure sits (so picking a placement
-// never depends on seeing the main grid — important when a bottom sheet covers it).
+// never depends on seeing the main grid. Important when a bottom sheet covers it).
 function miniDiagram(cells, dugIdx) {
   const N = state.N, set = new Set(cells);
   const g = document.createElement("span");
@@ -1947,7 +1999,7 @@ function openPlacementPicker(i, piece, ev) {
 
   if (touch) {
     // Mobile: select-then-place. Tap a row to preview it (grid + mini-diagram),
-    // then tap the confirm button — no hover, and no selection drift on the way down.
+    // then tap the confirm button. No hover, and no selection drift on the way down.
     let selected = 0;
     const rows = [];
     const select = idx => {
@@ -1966,7 +2018,7 @@ function openPlacementPicker(i, piece, ev) {
     placePop(ev);
     select(0);   // auto-preview the first candidate
   } else {
-    // Desktop (mouse): same mini-diagram rows, faster interaction — hover previews,
+    // Desktop (mouse): same mini-diagram rows, faster interaction. Hover previews,
     // a single click places it (no travel to a confirm button).
     cands.forEach(cells => {
       const b = candidateButton(cells, i);
@@ -2069,7 +2121,7 @@ populateStages();
 loadStage(1);   // start on Stage 1
 </script>
 
-<!-- Visitor analytics: GoatCounter — privacy-friendly, no cookies, no consent banner.
+<!-- Visitor analytics: GoatCounter. Privacy-friendly, no cookies, no consent banner.
      Dashboard: https://adjacent.goatcounter.com/ -->
 <script data-goatcounter="https://adjacent.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>

@@ -258,7 +258,7 @@ test("switching language re-renders the UI; switching back restores English exac
   assert.match(ja, /発見すべき宝/, "status line translated (dynamic string)");
   // back to English: byte-identical to the original strings the other tests rely on
   setLang(window, doc, "en");
-  assert.strictEqual(doc.querySelector("h1").textContent, "Treasure Hunt — Tile Probability Solver");
+  assert.strictEqual(doc.querySelector("h1").textContent, "Clash of Critters Treasure Hunt Probability Solver");
   assert.match(doc.querySelector("#status").textContent, /Remaining to find/);
   assert.strictEqual(errors.length, 0, errors.join("\n"));
 });
