@@ -231,3 +231,74 @@ test("DP toggle: exact on a dense stage where DFS bails, falls back to MC when o
   cb.dispatchEvent(new window.Event("change", { bubbles: true }));
   assert.match(status(), /\(DP\)/);
 });
+
+// ---------- Localization (i18n) ----------
+const setLang = (win, doc, L) => {
+  const s = doc.querySelector("#langSelect");
+  s.value = L;
+  s.dispatchEvent(new win.Event("change", { bubbles: true }));
+};
+
+test("language selector lists all locales and defaults to English in jsdom", () => {
+  const { doc } = boot();
+  const sel = doc.querySelector("#langSelect");
+  assert.ok(sel, "a language selector exists");
+  assert.strictEqual(sel.querySelectorAll("option").length, 10, "10 UI languages");
+  assert.strictEqual(sel.value, "en", "navigator en-US -> English default");
+  assert.strictEqual(doc.documentElement.lang, "en");
+});
+
+test("switching language re-renders the UI; switching back restores English exactly", () => {
+  const { window, doc, errors } = boot();
+  setLang(window, doc, "ja");
+  assert.strictEqual(doc.documentElement.lang, "ja", "<html lang> follows the choice");
+  assert.match(doc.querySelector("h1").textContent, /確率ソルバー/, "static chrome translated");
+  const ja = doc.querySelector("#status").textContent;
+  assert.ok(!/Remaining to find/.test(ja), "status line no longer English");
+  assert.match(ja, /発見すべき宝/, "status line translated (dynamic string)");
+  // back to English: byte-identical to the original strings the other tests rely on
+  setLang(window, doc, "en");
+  assert.strictEqual(doc.querySelector("h1").textContent, "Treasure Hunt — Tile Probability Solver");
+  assert.match(doc.querySelector("#status").textContent, /Remaining to find/);
+  assert.strictEqual(errors.length, 0, errors.join("\n"));
+});
+
+test("auto-detects the UI language from the browser, region-aware (zh-TW -> Traditional)", () => {
+  const errors = [];
+  const { window } = new JSDOM(HTML, {
+    runScripts: "dangerously",
+    pretendToBeVisual: true,
+    beforeParse(win) {
+      if (!win.performance) win.performance = { now: () => Date.now() };
+      Object.defineProperty(win.navigator, "language", { value: "zh-TW", configurable: true });
+      Object.defineProperty(win.navigator, "languages", { value: ["zh-TW"], configurable: true });
+      win.addEventListener("error", e => errors.push(e.error ? e.error.stack : e.message));
+    },
+  });
+  const doc = window.document;
+  assert.strictEqual(doc.documentElement.lang, "zh-Hant", "zh-TW resolves to Traditional Chinese");
+  assert.strictEqual(doc.querySelector("#langSelect").value, "zh-Hant");
+  assert.strictEqual(errors.length, 0, errors.join("\n"));
+});
+
+test("treasure names are never shown — dimensions only", () => {
+  const { window, doc } = boot();
+  loadStage(window, doc, 1); // Stage 1 is a 1×3 treasure (formerly labelled "Zobo Cola")
+  const info = doc.querySelector("#stageInfo").textContent;
+  assert.match(info, /1×3/, "stage info lists the dimension");
+  assert.ok(!/Zobo|Cola|Syringe|Radio|Statue|Spaceship|Cyberlimb/.test(info), "no treasure names leak into the UI");
+  // the dig menu offers the size by dimension, with no name tooltip
+  click(window, cells(doc)[0]);
+  const opt = popButtons(doc).find(b => /1×3/.test(b.textContent));
+  assert.ok(opt, "dig menu offers the 1×3 size");
+  assert.strictEqual(opt.title, "", "size button carries no treasure-name tooltip");
+});
+
+test("language switch localizes the popover while keeping dimensions intact", () => {
+  const { window, doc } = boot();
+  setLang(window, doc, "ja");
+  click(window, cells(doc)[0]);
+  const labels = popButtons(doc).map(b => b.textContent);
+  assert.ok(labels.some(t => /1×3/.test(t)), "the dimension survives translation");
+  assert.ok(labels.some(t => /キャンセル/.test(t)), "popover chrome is translated");
+});
