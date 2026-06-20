@@ -302,3 +302,18 @@ test("language switch localizes the popover while keeping dimensions intact", ()
   assert.ok(labels.some(t => /1×3/.test(t)), "the dimension survives translation");
   assert.ok(labels.some(t => /キャンセル/.test(t)), "popover chrome is translated");
 });
+
+test("footer has a localized feedback link to the Discord post", () => {
+  const { window, doc } = boot();
+  const feedback = () => [...doc.querySelectorAll("footer a")].find(a => /discord\.com/.test(a.href));
+  const a = feedback();
+  assert.ok(a, "a feedback link exists in the footer");
+  assert.match(a.href, /discord\.com\/channels\/1343763804349267989\/1517044316177039502/);
+  assert.match(a.getAttribute("rel") || "", /noopener/, "opens externally without leaking the opener");
+  assert.strictEqual(a.target, "_blank");
+  assert.match(a.textContent, /Feedback/, "English label by default");
+  // localizes along with the rest of the UI (text + tooltip)
+  setLang(window, doc, "ja");
+  assert.match(feedback().textContent, /フィードバック/, "label translated");
+  assert.ok(feedback().title.length > 0, "tooltip is set");
+});

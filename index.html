@@ -260,6 +260,7 @@
 <footer style="width:100%;max-width:980px;margin:auto auto 0;padding:16px 14px;text-align:center;color:var(--muted);font-size:12px;line-height:1.7;border-top:1px solid var(--line)">
   © 2026 Andy Jiang ·
   <span data-i18n="footer.source">Source code:</span> <a href="https://github.com/adj-acent/ClashOfCritterTreasureHuntSolver" target="_blank" rel="noopener" style="color:var(--accent)">GitHub</a> ·
+  <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" style="color:var(--accent)" title="Leave feedback, bugs, or suggestions" data-i18n="footer.feedback" data-i18n-title="footer.feedbackTitle">💬 Feedback</a> ·
   <a href="https://github.com/adj-acent/ClashOfCritterTreasureHuntSolver/blob/main/LICENSE" target="_blank" rel="noopener" style="color:var(--accent)" data-i18n="footer.license">Non-commercial use only — PolyForm-NC&nbsp;1.0.0</a><br>
   <span data-i18n="footer.disclaimer">Fan-made tool — not affiliated with or endorsed by the game or its publisher.</span>
 </footer>
@@ -276,14 +277,15 @@
    Layout of this script, top to bottom:
      1. DATA          TREASURES (sizes) and STAGES (presets).
      2. STATE         `state` = grid size + the stage's pieces + per-cell status.
-     3. PIECE HELPERS  normalise/merge pieces by dimension; count remaining.
-     4. UI: CONTROLS   presets dropdown, piece editor, quick-add.
-     5. SOLVER         per-tile probability that a tile covers a treasure.
+     3. I18N          inline translations + t(); language detect/select/persist.
+     4. PIECE HELPERS  normalise/merge pieces by dimension; count remaining.
+     5. UI: CONTROLS   presets dropdown, piece editor, quick-add.
+     6. SOLVER         per-tile probability that a tile covers a treasure.
                        Exact enumeration when small; Monte-Carlo when not.
-     6. ESTIMATOR      simulate greedy play to estimate picks needed to finish.
-     7. RENDER         paint the heatmap + mark the best tile(s) to dig.
-     8. INTERACTION    click a tile -> popover -> mark empty / place a treasure.
-     9. WIRING + BOOT  event handlers, then load Stage 1.
+     7. ESTIMATOR      simulate greedy play to estimate picks needed to finish.
+     8. RENDER         paint the heatmap + mark the best tile(s) to dig.
+     9. INTERACTION    click a tile -> popover -> mark empty / place a treasure.
+    10. WIRING + BOOT  event handlers, detect language, then load Stage 1.
 
    Core model: every cell is hidden / empty / item. A "found" treasure is fully
    located (you learn its footprint from one dig), so the solver only ever has
@@ -397,6 +399,8 @@ const I18N = {
     "footer.source": "Source code:",
     "footer.license": "Non-commercial use only — PolyForm-NC 1.0.0",
     "footer.disclaimer": "Fan-made tool — not affiliated with or endorsed by the game or its publisher.",
+    "footer.feedback": "💬 Feedback",
+    "footer.feedbackTitle": "Leave feedback, bugs, or suggestions",
     "stage.custom": "— custom —",
     "stage.option": "Stage {n}  ({grid}×{grid})",
     "status.remaining": "Remaining to find: {list}. ",
@@ -473,6 +477,8 @@ const I18N = {
     "footer.source": "Quellcode:",
     "footer.license": "Nur nicht-kommerzielle Nutzung — PolyForm-NC 1.0.0",
     "footer.disclaimer": "Fan-Tool — nicht verbunden mit oder unterstützt von dem Spiel oder seinem Herausgeber.",
+    "footer.feedback": "💬 Feedback",
+    "footer.feedbackTitle": "Feedback, Fehler oder Vorschläge hinterlassen",
     "stage.custom": "— benutzerdefiniert —",
     "stage.option": "Stufe {n}  ({grid}×{grid})",
     "status.remaining": "Noch zu finden: {list}. ",
@@ -549,6 +555,8 @@ const I18N = {
     "footer.source": "Código fuente:",
     "footer.license": "Solo uso no comercial — PolyForm-NC 1.0.0",
     "footer.disclaimer": "Herramienta de fans — sin afiliación ni respaldo del juego ni de su editor.",
+    "footer.feedback": "💬 Comentarios",
+    "footer.feedbackTitle": "Deja comentarios, errores o sugerencias",
     "stage.custom": "— personalizado —",
     "stage.option": "Etapa {n}  ({grid}×{grid})",
     "status.remaining": "Por encontrar: {list}. ",
@@ -625,6 +633,8 @@ const I18N = {
     "footer.source": "Código-fonte:",
     "footer.license": "Apenas uso não comercial — PolyForm-NC 1.0.0",
     "footer.disclaimer": "Ferramenta de fãs — sem afiliação ou endosso do jogo ou da sua editora.",
+    "footer.feedback": "💬 Feedback",
+    "footer.feedbackTitle": "Deixe feedback, erros ou sugestões",
     "stage.custom": "— personalizado —",
     "stage.option": "Fase {n}  ({grid}×{grid})",
     "status.remaining": "A encontrar: {list}. ",
@@ -701,6 +711,8 @@ const I18N = {
     "footer.source": "Code source :",
     "footer.license": "Usage non commercial uniquement — PolyForm-NC 1.0.0",
     "footer.disclaimer": "Outil de fans — sans affiliation ni approbation du jeu ou de son éditeur.",
+    "footer.feedback": "💬 Commentaires",
+    "footer.feedbackTitle": "Laissez vos commentaires, bugs ou suggestions",
     "stage.custom": "— personnalisé —",
     "stage.option": "Niveau {n}  ({grid}×{grid})",
     "status.remaining": "À trouver : {list}. ",
@@ -777,6 +789,8 @@ const I18N = {
     "footer.source": "Исходный код:",
     "footer.license": "Только некоммерческое использование — PolyForm-NC 1.0.0",
     "footer.disclaimer": "Фанатский инструмент — не связан с игрой или её издателем и не одобрен ими.",
+    "footer.feedback": "💬 Отзывы",
+    "footer.feedbackTitle": "Оставьте отзыв, сообщение об ошибке или предложение",
     "stage.custom": "— пользовательский —",
     "stage.option": "Этап {n}  ({grid}×{grid})",
     "status.remaining": "Осталось найти: {list}. ",
@@ -853,6 +867,8 @@ const I18N = {
     "footer.source": "源代码：",
     "footer.license": "仅限非商业使用 — PolyForm-NC 1.0.0",
     "footer.disclaimer": "粉丝制作的工具——与该游戏或其发行商无关联，也未获其认可。",
+    "footer.feedback": "💬 反馈",
+    "footer.feedbackTitle": "留下反馈、错误或建议",
     "stage.custom": "— 自定义 —",
     "stage.option": "关卡 {n}  ({grid}×{grid})",
     "status.remaining": "待找出：{list}。 ",
@@ -929,6 +945,8 @@ const I18N = {
     "footer.source": "原始碼：",
     "footer.license": "僅限非商業使用 — PolyForm-NC 1.0.0",
     "footer.disclaimer": "粉絲製作的工具——與該遊戲或其發行商無關聯，亦未獲其認可。",
+    "footer.feedback": "💬 意見回饋",
+    "footer.feedbackTitle": "留下意見、錯誤回報或建議",
     "stage.custom": "— 自訂 —",
     "stage.option": "關卡 {n}  ({grid}×{grid})",
     "status.remaining": "待找出：{list}。 ",
@@ -1005,6 +1023,8 @@ const I18N = {
     "footer.source": "소스 코드:",
     "footer.license": "비상업적 사용만 허용 — PolyForm-NC 1.0.0",
     "footer.disclaimer": "팬 제작 도구 — 해당 게임 또는 퍼블리셔와 제휴하거나 보증받지 않았습니다.",
+    "footer.feedback": "💬 피드백",
+    "footer.feedbackTitle": "피드백, 버그 또는 제안을 남겨 주세요",
     "stage.custom": "— 사용자 지정 —",
     "stage.option": "스테이지 {n}  ({grid}×{grid})",
     "status.remaining": "남은 보물: {list}. ",
@@ -1081,6 +1101,8 @@ const I18N = {
     "footer.source": "ソースコード:",
     "footer.license": "非商用利用のみ — PolyForm-NC 1.0.0",
     "footer.disclaimer": "ファン制作ツール — 当該ゲームや発行元とは無関係で、承認も受けていません。",
+    "footer.feedback": "💬 フィードバック",
+    "footer.feedbackTitle": "フィードバック・バグ・ご提案はこちら",
     "stage.custom": "— カスタム —",
     "stage.option": "ステージ {n}  ({grid}×{grid})",
     "status.remaining": "発見すべき宝: {list}。 ",
