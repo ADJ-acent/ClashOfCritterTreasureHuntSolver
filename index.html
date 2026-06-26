@@ -231,6 +231,13 @@
     #pop.sheet button { padding: 11px 12px; font-size: 15px; }
     .mini { width: 54px; }
   }
+  .credits-dialog {
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px 18px 16px; max-width: 360px; width: calc(100% - 32px);
+    box-shadow: 0 12px 40px rgba(0,0,0,.5);
+  }
+  .credits-dialog::backdrop { background: rgba(0,0,0,.55); }
 </style>
 </head>
 <body>
@@ -313,9 +320,20 @@
   © 2026 Andy Jiang ·
   <span data-i18n="footer.source">Source code:</span> <a href="https://github.com/adj-acent/ClashOfCritterTreasureHuntSolver" target="_blank" rel="noopener" style="color:var(--accent)">GitHub</a> ·
   <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" style="color:var(--accent)" title="Leave feedback, bugs, or suggestions" data-i18n="footer.feedback" data-i18n-title="footer.feedbackTitle">💬 Feedback</a> ·
+  <button id="creditsLink" type="button" data-i18n="footer.credits" style="background:none;border:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline">Translators</button> ·
   <a href="https://github.com/adj-acent/ClashOfCritterTreasureHuntSolver/blob/main/LICENSE" target="_blank" rel="noopener" style="color:var(--accent)" data-i18n="footer.license">Non-commercial use only. PolyForm-NC&nbsp;1.0.0</a><br>
   <span data-i18n="footer.disclaimer">Fan-made tool. Not affiliated with or endorsed by the game or its publisher.</span>
 </footer>
+
+<dialog id="creditsDialog" class="credits-dialog" aria-labelledby="creditsTitle">
+  <h2 id="creditsTitle" data-i18n="credits.title" style="margin:0 0 12px;font-size:16px;color:var(--text)">Translation credits</h2>
+  <ul id="creditsList" style="list-style:none;padding:0;margin:0 0 14px;font-size:13px;line-height:1.9"></ul>
+  <p data-i18n="credits.aiNote" style="margin:0 0 16px;font-size:12px;color:var(--muted);line-height:1.6">The other languages were translated with AI and reviewed for the interface. Spot a mistake? Corrections are very welcome on GitHub.</p>
+  <div style="display:flex;gap:14px;align-items:center;justify-content:flex-end;flex-wrap:wrap">
+    <a href="https://github.com/adj-acent/ClashOfCritterTreasureHuntSolver/issues" target="_blank" rel="noopener" data-i18n="credits.contribute" style="color:var(--accent);font-size:13px">Suggest a correction</a>
+    <button id="creditsClose" type="button" class="primary" data-i18n="common.close">Close</button>
+  </div>
+</dialog>
 
 <div id="pop"></div>
 
@@ -453,11 +471,17 @@ const I18N = {
     "footer.disclaimer": "Fan-made tool. Not affiliated with or endorsed by the game or its publisher.",
     "footer.feedback": "💬 Feedback",
     "footer.feedbackTitle": "Leave feedback, bugs, or suggestions",
+    "footer.credits": "Translators",
+    "credits.title": "Translation credits",
+    "credits.aiNote": "The other languages were translated with AI and reviewed for the interface. Spot a mistake? Corrections are very welcome on GitHub.",
+    "credits.contribute": "Suggest a correction",
+    "common.close": "Close",
     "stage.custom": "(custom)",
     "stage.option": "Stage {n}  ({grid}×{grid})",
     "status.remaining": "Remaining to find: {list}. ",
     "status.none": "none",
     "status.noLayout": "No valid layout fits these treasures in the remaining tiles. Check your digs.",
+    "status.dpSuffix": " (DP)",
     "status.exact": { one: "Exact over {total} layout{dp}.", other: "Exact over {total} layouts{dp}." },
     "status.estimated": { one: "Estimated from {total} sample ({rej}% rejected). Too many layouts to count exactly.", other: "Estimated from {total} samples ({rej}% rejected). Too many layouts to count exactly." },
     "dig.title": "Tile {label}: What did you dig?",
@@ -531,6 +555,11 @@ const I18N = {
     "footer.disclaimer": "Fan-Tool. Nicht verbunden mit oder unterstützt von dem Spiel oder seinem Herausgeber.",
     "footer.feedback": "💬 Feedback",
     "footer.feedbackTitle": "Feedback, Fehler oder Vorschläge hinterlassen",
+    "footer.credits": "Übersetzer",
+    "credits.title": "Übersetzungs-Credits",
+    "credits.aiNote": "Die anderen Sprachen wurden mit KI übersetzt und für die Oberfläche geprüft. Fehler entdeckt? Korrekturen sind auf GitHub sehr willkommen.",
+    "credits.contribute": "Korrektur vorschlagen",
+    "common.close": "Schließen",
     "stage.custom": "(benutzerdefiniert)",
     "stage.option": "Stufe {n}  ({grid}×{grid})",
     "status.remaining": "Noch zu finden: {list}. ",
@@ -609,6 +638,11 @@ const I18N = {
     "footer.disclaimer": "Herramienta de fans. Sin afiliación ni respaldo del juego ni de su editor.",
     "footer.feedback": "💬 Comentarios",
     "footer.feedbackTitle": "Deja comentarios, errores o sugerencias",
+    "footer.credits": "Traductores",
+    "credits.title": "Créditos de traducción",
+    "credits.aiNote": "Los demás idiomas se tradujeron con IA y se revisaron para la interfaz. ¿Ves un error? Las correcciones son bienvenidas en GitHub.",
+    "credits.contribute": "Sugerir una corrección",
+    "common.close": "Cerrar",
     "stage.custom": "(personalizado)",
     "stage.option": "Etapa {n}  ({grid}×{grid})",
     "status.remaining": "Por encontrar: {list}. ",
@@ -687,6 +721,11 @@ const I18N = {
     "footer.disclaimer": "Ferramenta de fãs. Sem afiliação ou endosso do jogo ou da sua editora.",
     "footer.feedback": "💬 Feedback",
     "footer.feedbackTitle": "Deixe feedback, erros ou sugestões",
+    "footer.credits": "Tradutores",
+    "credits.title": "Créditos de tradução",
+    "credits.aiNote": "Os outros idiomas foram traduzidos com IA e revisados para a interface. Encontrou um erro? Correções são bem-vindas no GitHub.",
+    "credits.contribute": "Sugerir uma correção",
+    "common.close": "Fechar",
     "stage.custom": "(personalizado)",
     "stage.option": "Fase {n}  ({grid}×{grid})",
     "status.remaining": "A encontrar: {list}. ",
@@ -722,42 +761,42 @@ const I18N = {
   fr: {
     "app.pageTitle": "Solveur de probabilités pour la Chasse au trésor de Clash of Critters",
     "app.title": "Solveur de probabilités pour la Chasse au trésor de Clash of Critters",
-    "app.subtitle": "Définis la taille de la grille et les trésors cachés dans ce niveau, puis creuse. Chaque case cachée affiche la probabilité qu'elle recouvre un trésor.",
+    "app.subtitle": "Carte thermique des probabilités pour l'événement « Chasse au trésor » de Clash of Critters. Définissez la taille de la grille ainsi que les trésors enterrés dans ce niveau, puis creusez. Chaque case cachée indique la probabilité de contenir un trésor.",
     "lang.label": "Langue",
     "setup.heading": "Configuration du niveau",
     "setup.preset": "Préréglage",
     "setup.gridSize": "Taille de la grille",
-    "setup.pickPerTile": "Pioches / case",
+    "setup.pickPerTile": "Pioches par case",
     "setup.widthTitle": "largeur",
     "setup.heightTitle": "hauteur",
-    "setup.countTitle": "nombre",
+    "setup.countTitle": "quantité",
     "setup.add": "Ajouter",
-    "setup.quickAddHint": "Les boutons rapides correspondent aux tailles de trésor courantes. Le solveur ne considère que les dimensions, donc les trésors de même taille sont regroupés.",
-    "setup.notPublished": "trésors non publiés. Ajoute-les manuellement",
+    "setup.quickAddHint": "Les boutons d'ajout rapide correspondent aux tailles de trésor courantes. Le solveur ne prend en compte que les dimensions, donc les trésors de même taille sont fusionnés.",
+    "setup.notPublished": "trésors non publiés. Ajoutez-les manuellement",
     "setup.pickInfo": "<b>{pick}</b> pioches/case",
     "pieces.heading": "Trésors de ce niveau",
     "pieces.colSize": "Taille",
-    "pieces.colCount": "Nombre",
+    "pieces.colCount": "Quantité",
     "pieces.colFound": "Trouvés",
-    "pieces.empty": "Aucun trésor pour l'instant. Ajoutes-en.",
-    "board.start": "Démarrer / Réinitialiser le plateau",
+    "pieces.empty": "Aucun trésor pour l'instant. Ajoutez-en.",
+    "board.start": "Démarrer / Réinitialiser la grille",
     "board.clearDigs": "Effacer les fouilles",
-    "board.statusInitial": "Configure un niveau et appuie sur « Démarrer / Réinitialiser le plateau ».",
-    "board.hint": "Clique sur une case cachée → choisis <b>Vide</b> ou quel trésor tu as touché, puis choisis le placement correspondant à la direction. Les trésors localisés doivent encore être déterrés. Clique sur l'un d'eux pour le marquer ✓ déterré. Le ★ indique la ou les cases inconnues les plus probables à creuser ensuite.",
-    "dp.label": "Probabilités exactes (DP)",
-    "dp.sub": "exactes, non échantillonnées",
-    "dp.title": "Calcule des probabilités exactes avec un solveur de programmation dynamique au lieu d'un échantillonnage Monte-Carlo. Généralement aussi rapide ou plus, mais sur les niveaux les plus denses cela peut prendre ~0,5–0,7 s et (contrairement à l'échantillonnage) n'est pas limité dans le temps. Désactive-le sur les appareils peu puissants.",
+    "board.statusInitial": "Configurez un niveau et appuyez sur « Démarrer / Réinitialiser la grille ».",
+    "board.hint": "Cliquez sur une case cachée, puis choisissez <b>Vide</b> ou quel trésor vous avez trouvé. Indiquez ensuite l'emplacement qui correspond à la direction dans laquelle il se trouve. Les trésors localisés doivent encore être déterrés. Cliquez sur une case pour la marquer comme ✓ déterrée. L'étoile ★ indique la ou les cases inconnues ayant la plus forte probabilité à creuser ensuite.",
+    "dp.label": "Probabilités exactes (programmation dynamique)",
+    "dp.sub": "non estimées par échantillonnage",
+    "dp.title": "Calculez des probabilités exactes avec un solveur de programmation dynamique au lieu d'un échantillonnage Monte-Carlo. Généralement aussi rapide ou plus, mais sur les niveaux les plus denses cela peut prendre ~0,5–0,7 s et (contrairement à l'échantillonnage) n'est pas limité dans le temps. Désactivez-le sur les appareils peu puissants.",
     "estimate.heading": "Estimation du coût en pioches",
-    "estimate.button": "Estimer les pioches pour finir",
+    "estimate.button": "Estimer le nombre de pioches restantes",
     "estimate.simulating": "Simulation…",
     "estimate.allDug": "Tous les trésors déterrés. 0 pioches restantes.",
-    "estimate.impossible": "Impossible de placer les trésors restants dans les cases cachées. Vérifie le plateau.",
+    "estimate.impossible": "Impossible de placer les trésors restants dans les cases cachées. Vérifiez la grille.",
     "estimate.deterministic": "tous les trésors localisés. Il ne reste qu'à les déterrer · ignore les bombes",
     "estimate.detail": "généralement {p10}–{p90} cases · plage {min}–{max} · {trials} simulations · ignore les bombes",
     "estimate.meanLine": "<b>≈ {mean} cases</b> à déterrer entièrement (stratégie gloutonne)",
     "estimate.pickLine": "<b>≈ {picks} pioches</b> &nbsp;({pick}/case)",
     "legend.empty": "vide",
-    "legend.located": "⛏ localisé (enfoui)",
+    "legend.located": "⛏ trésor localisé (enterré)",
     "legend.dugOut": "✓ déterré",
     "legend.best": "★ meilleure case à creuser",
     "footer.source": "Code source :",
@@ -765,22 +804,28 @@ const I18N = {
     "footer.disclaimer": "Outil de fans. Sans affiliation ni approbation du jeu ou de son éditeur.",
     "footer.feedback": "💬 Commentaires",
     "footer.feedbackTitle": "Laissez vos commentaires, bugs ou suggestions",
+    "footer.credits": "Traducteurs",
+    "credits.title": "Crédits de traduction",
+    "credits.aiNote": "Les autres langues ont été traduites avec l'aide de l'IA et relues pour l'interface. Une erreur vous saute aux yeux ? Les corrections sont les bienvenues sur GitHub.",
+    "credits.contribute": "Proposer une correction",
+    "common.close": "Fermer",
     "stage.custom": "(personnalisé)",
     "stage.option": "Niveau {n}  ({grid}×{grid})",
-    "status.remaining": "À trouver : {list}. ",
+    "status.remaining": "Restant à trouver : {list}. ",
     "status.none": "aucun",
-    "status.noLayout": "Aucune disposition valide ne place ces trésors dans les cases restantes. Vérifie tes fouilles.",
-    "status.exact": { one: "Exact sur {total} disposition{dp}.", other: "Exact sur {total} dispositions{dp}." },
-    "status.estimated": { one: "Estimé à partir de {total} échantillon ({rej}% rejetés). Trop de dispositions pour les compter exactement.", other: "Estimé à partir de {total} échantillons ({rej}% rejetés). Trop de dispositions pour les compter exactement." },
-    "dig.title": "Case {label} : qu'as-tu creusé ?",
+    "status.noLayout": "Aucune configuration valide ne place ces trésors dans les cases restantes. Vérifiez vos fouilles.",
+    "status.dpSuffix": " (programmation dynamique)",
+    "status.exact": { one: "Calcul exact sur {total} configuration{dp}.", other: "Calcul exact sur {total} configurations{dp}." },
+    "status.estimated": { one: "Estimé à partir de {total} échantillon ({rej}% rejetés). Trop de configurations pour les compter exactement.", other: "Estimé à partir de {total} échantillons ({rej}% rejetés). Trop de configurations pour les compter exactement." },
+    "dig.title": "Case {label} : qu'avez-vous creusé ?",
     "dig.empty": "⬜ Vide (rien)",
     "dig.option": "🟨 {w}×{h}  ({n} restants)",
     "dig.allFound": "Tous les trésors déjà trouvés.",
     "common.cancel": "Annuler",
     "common.back": "← Retour",
     "place.prompt": "Dans quel sens allait le {w}×{h} ?",
-    "place.hintTouch": "touche pour prévisualiser, puis Placer",
-    "place.hintHover": "survole pour prévisualiser, clique pour placer",
+    "place.hintTouch": "touchez pour prévisualiser, puis Placer",
+    "place.hintHover": "survolez pour prévisualiser, cliquez pour placer",
     "place.none": "Aucun placement valide ici. Libérer des cases ?",
     "place.placeIt": "✓ Placer",
     "place.horizontal": "↔ horizontal",
@@ -789,7 +834,7 @@ const I18N = {
     "clear.itemTitle": "Case {label} : trésor {dim} ({state})",
     "clear.stateDug": "déterré",
     "clear.stateBuried": "localisé, non déterré",
-    "clear.markBuried": "⛏ Marquer comme encore enfoui",
+    "clear.markBuried": "⛏ Marquer comme encore enterré",
     "clear.markDug": "✓ Marquer comme déterré",
     "clear.clearTreasure": "↩ Retirer ce trésor",
     "clear.emptyTitle": "Case {label} : vide",
@@ -843,6 +888,11 @@ const I18N = {
     "footer.disclaimer": "Фанатский инструмент. Не связан с игрой или её издателем и не одобрен ими.",
     "footer.feedback": "💬 Отзывы",
     "footer.feedbackTitle": "Оставьте отзыв, сообщение об ошибке или предложение",
+    "footer.credits": "Переводчики",
+    "credits.title": "Авторы перевода",
+    "credits.aiNote": "Остальные языки переведены с помощью ИИ и проверены для интерфейса. Заметили ошибку? Будем рады исправлениям на GitHub.",
+    "credits.contribute": "Предложить исправление",
+    "common.close": "Закрыть",
     "stage.custom": "(пользовательский)",
     "stage.option": "Этап {n}  ({grid}×{grid})",
     "status.remaining": "Осталось найти: {list}. ",
@@ -921,6 +971,11 @@ const I18N = {
     "footer.disclaimer": "粉丝制作的工具。与该游戏或其发行商无关联，也未获其认可。",
     "footer.feedback": "💬 反馈",
     "footer.feedbackTitle": "留下反馈、错误或建议",
+    "footer.credits": "翻译人员",
+    "credits.title": "翻译鸣谢",
+    "credits.aiNote": "其他语言由 AI 翻译并针对界面进行了校对。发现错误？欢迎在 GitHub 上提交修正。",
+    "credits.contribute": "提交修正",
+    "common.close": "关闭",
     "stage.custom": "(自定义)",
     "stage.option": "关卡 {n}  ({grid}×{grid})",
     "status.remaining": "待找出：{list}。 ",
@@ -999,6 +1054,11 @@ const I18N = {
     "footer.disclaimer": "粉絲製作的工具。與該遊戲或其發行商無關聯，亦未獲其認可。",
     "footer.feedback": "💬 意見回饋",
     "footer.feedbackTitle": "留下意見、錯誤回報或建議",
+    "footer.credits": "翻譯人員",
+    "credits.title": "翻譯鳴謝",
+    "credits.aiNote": "其他語言由 AI 翻譯並針對介面進行了校對。發現錯誤？歡迎在 GitHub 上提交修正。",
+    "credits.contribute": "提交修正",
+    "common.close": "關閉",
     "stage.custom": "(自訂)",
     "stage.option": "關卡 {n}  ({grid}×{grid})",
     "status.remaining": "待找出：{list}。 ",
@@ -1077,6 +1137,11 @@ const I18N = {
     "footer.disclaimer": "팬 제작 도구. 해당 게임 또는 퍼블리셔와 제휴하거나 보증받지 않았습니다.",
     "footer.feedback": "💬 피드백",
     "footer.feedbackTitle": "피드백, 버그 또는 제안을 남겨 주세요",
+    "footer.credits": "번역자",
+    "credits.title": "번역 크레딧",
+    "credits.aiNote": "다른 언어는 AI로 번역하고 인터페이스에 맞게 검토했습니다. 오류를 발견하셨나요? GitHub에서 수정 제안을 환영합니다.",
+    "credits.contribute": "수정 제안하기",
+    "common.close": "닫기",
     "stage.custom": "(사용자 지정)",
     "stage.option": "스테이지 {n}  ({grid}×{grid})",
     "status.remaining": "남은 보물: {list}. ",
@@ -1155,6 +1220,11 @@ const I18N = {
     "footer.disclaimer": "ファン制作ツール。当該ゲームや発行元とは無関係で、承認も受けていません。",
     "footer.feedback": "💬 フィードバック",
     "footer.feedbackTitle": "フィードバック・バグ・ご提案はこちら",
+    "footer.credits": "翻訳者",
+    "credits.title": "翻訳クレジット",
+    "credits.aiNote": "他の言語は AI で翻訳し、UI に合わせて確認しています。間違いを見つけましたか？GitHub での修正提案を歓迎します。",
+    "credits.contribute": "修正を提案する",
+    "common.close": "閉じる",
     "stage.custom": "(カスタム)",
     "stage.option": "ステージ {n}  ({grid}×{grid})",
     "status.remaining": "発見すべき宝: {list}。 ",
@@ -1878,7 +1948,7 @@ function recompute() {
   if (!res.ok && res.total === 0) {
     msg += `<span class="warn">${t("status.noLayout")}</span>`;
   } else if (res.mode === "exact" || res.mode === "dp") {
-    msg += t("status.exact", { _n: res.total, total: nfmt(res.total), dp: res.mode === "dp" ? " (DP)" : "" });
+    msg += t("status.exact", { _n: res.total, total: nfmt(res.total), dp: res.mode === "dp" ? t("status.dpSuffix") : "" });
   } else {
     const rej = res.samples ? (100 * (1 - res.total / res.samples)).toFixed(0) : 0;
     msg += t("status.estimated", { _n: res.total, total: nfmt(res.total), rej });
@@ -2107,6 +2177,31 @@ $("#clearDigs").onclick = clearDigs;
 $("#estimate").onclick = runEstimate;
 $("#dpToggle").onchange = e => { try { localStorage.setItem("th.dp", e.target.checked ? "1" : "0"); } catch (_) {} recompute(); };
 $("#langSelect").onchange = e => setLang(e.target.value);
+
+/* ---------- Translator credits ---------- */
+// Add contributors here as { lang: "<native language name>", name: "<credit>", url: "<optional profile link>" }.
+const TRANSLATORS = [
+  { lang: "Français", name: "Kuraïbushi" },
+];
+function renderCredits() {
+  const ul = $("#creditsList");
+  if (!ul) return;
+  ul.innerHTML = TRANSLATORS.map(c => {
+    const who = c.url
+      ? `<a href="${c.url}" target="_blank" rel="noopener" style="color:var(--accent)">${c.name}</a>`
+      : c.name;
+    return `<li><span style="color:var(--muted)">${c.lang}</span> &mdash; ${who}</li>`;
+  }).join("");
+}
+const creditsDialog = $("#creditsDialog");
+if (creditsDialog) {
+  // showModal/close where supported; fall back to the open attribute on older engines.
+  const openCredits = () => { renderCredits(); if (creditsDialog.showModal) creditsDialog.showModal(); else creditsDialog.setAttribute("open", ""); };
+  const closeCredits = () => { if (creditsDialog.close) creditsDialog.close(); else creditsDialog.removeAttribute("open"); };
+  $("#creditsLink").onclick = openCredits;
+  $("#creditsClose").onclick = closeCredits;
+  creditsDialog.addEventListener("click", e => { if (e.target === creditsDialog) closeCredits(); });
+}
 document.addEventListener("click", e => { if (!popEl.contains(e.target)) hidePop(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") hidePop(); });
 
