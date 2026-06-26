@@ -479,6 +479,7 @@ const I18N = {
     "stage.custom": "(custom)",
     "stage.option": "Stage {n}  ({grid}×{grid})",
     "status.remaining": "Remaining to find: {list}. ",
+    "status.remItem": "{w}×{h} ({n} left)",
     "status.none": "none",
     "status.noLayout": "No valid layout fits these treasures in the remaining tiles. Check your digs.",
     "status.dpSuffix": " (DP)",
@@ -563,6 +564,7 @@ const I18N = {
     "stage.custom": "(benutzerdefiniert)",
     "stage.option": "Stufe {n}  ({grid}×{grid})",
     "status.remaining": "Noch zu finden: {list}. ",
+    "status.remItem": "{w}×{h} (noch {n})",
     "status.none": "keine",
     "status.noLayout": "Keine gültige Anordnung passt für diese Schätze in die verbleibenden Felder. Prüfe deine Grabungen.",
     "status.exact": { one: "Exakt über {total} Anordnung{dp}.", other: "Exakt über {total} Anordnungen{dp}." },
@@ -646,6 +648,7 @@ const I18N = {
     "stage.custom": "(personalizado)",
     "stage.option": "Etapa {n}  ({grid}×{grid})",
     "status.remaining": "Por encontrar: {list}. ",
+    "status.remItem": "{w}×{h} ({n} restantes)",
     "status.none": "ninguno",
     "status.noLayout": "Ninguna disposición válida encaja con estos tesoros en las casillas restantes. Revisa tus excavaciones.",
     "status.exact": { one: "Exacto sobre {total} disposición{dp}.", other: "Exacto sobre {total} disposiciones{dp}." },
@@ -729,6 +732,7 @@ const I18N = {
     "stage.custom": "(personalizado)",
     "stage.option": "Fase {n}  ({grid}×{grid})",
     "status.remaining": "A encontrar: {list}. ",
+    "status.remItem": "{w}×{h} ({n} restantes)",
     "status.none": "nenhum",
     "status.noLayout": "Nenhuma disposição válida encaixa estes tesouros nas casas restantes. Verifique suas escavações.",
     "status.exact": { one: "Exato sobre {total} disposição{dp}.", other: "Exato sobre {total} disposições{dp}." },
@@ -812,6 +816,7 @@ const I18N = {
     "stage.custom": "(personnalisé)",
     "stage.option": "Niveau {n}  ({grid}×{grid})",
     "status.remaining": "Restant à trouver : {list}. ",
+    "status.remItem": "{w}×{h} ({n} restants)",
     "status.none": "aucun",
     "status.noLayout": "Aucune configuration valide ne place ces trésors dans les cases restantes. Vérifiez vos fouilles.",
     "status.dpSuffix": " (programmation dynamique)",
@@ -896,6 +901,7 @@ const I18N = {
     "stage.custom": "(пользовательский)",
     "stage.option": "Этап {n}  ({grid}×{grid})",
     "status.remaining": "Осталось найти: {list}. ",
+    "status.remItem": "{w}×{h} (осталось {n})",
     "status.none": "нет",
     "status.noLayout": "Ни одно допустимое расположение этих сокровищ не помещается в оставшиеся клетки. Проверьте раскопки.",
     "status.exact": { one: "Точно: {total} раскладка{dp}.", few: "Точно: {total} раскладки{dp}.", many: "Точно: {total} раскладок{dp}.", other: "Точно: {total} раскладок{dp}." },
@@ -979,6 +985,7 @@ const I18N = {
     "stage.custom": "(自定义)",
     "stage.option": "关卡 {n}  ({grid}×{grid})",
     "status.remaining": "待找出：{list}。 ",
+    "status.remItem": "{w}×{h} ({n} 剩余)",
     "status.none": "无",
     "status.noLayout": "没有有效布局能把这些宝藏放进剩余格子。请检查你的挖掘。",
     "status.exact": { other: "基于 {total} 种布局精确计算{dp}。" },
@@ -1062,6 +1069,7 @@ const I18N = {
     "stage.custom": "(自訂)",
     "stage.option": "關卡 {n}  ({grid}×{grid})",
     "status.remaining": "待找出：{list}。 ",
+    "status.remItem": "{w}×{h} ({n} 剩餘)",
     "status.none": "無",
     "status.noLayout": "沒有有效佈局能把這些寶藏放進剩餘格子。請檢查你的挖掘。",
     "status.exact": { other: "已精確計算 {total} 種佈局{dp}。" },
@@ -1145,6 +1153,7 @@ const I18N = {
     "stage.custom": "(사용자 지정)",
     "stage.option": "스테이지 {n}  ({grid}×{grid})",
     "status.remaining": "남은 보물: {list}. ",
+    "status.remItem": "{w}×{h} ({n}개 남음)",
     "status.none": "없음",
     "status.noLayout": "남은 칸에 이 보물들을 넣을 수 있는 유효한 배치가 없습니다. 발굴을 확인하세요.",
     "status.exact": { other: "{total}개 배치에 대해 정확히 계산{dp}." },
@@ -1228,6 +1237,7 @@ const I18N = {
     "stage.custom": "(カスタム)",
     "stage.option": "ステージ {n}  ({grid}×{grid})",
     "status.remaining": "発見すべき宝: {list}。 ",
+    "status.remItem": "{w}×{h}（残り{n}）",
     "status.none": "なし",
     "status.noLayout": "残りのマスにこれらの宝を収める有効な配置がありません。掘削を確認してください。",
     "status.exact": { other: "{total} 通りの配置で正確に計算{dp}。" },
@@ -1943,7 +1953,7 @@ function recompute() {
   // status line
   const remList = state.pieces
     .filter(p => remainingOf(p) > 0)
-    .map(p => `${p.w}×${p.h}×${remainingOf(p)}`).join(", ") || t("status.none");
+    .map(p => t("status.remItem", { w: p.w, h: p.h, n: remainingOf(p) })).join(", ") || t("status.none");
   let msg = t("status.remaining", { list: remList });
   if (!res.ok && res.total === 0) {
     msg += `<span class="warn">${t("status.noLayout")}</span>`;
@@ -1964,7 +1974,7 @@ function heat(p) {
 }
 
 /* ---------- Interaction: clicking cells ---------- */
-function hidePop() { popEl.style.display = "none"; clearHighlights(); }
+function hidePop() { popEl.style.display = "none"; popEl.onmouseleave = null; clearHighlights(); }
 function clearHighlights() {
   gridEl.querySelectorAll(".cell.hl,.cell.dim").forEach(el => el.classList.remove("hl", "dim"));
 }
@@ -1999,6 +2009,7 @@ function placePop(ev) {
 }
 
 function openDigMenu(i, ev) {
+  popEl.onmouseleave = null;   // drop the placement picker's preview-clear handler
   clearHighlights();   // drop any placement preview when returning to this menu
   popEl.innerHTML = `<div class="ttl">${t("dig.title", { label: cellLabel(i) })}</div>`;
   const empty = mkBtn(t("dig.empty"), () => { setEmpty(i); hidePop(); });
@@ -2093,16 +2104,23 @@ function openPlacementPicker(i, piece, ev) {
     cands.forEach(cells => {
       const b = candidateButton(cells, i);
       b.onmouseenter = () => previewCells(cells);
-      b.onmouseleave = clearHighlights;
       b.onclick = e => { e.stopPropagation(); commitItem(piece, cells, i); hidePop(); };
       popEl.appendChild(b);
     });
-    popEl.appendChild(mkBtn(t("common.back"), () => openDigMenu(i, ev)));
+    // Clear the preview when the cursor lands on a non-candidate (the Back button)
+    // or leaves the popover entirely, NOT per candidate row: a per-row mouseleave
+    // fires in the small gap between rows and blinks the board bright->dim. popEl's
+    // mouseleave (unlike mouseout) ignores row-to-row moves inside the popover.
+    const back = mkBtn(t("common.back"), () => openDigMenu(i, ev));
+    back.onmouseenter = clearHighlights;
+    popEl.appendChild(back);
+    popEl.onmouseleave = clearHighlights;
     placePop(ev);
   }
 }
 
 function openClearMenu(i, ev) {
+  popEl.onmouseleave = null;
   clearHighlights();
   const c = state.cells[i];
   if (c.status === "item") {

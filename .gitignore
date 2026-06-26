@@ -3,3 +3,7 @@ npm-debug.log*
 *.log
 served.html
 .DS_Store
+
+# Claude Code: keep shared skills/settings, ignore local-only artifacts
+.claude/settings.local.json
+.claude/worktrees/
