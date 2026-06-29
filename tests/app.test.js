@@ -99,7 +99,7 @@ test("mobile: placement is select-then-place (tap previews, Place it commits)", 
 
 test("stage presets load grid size, treasures, and pickaxes-per-tile", () => {
   const { window, doc } = boot();
-  assert.strictEqual(doc.querySelectorAll("#stageSelect option").length, 17, "custom + 16 stages (test stage is hidden)");
+  assert.strictEqual(doc.querySelectorAll("#stageSelect option").length, 25, "custom + 24 stages (test stage is hidden)");
 
   loadStage(window, doc, 9);
   assert.strictEqual(doc.querySelector("#gridSize").value, "7");

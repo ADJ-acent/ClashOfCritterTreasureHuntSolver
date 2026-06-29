@@ -391,6 +391,16 @@ const STAGES = [
   { n: 14, grid: 7, pick: 70,  pieces: [["Radio", 1], ["Cyberlimb", 2], ["Spaceship", 1]] },
   { n: 15, grid: 7, pick: 70,  pieces: [["Zobo Cola", 2], ["Syringe", 2], ["TV", 1], ["Statue", 2]] },
   { n: 16, grid: 7, pick: 100, pieces: [["Outdated Console", 2], ["Pirated Magazine", 2], ["Statue", 1]] },
+  // Stages 17, 18: pick cost is known (it repeats every 3 stages) but their treasures
+  // aren't published yet, so they load as an empty board with a "no data" note.
+  { n: 17, grid: 7, pick: 100, pieces: [] },
+  { n: 18, grid: 7, pick: 100, pieces: [] },
+  { n: 19, grid: 7, pick: 150, pieces: [["Outdated Console", 2], ["Zobo Zine", 2], ["Statue", 1]] },
+  { n: 20, grid: 7, pick: 150, pieces: [["Outdated Console", 2], ["Zobo Cola", 2], ["Radio", 1], ["Spaceship", 1]] },
+  { n: 21, grid: 7, pick: 150, pieces: [["Outdated Console", 2], ["Cyberlimb", 2], ["Radio", 1], ["Spaceship", 1]] },
+  { n: 22, grid: 7, pick: 200, pieces: [["Outdated Console", 2], ["Zobo Zine", 2], ["Statue", 1]] },
+  { n: 23, grid: 7, pick: 200, pieces: [["Outdated Console", 2], ["Zobo Cola", 2], ["Radio", 1], ["Spaceship", 1]] },
+  { n: 24, grid: 7, pick: 200, pieces: [["Outdated Console", 2], ["Cyberlimb", 2], ["Radio", 1], ["Spaceship", 1]] },
 ];
 // Stages loadable by the test suite but hidden from the dropdown (e.g. an empty
 // board for the "nothing left to find" path). Negative n keeps them out of sight.
@@ -478,6 +488,7 @@ const I18N = {
     "common.close": "Close",
     "stage.custom": "(custom)",
     "stage.option": "Stage {n}  ({grid}×{grid})",
+    "stage.noData": "no data",
     "status.remaining": "Remaining to find: {list}. ",
     "status.remItem": "{w}×{h} ({n} left)",
     "status.none": "none",
@@ -563,6 +574,7 @@ const I18N = {
     "common.close": "Schließen",
     "stage.custom": "(benutzerdefiniert)",
     "stage.option": "Stufe {n}  ({grid}×{grid})",
+    "stage.noData": "keine Daten",
     "status.remaining": "Noch zu finden: {list}. ",
     "status.remItem": "{w}×{h} (noch {n})",
     "status.none": "keine",
@@ -647,6 +659,7 @@ const I18N = {
     "common.close": "Cerrar",
     "stage.custom": "(personalizado)",
     "stage.option": "Etapa {n}  ({grid}×{grid})",
+    "stage.noData": "sin datos",
     "status.remaining": "Por encontrar: {list}. ",
     "status.remItem": "{w}×{h} ({n} restantes)",
     "status.none": "ninguno",
@@ -731,6 +744,7 @@ const I18N = {
     "common.close": "Fechar",
     "stage.custom": "(personalizado)",
     "stage.option": "Fase {n}  ({grid}×{grid})",
+    "stage.noData": "sem dados",
     "status.remaining": "A encontrar: {list}. ",
     "status.remItem": "{w}×{h} ({n} restantes)",
     "status.none": "nenhum",
@@ -815,6 +829,7 @@ const I18N = {
     "common.close": "Fermer",
     "stage.custom": "(personnalisé)",
     "stage.option": "Niveau {n}  ({grid}×{grid})",
+    "stage.noData": "sans données",
     "status.remaining": "Restant à trouver : {list}. ",
     "status.remItem": "{w}×{h} ({n} restants)",
     "status.none": "aucun",
@@ -900,6 +915,7 @@ const I18N = {
     "common.close": "Закрыть",
     "stage.custom": "(пользовательский)",
     "stage.option": "Этап {n}  ({grid}×{grid})",
+    "stage.noData": "нет данных",
     "status.remaining": "Осталось найти: {list}. ",
     "status.remItem": "{w}×{h} (осталось {n})",
     "status.none": "нет",
@@ -984,6 +1000,7 @@ const I18N = {
     "common.close": "关闭",
     "stage.custom": "(自定义)",
     "stage.option": "关卡 {n}  ({grid}×{grid})",
+    "stage.noData": "暂无数据",
     "status.remaining": "待找出：{list}。 ",
     "status.remItem": "{w}×{h} ({n} 剩余)",
     "status.none": "无",
@@ -1068,6 +1085,7 @@ const I18N = {
     "common.close": "關閉",
     "stage.custom": "(自訂)",
     "stage.option": "關卡 {n}  ({grid}×{grid})",
+    "stage.noData": "暫無資料",
     "status.remaining": "待找出：{list}。 ",
     "status.remItem": "{w}×{h} ({n} 剩餘)",
     "status.none": "無",
@@ -1152,6 +1170,7 @@ const I18N = {
     "common.close": "닫기",
     "stage.custom": "(사용자 지정)",
     "stage.option": "스테이지 {n}  ({grid}×{grid})",
+    "stage.noData": "데이터 없음",
     "status.remaining": "남은 보물: {list}. ",
     "status.remItem": "{w}×{h} ({n}개 남음)",
     "status.none": "없음",
@@ -1236,6 +1255,7 @@ const I18N = {
     "common.close": "閉じる",
     "stage.custom": "(カスタム)",
     "stage.option": "ステージ {n}  ({grid}×{grid})",
+    "stage.noData": "データなし",
     "status.remaining": "発見すべき宝: {list}。 ",
     "status.remItem": "{w}×{h}（残り{n}）",
     "status.none": "なし",
@@ -1327,12 +1347,17 @@ function renderStageInfo() {
     : t("setup.notPublished");
   el.innerHTML = t("setup.pickInfo", { pick }) + "<br>" + list;
 }
+// Dropdown label; appends a "no data" marker for stages whose treasures aren't published yet.
+function stageLabel(s) {
+  const base = t("stage.option", { n: s.n, grid: s.grid });
+  return s.pieces.length ? base : base + "  (" + t("stage.noData") + ")";
+}
 function refreshStageOptions() {
   const sel = $("#stageSelect");
   [...sel.options].forEach(o => {
     if (o.value === "") return;                 // "custom" handled by data-i18n
     const s = STAGES.find(st => String(st.n) === o.value);
-    if (s) o.textContent = t("stage.option", { n: s.n, grid: s.grid });
+    if (s) o.textContent = stageLabel(s);
   });
 }
 function refreshDynamicUI() {
@@ -1383,7 +1408,7 @@ function populateStages() {
   STAGES.forEach(s => {
     const o = document.createElement("option");
     o.value = s.n;
-    o.textContent = t("stage.option", { n: s.n, grid: s.grid });
+    o.textContent = stageLabel(s);
     sel.appendChild(o);
   });
 }
