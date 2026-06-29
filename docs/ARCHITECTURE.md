@@ -88,7 +88,7 @@ A single `@media (max-width: 720px)` breakpoint stacks the controls and board fu
 
 ## Presets
 
-`STAGES` holds the 16 real stages (grid size, pickaxes/tile, treasures by name). `HIDDEN_STAGES` holds stages used only by tests (an empty board) and are **not** rendered into the dropdown; `loadStage()` looks them up via `ALL_STAGES = STAGES.concat(HIDDEN_STAGES)`. Editing pieces/grid manually switches the dropdown back to "custom".
+`STAGES` holds the 24 real stages (grid size, pickaxes/tile, treasures by name); a few late ones (e.g. stages 17-18) have an empty `pieces` list because their treasures aren't published yet, so they load as an empty board and `stageLabel()` tags them with a "no data" marker in the dropdown. `HIDDEN_STAGES` holds stages used only by tests (an empty board) and are **not** rendered into the dropdown; `loadStage()` looks them up via `ALL_STAGES = STAGES.concat(HIDDEN_STAGES)`. Editing pieces/grid manually switches the dropdown back to "custom".
 
 ## Internationalization (i18n)
 
