@@ -44,6 +44,8 @@ Goal: for each hidden tile, the probability it covers a treasure = the fraction 
 
 The **Exact probabilities (DP)** checkbox (`#dpToggle`, `dpEnabled()`) gates the DP tier; it defaults on and is persisted in `localStorage["th.dp"]`. Off (or `N > 8`) restores the original `tryExact` → `monteCarlo` path. The status line reports which engine ran and over how many layouts/samples (the DP labels its count "(DP)"). `total === 0` with `ok === false` means the board is over-constrained (treasures can't fit) and tiles render as `?`.
 
+The solver feeds a **greedy** next-dig policy (the ★ = highest-coverage hidden tile). Whether that greedy is optimal, and why it can't be efficiently beaten, is its own writeup: see [optimality.md](optimality.md) (the problem is Optimal Decision Tree, NP-hard; greedy measures as effectively optimal on every real stage).
+
 ## Estimator — picks to finish
 
 Solving a stage means **digging out every treasure tile**, not merely locating each treasure. So:
