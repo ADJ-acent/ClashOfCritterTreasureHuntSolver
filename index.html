@@ -98,19 +98,17 @@
     display: flex;
     gap: 20px;
     padding: 20px;
-    align-items: flex-start;
+    margin: auto 0;            /* absorb free vertical space top+bottom so the cluster centers between header and footer */
+    align-items: stretch;      /* equal-height columns so the controls divider runs the full height */
+    justify-content: center;   /* center the controls+board cluster; gutters stay balanced on wide screens */
     flex-wrap: wrap;
   }
-  .panel {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 14px 16px;
-  }
-  .controls { width: 320px; flex: 0 0 auto; }
+  /* Flat, borderless layout: controls and board are columns, not cards. */
+  .panel { padding: 0; }
+  .controls { width: 320px; flex: 0 0 auto; border-right: 1px solid var(--line); padding-right: 24px; }
   .controls h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 8px; }
   .controls section { margin-bottom: 18px; }
-  label { font-size: 13px; color: var(--muted); }
+  label { font-size: 14px; color: var(--muted); }
   input[type=number] {
     background: var(--panel2);
     border: 1px solid var(--line);
@@ -147,8 +145,11 @@
   table.pieces td { padding: 3px 6px; border-top: 1px solid var(--line); }
   table.pieces tr.done td { color: var(--muted); }
   .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .stage-area { flex: 1 1 420px; min-width: 360px; }
-  #status { font-size: 13px; color: var(--muted); margin: 0 0 10px; min-height: 18px; }
+  /* Panel width is set in JS (a bit wider than the board) so a wide screen has
+     balanced gutters and the legend/hint get more text width; the board is
+     centered inside it (margin:auto in JS). */
+  .stage-area { flex: 0 1 auto; min-width: 0; }
+  #status { font-size: 14px; color: var(--muted); margin: 0 0 10px; min-height: 18px; }
   #status .warn { color: #ff9b6b; }
   #grid {
     display: grid;
@@ -162,7 +163,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
+    font-size: 1em;            /* inherits grid font-size (set in sizeBoard) so % scales with the board */
     font-weight: 600;
     cursor: pointer;
     border: 2px solid transparent;
@@ -175,12 +176,18 @@
     background: repeating-linear-gradient(45deg, var(--item) 0 5px, #9b7b29 5px 10px);
     color: #20160a;
   }
-  .cell .sub { position: absolute; bottom: 2px; right: 4px; font-size: 9px; font-weight: 500; opacity: .8; }
-  .cell .star { position: absolute; top: 1px; left: 3px; font-size: 10px; color: #fff; text-shadow: 0 0 3px #000; }
+  .cell .sub { position: absolute; bottom: 2px; right: 4px; font-size: .7em; font-weight: 500; opacity: .8; }
+  .cell .star { position: absolute; top: 1px; left: 3px; font-size: .77em; color: #fff; text-shadow: 0 0 3px #000; }
   .cell.best { border-color: #fff; box-shadow: 0 0 0 2px #fff, 0 0 10px 2px rgba(255,255,255,.55); z-index: 1; }
   .cell.hl { border-color: #fff; }
   .cell.dim { opacity: .35; }
-  .legend { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 12px; color: var(--muted); }
+  /* Two stacked rows: the 0–100% colour scale, then the status keys. Each row
+     wraps its own entries as whole units, so a label never breaks onto a second
+     line tucked under its swatch. */
+  .legend { margin-top: 14px; font-size: 12px; color: var(--muted); }
+  .legend-scale, .legend-keys { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; row-gap: 7px; }
+  .legend-keys { margin-top: 8px; column-gap: 16px; }
+  .legend-scale > span, .legend-keys > span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
   .legend .bar { height: 12px; width: 200px; border-radius: 6px;
     background: linear-gradient(90deg,
       hsl(240 70% 45%), hsl(180 70% 42%), hsl(120 65% 42%), hsl(60 80% 48%), hsl(0 80% 52%)); }
@@ -207,15 +214,17 @@
   .mini span { aspect-ratio: 1 / 1; background: #2c2f37; border-radius: 1px; }
   .mini span.f { background: var(--item); }
   .mini span.f.dug { background: #7a5f16; }       /* the tile you actually dug */
-  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .hint { font-size: 13px; color: var(--muted); margin-top: 6px; }
 
   /* taps feel instant (no 300ms double-tap-zoom wait) */
   .cell, button, select { touch-action: manipulation; }
 
   /* ---------- Mobile ---------- */
   @media (max-width: 720px) {
-    .wrap { padding: 12px; gap: 12px; }
-    .controls { width: 100%; }
+    .wrap { padding: 12px; gap: 12px; margin: 0; }   /* content fills the phone; no vertical centering */
+    /* Restore the bordered cards on mobile (desktop is flat columns + divider). */
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+    .controls { width: 100%; border-right: none; padding: 14px 16px; }
     /* Grid first so the bottom-sheet picker covers the setup, not the board. */
     .stage-area { min-width: 0; flex-basis: auto; width: 100%; order: -1; }
     input[type=number], select { font-size: 16px; }   /* >=16px stops iOS zoom-on-focus */
@@ -302,21 +311,23 @@
   <div class="panel stage-area">
     <div id="status" data-i18n="board.statusInitial">Set up a stage and press “Start / Reset board”.</div>
     <label class="dp-toggle" style="display:flex;align-items:center;gap:6px;margin:6px 0;font-size:13px;cursor:pointer" title="Compute exact probabilities with a dynamic-programming solver instead of Monte-Carlo sampling. Usually as fast or faster, but on the densest stages it can take ~0.5–0.7s and (unlike sampling) isn't time-capped. Turn it off on low-end devices." data-i18n-title="dp.title">
-      <input type="checkbox" id="dpToggle" /> <span data-i18n="dp.label">Exact probabilities (DP)</span> <span class="hint" style="display:inline" data-i18n="dp.sub">exact, not sampled</span>
+      <input type="checkbox" id="dpToggle" /> <span data-i18n="dp.label">Exact probabilities (DP)</span> <span class="hint" style="display:inline;margin:0" data-i18n="dp.sub">exact, not sampled</span>
     </label>
     <div id="grid"></div>
     <div class="legend">
-      <span>0%</span><div class="bar"></div><span>100%</span>
-      <span style="margin-left:14px"><span style="display:inline-block;width:11px;height:11px;background:var(--empty);border-radius:2px;vertical-align:middle"></span> <span data-i18n="legend.empty">empty</span></span>
-      <span><span style="display:inline-block;width:11px;height:11px;background:repeating-linear-gradient(45deg,var(--item) 0 3px,#9b7b29 3px 6px);border-radius:2px;vertical-align:middle"></span> <span data-i18n="legend.located">⛏ located (buried)</span></span>
-      <span><span style="display:inline-block;width:11px;height:11px;background:var(--item);border-radius:2px;vertical-align:middle"></span> <span data-i18n="legend.dugOut">✓ dug out</span></span>
-      <span style="margin-left:14px" data-i18n="legend.best">★ best tile to dig</span>
+      <div class="legend-scale"><span>0%</span><div class="bar"></div><span>100%</span></div>
+      <div class="legend-keys">
+        <span><span style="display:inline-block;width:11px;height:11px;background:var(--empty);border-radius:2px;vertical-align:middle"></span> <span data-i18n="legend.empty">empty</span></span>
+        <span><span style="display:inline-block;width:11px;height:11px;background:repeating-linear-gradient(45deg,var(--item) 0 3px,#9b7b29 3px 6px);border-radius:2px;vertical-align:middle"></span> <span data-i18n="legend.located">⛏ located (buried)</span></span>
+        <span><span style="display:inline-block;width:11px;height:11px;background:var(--item);border-radius:2px;vertical-align:middle"></span> <span data-i18n="legend.dugOut">✓ dug out</span></span>
+        <span data-i18n="legend.best">★ best tile to dig</span>
+      </div>
     </div>
     <div class="hint" data-i18n-html="board.hint">Click a hidden tile → choose <b>Empty</b> or which treasure you hit, then pick the placement that matches the direction it ran. Located treasures still need digging out. Click one to mark it ✓ dug. The ★ marks the highest-probability unknown tile(s) to dig next.</div>
   </div>
 </div>
 
-<footer style="width:100%;max-width:980px;margin:auto auto 0;padding:16px 14px;text-align:center;color:var(--muted);font-size:12px;line-height:1.7;border-top:1px solid var(--line)">
+<footer style="width:100%;max-width:980px;margin:0 auto;padding:16px 14px;text-align:center;color:var(--muted);font-size:12px;line-height:1.7;border-top:1px solid var(--line)">
   © 2026 Andy Jiang ·
   <span data-i18n="footer.source">Source code:</span> <a href="https://github.com/adj-acent/ClashOfCritterTreasureHuntSolver" target="_blank" rel="noopener" style="color:var(--accent)">GitHub</a> ·
   <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" style="color:var(--accent)" title="Leave feedback, bugs, or suggestions" data-i18n="footer.feedback" data-i18n-title="footer.feedbackTitle">💬 Feedback</a> ·
@@ -419,6 +430,7 @@ const state = {
 
 const $ = sel => document.querySelector(sel);
 const gridEl = $("#grid");
+const stageAreaEl = $(".stage-area");
 const popEl = $("#pop");
 
 /* ============================================================
@@ -1482,10 +1494,39 @@ function clearDigs() {
   recompute();
 }
 
+// Size the board and its panel. The board keeps a sensible fixed-ish size (it
+// looks odd blown up huge), centered inside a slightly wider panel so the legend
+// and hint get more text width. On mobile it keeps the original cap (works well).
+function sizeBoard() {
+  const N = state.N;
+  const mobile = window.matchMedia && window.matchMedia("(max-width: 720px)").matches;
+  if (mobile) {
+    gridEl.style.width = "";
+    gridEl.style.maxWidth = Math.min(560, N * 64) + "px";
+    gridEl.style.margin = "0 auto";      // center the board in the card
+    gridEl.style.fontSize = "13px";
+    stageAreaEl.style.width = "";
+    return;
+  }
+  const CELL = 72, BOARD_MAX = 480, TEXT_W = 560;
+  // Widest the board panel can be: viewport minus the controls column
+  // (320 + 24px right padding + 1px divider), the gap, wrap padding, and a buffer.
+  const availOuter = Math.max(320, window.innerWidth - 345 - 20 - 40 - 24);
+  const availH = Math.max(220, window.innerHeight - 280);                    // keep it un-cropped on short viewports
+  const board = Math.round(Math.min(N * CELL, BOARD_MAX, availH, availOuter - 48));
+  const panel = Math.round(Math.max(board + 48, Math.min(TEXT_W, availOuter)));
+  gridEl.style.width = board + "px";
+  gridEl.style.maxWidth = board + "px";
+  gridEl.style.margin = "0 auto";                                           // board centered in the wider panel
+  gridEl.style.fontSize = Math.max(13, Math.min(18, (board / N) * 0.2)).toFixed(1) + "px";
+  stageAreaEl.style.width = panel + "px";
+}
+window.addEventListener("resize", sizeBoard);
+
 function buildGrid() {
   const N = state.N;
   gridEl.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
-  gridEl.style.maxWidth = Math.min(560, N * 64) + "px";
+  sizeBoard();
   gridEl.innerHTML = "";
   for (let i = 0; i < N * N; i++) {
     const d = document.createElement("div");

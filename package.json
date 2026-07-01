@@ -4,7 +4,8 @@
   "private": true,
   "description": "Treasure Hunt tile probability solver (single-page web app).",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "screenshots": "bash scripts/visual-test.sh"
   },
   "devDependencies": {
     "jsdom": "^26.1.0"
