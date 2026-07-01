@@ -82,9 +82,20 @@ Both UIs show a `miniDiagram` of where the candidate sits on the board (so the c
 
 The split exists because hover-to-preview + a separate confirm button forces the mouse to travel *over the other options* to reach it, changing the selection on the way — fine on touch, annoying with a mouse. On placement, `commitItem` marks the **clicked** tile `dug:true` and the rest of the footprint `dug:false`. Clicking a located treasure tile toggles it buried ↔ dug out (so the estimate stays exact) or clears the whole treasure; an empty tile can go back to hidden. All popover buttons `stopPropagation` so the document-level "close on outside click" handler doesn't fire on them — the bug that originally made treasure-marking silently self-close the popover (regression-tested).
 
-## Responsive / mobile
+## Responsive / layout
 
-A single `@media (max-width: 720px)` breakpoint stacks the controls and board full-width (dropping the desktop `min-width` that caused horizontal scroll), **orders the board above the controls** (`order: -1`) so the bottom-sheet picker covers the setup rather than the board, bumps inputs to 16px (stops iOS zoom-on-focus), and turns the popover into a **bottom sheet** with larger tap targets. `placePop()` decides anchored-vs-sheet at open time via `matchMedia("(max-width: 720px)")`, and the placement picker switches its interaction via `matchMedia("(hover: none)")` (both guarded — jsdom doesn't implement `matchMedia`, so tests default to the desktop/anchored path and opt into mobile with a shim). `touch-action: manipulation` removes the double-tap-zoom delay on cells and buttons.
+The desktop layout is a flat, borderless two-column row (`.wrap`): a fixed-width controls column (`320px`) with a right divider, and a `.stage-area` sized in JS. The cluster is centered both horizontally (`justify-content: center`) and vertically (`.wrap { margin: auto 0 }` absorbs the free space between header and footer; the footer drops its `margin-top:auto` so it does not compete). `.panel { padding: 0 }` flattens what used to be bordered cards.
+
+`sizeBoard()` (run on load and on `resize`) sizes the board and its panel:
+
+- The board is a fixed, moderate size, `min(N*72, 480, availH, availOuter-48)`, so it does not scale up oddly on huge monitors; it shrinks only when the window is too narrow (`availOuter`) or too short (`availH`, so dense boards never crop). It is centered in its panel via `margin: 0 auto`, with the `%` font scaled to the fixed cell size. `.cell` uses `font-size: 1em` (and `.sub`/`.star` use `em`) so the text tracks the grid font-size set in JS.
+- The panel is deliberately wider than the board, `max(board+48, min(560, availOuter))`, so the legend and hint get comfortable reading width; it is set as an explicit px `width` on `.stage-area`.
+
+The legend is two centered rows: a `.legend-scale` (0 to 100% colour bar) and `.legend-keys` (status swatches), each `flex-wrap`ping whole `nowrap` units so a label never breaks onto a second line tucked under its swatch.
+
+A single `@media (max-width: 720px)` breakpoint restores the bordered cards (`.panel` gets back its background, border, radius, and padding), stacks everything full-width, **orders the board above the controls** (`order: -1`) so the bottom-sheet picker covers the setup rather than the board, drops the controls divider and the vertical centering, bumps inputs to 16px (stops iOS zoom-on-focus), and turns the popover into a **bottom sheet** with larger tap targets. `sizeBoard()`'s mobile branch keeps the original `min(560, N*64)` board (centered) and clears the JS panel width. `placePop()` decides anchored-vs-sheet at open time via `matchMedia("(max-width: 720px)")`, and the placement picker switches its interaction via `matchMedia("(hover: none)")` (both guarded, since jsdom does not implement `matchMedia`, so tests default to the desktop/anchored path and opt into mobile with a shim). `touch-action: manipulation` removes the double-tap-zoom delay on cells and buttons.
+
+Eyeball layout changes with `npm run screenshots` (`scripts/visual-test.sh`), which renders `index.html` headlessly across a spread of viewport sizes into `.screenshots/` (gitignored). Headless Chromium/Edge enforces a roughly 500px minimum window width, so it cannot faithfully render true phone widths: a sub-500 request lays out at about 476px but writes the image at the requested width, cropping the right edge (a screenshot artifact, not a real overflow). Use a real browser's responsive mode for narrower widths.
 
 ## Presets
 

@@ -4,6 +4,9 @@ npm-debug.log*
 served.html
 .DS_Store
 
+# Visual-test screenshots (scripts/visual-test.sh), regenerated each run
+.screenshots/
+
 # Claude Code local artifacts
 .claude/
 
