@@ -67,6 +67,10 @@
     --accent: #ffd24a;
     --empty: #2a2d34;
     --item: #caa23a;
+    /* The two glyph inks. Every cell background takes whichever contrasts (see inkFor).
+       Pure black/white on purpose: any softer pair caps out below WCAG AA. */
+    --ink-light: #fff;
+    --ink-dark: #000;
   }
   * { box-sizing: border-box; }
   body {
@@ -168,13 +172,21 @@
     cursor: pointer;
     border: 2px solid transparent;
     background: #333;
-    transition: background .12s, border-color .12s;
+    /* background-color, not the `background` shorthand: the buried hatch is a
+       background-image, which cannot interpolate, so transitioning the shorthand
+       would fight the colour fade. `color` rides along so the ink doesn't pop
+       white-to-dark while the tile is still crossfading under it. */
+    transition: background-color .12s, color .12s, border-color .12s;
   }
-  .cell.empty { background: var(--empty); color: #5a5f6a; cursor: pointer; }
-  .cell.item  { background: var(--item); color: #20160a; }        /* dug-out treasure (solid) */
-  .cell.item.buried {                                             /* located but not dug yet */
-    background: repeating-linear-gradient(45deg, var(--item) 0 5px, #9b7b29 5px 10px);
-    color: #20160a;
+  /* Ink is picked for contrast against each background (same rule as inkFor): light
+     on the dark empty tile (13.8:1), dark on the light gold (8.7:1). The ⛏ lies
+     across both hatch stripes, so the darker stripe sets the floor there (5.3:1). */
+  .cell.empty { background: var(--empty); color: var(--ink-light); cursor: pointer; }
+  .cell.item  { background: var(--item); color: var(--ink-dark); }   /* dug-out treasure (solid) */
+  .cell.item.buried {                                                /* located but not dug yet */
+    background-color: var(--item);                                   /* lerps from the heat colour */
+    background-image: repeating-linear-gradient(45deg, transparent 0 5px, #9b7b29 5px 10px);
+    color: var(--ink-dark);
   }
   .cell .sub { position: absolute; bottom: 2px; right: 4px; font-size: .7em; font-weight: 500; opacity: .8; }
   .cell .star { position: absolute; top: 1px; left: 3px; font-size: .77em; color: #fff; text-shadow: 0 0 3px #000; }
@@ -2061,26 +2073,33 @@ function recompute() {
     const el = cellsEl[i];
     const c = state.cells[i];
     el.classList.remove("hl", "dim", "best");
+    // Dug tiles hand both background and ink back to the stylesheet. Clearing the
+    // inline colour matters: it is set below while the tile is hidden, and leaving
+    // it behind would override .cell.empty / .cell.item and follow the tile for the
+    // rest of the game (light ⛏ on gold, 2.1:1). A restored board builds fresh
+    // elements with no inline colour, so the leak also made a refresh change the
+    // board's appearance.
     if (c.status === "empty") {
-      el.className = "cell empty"; el.innerHTML = "✕"; el.style.background = "";
+      el.className = "cell empty"; el.innerHTML = "✕";
+      el.style.background = ""; el.style.color = "";
       continue;
     }
     if (c.status === "item") {
       // located treasure: ⛏ buried (hatched, still to dig) vs ✓ dug-out (solid)
       el.className = "cell item" + (c.dug ? "" : " buried");
       el.innerHTML = `${c.dug ? "✓" : "⛏"}<span class="sub">${c.type}</span>`;
-      el.style.background = "";
+      el.style.background = ""; el.style.color = "";
       continue;
     }
     // hidden
     el.className = "cell";
     let p = (res.total > 0) ? res.cover[i] / res.total : NaN;
     if (!isFinite(p)) {
-      el.style.background = "#3a3030"; el.innerHTML = "?";
+      el.style.background = "#3a3030"; el.style.color = INK_LIGHT; el.innerHTML = "?";
     } else {
       p = Math.max(0, Math.min(1, p));
       el.style.background = heat(p);
-      el.style.color = p > 0.55 ? "#1a1a1a" : "#eef";
+      el.style.color = inkFor(p);
       el.innerHTML = (p * 100).toFixed(p >= 0.995 ? 0 : (p < 0.1 ? 1 : 0)) + "%";
       if (maxP > 0 && p >= maxP - BEST_EPS) {
         el.classList.add("best");
@@ -2107,11 +2126,39 @@ function recompute() {
   saveBoard();                          // every board mutation lands here
 }
 
+/* ---------- Heatmap colour and glyph ink ----------
+   The ramp runs blue (cold) to red (hot), unchanged.
+
+   Ink cannot be picked from p. Hue drives perceived brightness far more than p
+   does, so the green midrange (p ~ 0.4) is the *brightest* part of the ramp, and
+   the old `p > 0.55 ? dark : light` rule put light ink on it at 2.1:1. inkFor()
+   measures the tile's actual relative luminance instead and flips at the crossover.
+
+   The inks are pure white and black on purpose. At the crossover luminance both
+   inks necessarily give the *same* contrast, and that value is the ceiling for the
+   pair: softer inks (#eef on #20160a) cap out at 3.94:1, which cannot clear AA no
+   matter how the ramp or the threshold is tuned, because a ramp climbing from dark
+   blue to bright green has to pass through that luminance. Pure #fff/#000 lifts the
+   ceiling to 4.58:1, so every tile on every stage clears AA (measured worst: 4.59:1). */
+const HEAT_HUE = p => 240 * (1 - p);
+const HEAT_LIGHT = p => 38 + 14 * p;
+
 function heat(p) {
-  // blue (cold) -> red (hot)
-  const hue = 240 * (1 - p);
-  return `hsl(${hue} 70% ${38 + 14 * p}%)`;
+  return `hsl(${HEAT_HUE(p)} 70% ${HEAT_LIGHT(p)}%)`;
 }
+
+// WCAG relative luminance of the heat colour at p (hsl -> rgb -> linearise -> luma).
+function heatLuminance(p) {
+  const h = HEAT_HUE(p), s = 0.70, l = HEAT_LIGHT(p) / 100;
+  const a = s * Math.min(l, 1 - l);
+  const chan = n => { const k = (n + h / 30) % 12; return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+  const lin = c => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  return 0.2126 * lin(chan(0)) + 0.7152 * lin(chan(8)) + 0.0722 * lin(chan(4));
+}
+
+const INK_LIGHT = "#fff", INK_DARK = "#000";
+const INK_FLIP = 0.179;   // where white and black contrast equally: sqrt(1.05 * 0.05) - 0.05
+const inkFor = p => (heatLuminance(p) > INK_FLIP ? INK_DARK : INK_LIGHT);
 
 /* ---------- Interaction: clicking cells ---------- */
 function hidePop() { popEl.style.display = "none"; popEl.onmouseleave = null; clearHighlights(); }
