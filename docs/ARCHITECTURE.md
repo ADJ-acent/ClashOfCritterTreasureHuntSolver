@@ -71,6 +71,14 @@ Caveats: the per-dig score sums placements per treasure independently (a fast pr
 
 `recompute()` runs the solver and paints each cell: ✕ for empty, ⛏ on hatched gold for buried treasure tiles and ✓ on solid gold for dug-out ones, and a blue→red heatmap (`heat()`) with a % for hidden cells. It also finds the highest-probability hidden tile(s) and marks them with the `★` `best` highlight (ties — common by symmetry — are all marked; `BEST_EPS` folds exact-fraction ties together without letting Monte-Carlo noise over-highlight). Located treasures are excluded from the highlight since the best *next* dig is always an unknown tile.
 
+### Glyph ink
+
+Cell text is white or black, picked per background by `inkFor(p)`, which measures the tile's WCAG relative luminance (`heatLuminance()`). It cannot be picked from `p`: hue drives perceived brightness far more than `p` does, so the *green midrange* (`p ≈ 0.4`) is the brightest part of the ramp, and the old `p > 0.55 ? dark : light` rule painted white on it at **2.1:1**. The fixed backgrounds get the same treatment in CSS (`--ink-light` on the dark empty tile, `--ink-dark` on the light gold).
+
+**The inks are pure `#fff`/`#000` on purpose, and this is load-bearing.** At the luminance where white and black contrast *equally*, that shared value is the ceiling for the pair, and a ramp climbing from dark blue to bright green necessarily passes through it. Softer inks (`#eef` on `#20160a`) cap out at **3.94:1** and can never clear AA, no matter how the ramp or the threshold is tuned. Pure black and white lift the ceiling to 4.58:1. Measured worst case across all stages, fresh and played: **5.26:1** (the ⛏ over the darker hatch stripe). A test asserts this and will fail if the palette regresses.
+
+`recompute()` clears the inline `color` when a tile becomes dug. It sets one on *hidden* tiles, and leaving it behind used to override `.cell.item`/`.cell.empty` for the rest of the game, which is why the stylesheet's colors for those states were dead code until boards became restorable. Cells transition `background-color` and `color` together (120ms) so the ink does not pop while the tile is still crossfading. The transition names `background-color`, not the `background` shorthand, because the buried hatch is a `background-image` and cannot interpolate; the buried tile therefore keeps its gold as `background-color` (which lerps) with the hatch as a separate non-interpolating `background-image`.
+
 ## Interaction
 
 Clicking a cell opens a popover (`#pop`). Hidden tile → "Empty" or pick a treasure size, then the placement picker offers every candidate placement that covers the clicked tile (resolving the middle-tile ambiguity), in **one of two UIs** chosen by `(hover: none)`:

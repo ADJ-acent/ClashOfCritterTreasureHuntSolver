@@ -410,3 +410,91 @@ test("New game clears the persisted board rather than resurrecting it", () => {
   const { doc } = boot({ storage });
   assert.strictEqual(cells(doc).filter(c => /\bitem\b/.test(c.className)).length, 0, "board stays reset after a refresh");
 });
+
+/* ---------- Glyph contrast ---------- */
+
+// Regression: recompute() sets an inline colour on *hidden* tiles for heatmap
+// contrast. Digging one used to leave that colour behind, so it overrode
+// .cell.item / .cell.empty and followed the tile for the rest of the game (light
+// ⛏ on gold at 2.1:1). It only showed up once boards could be restored: fresh
+// elements have no inline colour, so a refresh visibly changed the board.
+test("digging a tile hands its ink back to the stylesheet, live and after a refresh", () => {
+  const storage = makeStorage();
+  const { window, doc } = boot({ storage });
+
+  const hidden = cells(doc)[0];
+  assert.notStrictEqual(hidden.style.color, "", "a hidden tile does carry an inline heatmap ink");
+
+  click(window, hidden);
+  click(window, popButtons(doc).find(b => /Empty/.test(b.textContent)));
+  assert.strictEqual(cells(doc)[0].style.color, "", "dug-empty tile drops the inline ink");
+
+  placeTreasure(window, doc, 5, /1×3/);
+  const live = cells(doc).filter(c => /\bitem\b/.test(c.className));
+  assert.strictEqual(live.length, 3);
+  assert.ok(live.every(c => c.style.color === ""), "treasure tiles drop the inline ink");
+
+  // The whole point: a restored board must look identical, not just be correct.
+  const { doc: doc2 } = boot({ storage });
+  const after = cells(doc2).filter(c => /\bitem\b/.test(c.className));
+  assert.strictEqual(after.length, 3, "same board came back");
+  assert.ok(after.every(c => c.style.color === ""), "restored treasure tiles match the live ones");
+  assert.strictEqual(cells(doc2)[0].style.color, "", "restored empty tile matches too");
+});
+
+// Ink is chosen from the tile's measured luminance, not from p: the green midrange
+// is the brightest part of the ramp even though p is only ~0.4, and the old
+// `p > 0.55` rule put light ink on it at 2.1:1.
+test("heatmap ink is chosen by luminance, so the bright midrange gets dark ink", () => {
+  const { window, doc } = boot();
+  const inkFor = p => window.eval(`inkFor(${p})`);
+  const DARK = "#000", LIGHT = "#fff";
+
+  assert.strictEqual(inkFor(0.0), LIGHT, "cold blue is dark, so light ink");
+  assert.strictEqual(inkFor(0.4), DARK, "bright green midrange needs dark ink (was light, 2.1:1)");
+  assert.strictEqual(inkFor(0.5), DARK, "still bright at p=0.5, below the old 0.55 flip");
+  assert.strictEqual(inkFor(1.0), LIGHT, "the hottest red is dark enough for light ink again");
+
+  // and every hidden tile on a real board actually uses one of the two inks
+  const inks = new Set(cells(doc).filter(c => /%/.test(c.textContent)).map(c => c.style.color));
+  const allowed = new Set(["rgb(255, 255, 255)", "rgb(0, 0, 0)"]);
+  assert.ok([...inks].every(i => allowed.has(i)), `unexpected ink on the board: ${[...inks]}`);
+});
+
+// The ink pair is load-bearing, not cosmetic. At the luminance where white and black
+// contrast equally, that shared value is the ceiling for the pair, and the ramp has
+// to pass through it. Softer inks cap at 3.94:1 and can never clear AA.
+test("every glyph clears WCAG AA against its actual background, on every stage", () => {
+  const srgb = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const lum = ([r, g, b]) => 0.2126 * srgb(r) + 0.7152 * srgb(g) + 0.0722 * srgb(b);
+  const ratio = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+  const rgb = s => {
+    let m = s.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (m) return [+m[1], +m[2], +m[3]];
+    m = s.match(/hsl\(([\d.]+)\s+70%\s+([\d.]+)%\)/);
+    const h = +m[1], l = +m[2] / 100, a = 0.7 * Math.min(l, 1 - l);
+    const ch = n => { const k = (n + h / 30) % 12; return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+    return [ch(0), ch(8), ch(4)].map(v => Math.round(255 * v));
+  };
+  // the dug states take their colours from the stylesheet, which jsdom won't resolve
+  const CSS = { empty: ["#2a2d34", "#ffffff"], item: ["#caa23a", "#000000"], buried: ["#9b7b29", "#000000"] };
+  const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+
+  let worst = { r: Infinity };
+  for (const stage of [1, 5, 12, 15, 22]) {
+    const { window, doc } = boot();
+    loadStage(window, doc, stage);
+    for (const el of cells(doc)) {
+      let bg, fg;
+      if (/buried/.test(el.className)) [bg, fg] = CSS.buried.map(hex);
+      else if (/\bitem\b/.test(el.className)) [bg, fg] = CSS.item.map(hex);
+      else if (/empty/.test(el.className)) [bg, fg] = CSS.empty.map(hex);
+      else if (el.style.background && el.style.color) [bg, fg] = [rgb(el.style.background), rgb(el.style.color)];
+      else continue;
+      const r = ratio(bg, fg);
+      if (r < worst.r) worst = { r, stage, text: el.textContent };
+    }
+  }
+  assert.ok(worst.r >= 4.5,
+    `worst glyph contrast ${worst.r.toFixed(2)}:1 on stage ${worst.stage} ("${worst.text}") is below WCAG AA`);
+});
