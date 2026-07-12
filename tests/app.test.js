@@ -9,17 +9,34 @@ const { JSDOM } = require("jsdom");
 const HTML = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 // Boot a fresh page; collect any uncaught JS errors so tests can assert none.
-function boot() {
+// jsdom serves index.html from about:blank, an opaque origin with no localStorage,
+// so by default the app's persistence is a no-op and every boot starts clean. Pass
+// a storage shim (see makeStorage) to exercise it, reusing one across two boots to
+// simulate a refresh.
+function boot({ storage } = {}) {
   const errors = [];
   const { window } = new JSDOM(HTML, {
     runScripts: "dangerously",
     pretendToBeVisual: true,
     beforeParse(win) {
       if (!win.performance) win.performance = { now: () => Date.now() };
+      // Own property, to shadow the throwing/absent prototype accessor.
+      if (storage) Object.defineProperty(win, "localStorage", { value: storage, configurable: true });
       win.addEventListener("error", e => errors.push(e.error ? e.error.stack : e.message));
     },
   });
   return { window, doc: window.document, errors };
+}
+
+// Minimal in-memory Storage. Survives across boot() calls, like a real refresh.
+function makeStorage(seed = {}) {
+  const map = new Map(Object.entries(seed));
+  return {
+    getItem: k => (map.has(k) ? map.get(k) : null),
+    setItem: (k, v) => map.set(k, String(v)),
+    removeItem: k => map.delete(k),
+    clear: () => map.clear(),
+  };
 }
 
 const click = (win, el) =>
@@ -316,4 +333,80 @@ test("footer has a localized feedback link to the Discord post", () => {
   setLang(window, doc, "ja");
   assert.match(feedback().textContent, /フィードバック/, "label translated");
   assert.ok(feedback().title.length > 0, "tooltip is set");
+});
+
+/* ---------- Persistence (localStorage["th.board"]) ---------- */
+
+test("the board survives a refresh: stage, digs and located treasures all come back", () => {
+  const storage = makeStorage();
+
+  // First visit: switch stage, dig an empty tile, locate a 1×3.
+  {
+    const { window, doc, errors } = boot({ storage });
+    loadStage(window, doc, 4);
+    click(window, cells(doc)[0]);
+    click(window, popButtons(doc).find(b => /Empty/.test(b.textContent)));
+    placeTreasure(window, doc, 5, /1×3/);
+    assert.strictEqual(errors.length, 0, errors.join("\n"));
+  }
+
+  // Refresh: same storage, brand-new page.
+  const { doc, errors } = boot({ storage });
+  assert.strictEqual(errors.length, 0, errors.join("\n"));
+  assert.strictEqual(doc.querySelector("#stageSelect").value, "4", "still on Stage 4");
+  assert.match(cells(doc)[0].className, /empty/, "the dug-empty tile came back");
+
+  const item = cells(doc).filter(c => /\bitem\b/.test(c.className));
+  assert.strictEqual(item.length, 3, "the located 1×3 came back");
+  assert.strictEqual(item.filter(c => !/buried/.test(c.className)).length, 1, "dug/buried split preserved");
+  assert.match(doc.querySelector("#status").textContent, /Remaining to find/, "heatmap recomputed from the restored board");
+});
+
+test("a restored treasure keeps its identity: clearing it frees exactly its own tiles", () => {
+  const storage = makeStorage();
+  { const { window, doc } = boot({ storage }); placeTreasure(window, doc, 0, /1×3/); }
+
+  // itemId/itemCounter must survive, or clearing would miss tiles (or collide with a new find).
+  const { window, doc } = boot({ storage });
+  click(window, cells(doc)[0]);
+  click(window, popButtons(doc).find(b => /Clear this treasure/i.test(b.textContent)));
+  assert.strictEqual(cells(doc).filter(c => /\bitem\b/.test(c.className)).length, 0, "all 3 tiles released");
+});
+
+test("a preset that changed under a saved board relabels it custom but keeps the board", () => {
+  // Stage 1 is a 5×5 of three 1×3. This save claims Stage 1 with different pieces,
+  // exactly what a returning user would have if the stage's treasures were corrected.
+  const storage = makeStorage({
+    "th.board": JSON.stringify({
+      v: 1, N: 5, stage: "1", grid: "5", pick: "15",
+      pieces: [{ w: 2, h: 2, count: 1 }],
+      cells: Array.from({ length: 25 }, (_, i) =>
+        i === 0 ? { status: "empty", type: null, itemId: 0, dug: false }
+                : { status: "hidden", type: null, itemId: 0, dug: false }),
+    }),
+  });
+
+  const { doc, errors } = boot({ storage });
+  assert.strictEqual(errors.length, 0, errors.join("\n"));
+  assert.strictEqual(doc.querySelector("#stageSelect").value, "", "stale preset -> custom");
+  assert.match(cells(doc)[0].className, /empty/, "the user's board is kept");
+  assert.ok([...doc.querySelectorAll("#pieceRows tr")].some(r => /2×2/.test(r.textContent)), "saved pieces kept");
+});
+
+test("a corrupt save is ignored and the app boots Stage 1 as usual", () => {
+  for (const bad of ["not json", JSON.stringify({ v: 99 }), JSON.stringify({ v: 1, N: 5, pieces: [], cells: [] })]) {
+    const { doc, errors } = boot({ storage: makeStorage({ "th.board": bad }) });
+    assert.strictEqual(errors.length, 0, `corrupt save must not throw: ${bad}`);
+    assert.strictEqual(cells(doc).length, 25, "fell back to Stage 1");
+    assert.strictEqual(doc.querySelector("#stageSelect").value, "1");
+    assert.match(cells(doc)[0].textContent, /%/, "heatmap computed");
+  }
+});
+
+test("New game clears the persisted board rather than resurrecting it", () => {
+  const storage = makeStorage();
+  { const { window, doc } = boot({ storage }); placeTreasure(window, doc, 0, /1×3/); click(window, doc.querySelector("#newGame")); }
+
+  const { doc } = boot({ storage });
+  assert.strictEqual(cells(doc).filter(c => /\bitem\b/.test(c.className)).length, 0, "board stays reset after a refresh");
 });
