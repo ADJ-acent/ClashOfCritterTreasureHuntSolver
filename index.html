@@ -1448,7 +1448,7 @@ function renderQuickAdd() {
     if (seen.has(k)) return; seen.add(k);
     const b = document.createElement("button");
     b.textContent = `${Math.min(w,h)}×${Math.max(w,h)}`;
-    b.onclick = () => { addPiece(w, h, 1); markCustom(); };
+    b.onclick = () => { addPiece(w, h, 1); markCustom(); saveBoard(); };
     box.appendChild(b);
   });
 }
@@ -1473,7 +1473,7 @@ function renderPieceRows() {
     tb.appendChild(tr);
   });
   tb.querySelectorAll(".del").forEach(b => b.onclick = () => {
-    state.pieces.splice(+b.dataset.i, 1); renderPieceRows(); markCustom();
+    state.pieces.splice(+b.dataset.i, 1); renderPieceRows(); markCustom(); saveBoard();
   });
 }
 
@@ -1490,6 +1490,81 @@ function clearDigs() {
   state.cells.forEach(c => { c.status = "hidden"; c.type = null; c.itemId = 0; });
   renderPieceRows();
   recompute();
+}
+
+/* ---------- Persistence: survive a page refresh ---------- */
+// The board is plain JSON (grid size, the stage's pieces, every cell), so it
+// round-trips through localStorage as-is. Saved on every recompute() and on the
+// piece edits that don't trigger one. Bump SAVE_V whenever the shape changes.
+const SAVE_KEY = "th.board", SAVE_V = 1;
+
+function saveBoard() {
+  if (!state.cells.length) return;        // board not built yet, nothing worth saving
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      v: SAVE_V,
+      N: state.N,
+      pieces: state.pieces,
+      cells: state.cells,
+      stage: $("#stageSelect").value,     // "" = custom
+      grid: $("#gridSize").value,         // may differ from N: a slider edit pending a New game
+      pick: $("#pickPerTile").value,
+    }));
+  } catch (_) {}                          // private mode / quota / no storage: just don't persist
+}
+
+function validBoard(b) {
+  if (!b || b.v !== SAVE_V) return false;
+  if (!Number.isInteger(b.N) || b.N < 2 || b.N > 12) return false;
+  if (!Array.isArray(b.pieces) || !Array.isArray(b.cells)) return false;
+  if (b.cells.length !== b.N * b.N) return false;
+  const okPiece = p => p && [p.w, p.h, p.count].every(v => Number.isInteger(v) && v >= 1);
+  const okCell = c => c && ["hidden", "empty", "item"].includes(c.status)
+    && (c.status !== "item" || /^\d+x\d+$/.test(c.type || ""));
+  return b.pieces.every(okPiece) && b.cells.every(okCell);
+}
+
+// Does the saved board still match what this stage's preset says *today*? A preset
+// can change under a saved board (treasures get published for a stage that had
+// none), so we keep the user's board but relabel it "custom" rather than claim it
+// is a stage whose definition no longer matches.
+function matchesStage(s, b) {
+  if (+b.grid !== s.grid) return false;
+  const want = new Map();
+  s.pieces.forEach(([name, count]) => {
+    const k = key(...sizeOf(name));
+    want.set(k, (want.get(k) || 0) + count);
+  });
+  if (want.size !== b.pieces.length) return false;
+  return b.pieces.every(p => want.get(key(p.w, p.h)) === p.count);
+}
+
+// Reload the last board. Returns false (leaving the app untouched, so the caller
+// can fall back to a fresh stage) if nothing is saved or the blob doesn't check out.
+function restoreBoard() {
+  let b = null;
+  try { b = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (_) { return false; }
+  if (!validBoard(b)) return false;
+
+  state.N = b.N;
+  state.pieces = b.pieces.map(p => ({ w: p.w, h: p.h, count: p.count }));
+  state.cells = b.cells.map(c => ({
+    status: c.status, type: c.type ?? null, itemId: c.itemId | 0, dug: !!c.dug,
+  }));
+  itemCounter = Math.max(0, ...state.cells.map(c => c.itemId | 0)) + 1;
+
+  const grid = Math.max(2, Math.min(12, +b.grid || b.N));
+  $("#gridSize").value = grid;
+  $("#gridSizeEcho").textContent = grid;
+  $("#pickPerTile").value = Math.max(1, Math.min(999, +b.pick || 15));
+  const s = ALL_STAGES.find(s => String(s.n) === String(b.stage));
+  $("#stageSelect").value = (s && matchesStage(s, b)) ? s.n : "";
+
+  renderPieceRows();
+  renderStageInfo();
+  buildGrid();
+  recompute();
+  return true;
 }
 
 // Size the board and its panel. The board keeps a sensible fixed-ish size (it
@@ -2029,6 +2104,7 @@ function recompute() {
   }
   $("#status").innerHTML = msg;
   $("#estimateOut").textContent = "";   // board changed -> previous estimate is stale
+  saveBoard();                          // every board mutation lands here
 }
 
 function heat(p) {
@@ -2252,8 +2328,9 @@ function setDug(i, val) { state.cells[i].dug = val; recompute(); }
 /* ---------- Wiring ---------- */
 const markCustom = () => { $("#stageSelect").value = ""; };
 $("#stageSelect").onchange = e => { if (e.target.value) loadStage(e.target.value); };
-$("#gridSize").addEventListener("input", e => { $("#gridSizeEcho").textContent = e.target.value; markCustom(); });
-$("#addPiece").onclick = () => { addPiece($("#newW").value, $("#newH").value, $("#newC").value); markCustom(); };
+$("#gridSize").addEventListener("input", e => { $("#gridSizeEcho").textContent = e.target.value; markCustom(); saveBoard(); });
+$("#pickPerTile").addEventListener("input", saveBoard);
+$("#addPiece").onclick = () => { addPiece($("#newW").value, $("#newH").value, $("#newC").value); markCustom(); saveBoard(); };
 $("#newGame").onclick = newGame;
 $("#clearDigs").onclick = clearDigs;
 $("#estimate").onclick = runEstimate;
@@ -2295,7 +2372,7 @@ try { $("#dpToggle").checked = (localStorage.getItem("th.dp") ?? "1") !== "0"; }
 catch (_) { $("#dpToggle").checked = true; }   // default ON; persisted opt-out
 renderQuickAdd();
 populateStages();
-loadStage(1);   // start on Stage 1
+if (!restoreBoard()) loadStage(1);   // last board from localStorage["th.board"], else Stage 1
 </script>
 
 <!-- Visitor analytics: GoatCounter. Privacy-friendly, no cookies, no consent banner.
