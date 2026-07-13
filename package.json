@@ -5,6 +5,7 @@
   "description": "Treasure Hunt tile probability solver (single-page web app).",
   "scripts": {
     "test": "node --test",
+    "build:locales": "node scripts/build-locales.js",
     "screenshots": "bash scripts/visual-test.sh"
   },
   "devDependencies": {

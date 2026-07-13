@@ -12,7 +12,7 @@ A single-page web app that helps you play the **Treasure Hunt** event efficientl
 - **Manual setup** — set any grid size and add treasures by dimension for custom boards.
 - **Your board is remembered.** Refresh the page or come back later and the board is exactly as you left it: the stage, every dig, and every located treasure. It is saved in your own browser and never uploaded. Press **New game** to start over.
 - **Exact probabilities (DP) toggle** — on by default, computes exact heatmaps for every stage with a dynamic-programming solver (usually as fast as or faster than the sampler); turn it off on low-end devices to use the time-capped Monte-Carlo sampler, which has a more predictable worst case on the densest boards.
-- **16 languages.** The whole UI is localized (English, 简体中文, 繁體中文, Español, Português, Français, Deutsch, Русский, 日本語, 한국어, ไทย, Bahasa Indonesia, Italiano, Tiếng Việt, Polski, Nederlands). It auto-detects your browser language, remembers your choice, and has a language selector in the header. Treasures are shown by dimension only (`1×3`), so nothing depends on item names.
+- **16 languages, one URL each.** The whole UI is localized (English, 简体中文, 繁體中文, Español, Português, Français, Deutsch, Русский, 日本語, 한국어, ไทย, Bahasa Indonesia, Italiano, Tiếng Việt, Polski, Nederlands). Each language has its own address (`/th/`, `/de/`, …) that opens straight in that language. The root address auto-detects your browser language, and the header picker switches between them. Treasures are shown by dimension only (`1×3`), so nothing depends on item names.
 
 ## How to use it
 
@@ -30,7 +30,15 @@ A single-page web app that helps you play the **Treasure Hunt** event efficientl
 
 ## Development
 
-Everything lives in a single static file, [`index.html`](index.html) — no build step. Open it in a browser to run it. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for how the solver, estimator, and rendering are put together.
+**No build step to run it: open [`index.html`](index.html) in a browser (double-clicking works) and it runs.** It is a static page plus three siblings it loads directly, with no server and no toolchain: [`app.js`](app.js) (the whole app), [`i18n.js`](i18n.js) (every string, all 16 locales), and [`styles.css`](styles.css). They are plain `<script src>`/`<link>` tags, deliberately not ES modules, which is what keeps `file://` working.
+
+The one generated thing is the **per-locale pages**. `/th/index.html`, `/de/index.html` and the other 13 are prerendered from `index.html` and `i18n.js` so that each language is real, indexable HTML at its own URL rather than a runtime behaviour of the English page. They are committed, so nothing needs building to run or deploy. If you touch any UI copy or the page chrome, regenerate them:
+
+```bash
+npm run build:locales   # rewrites the 15 locale pages + sitemap.xml
+```
+
+CI re-runs the generator and fails if the committed output moved, so a stale locale page cannot merge. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for how the solver, estimator, rendering, and the per-locale pages are put together.
 
 ### Tests
 
