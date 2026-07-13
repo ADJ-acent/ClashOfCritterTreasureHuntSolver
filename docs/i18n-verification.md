@@ -62,15 +62,15 @@ Ordered by traffic.
 |---|---|---|---|---|---|
 | English | 18,288 | ✅ Treasure Hunt | ❗ | ❗ | **Confirmed correct as shipped.** The 营地 ("camp") qualifier is something the Chinese localization added; it is not in the English source. So each locale's name is whatever that locale's translators chose, and cannot be derived from English. |
 | Spanish | 1,469 | ✅ Búsqueda del tesoro | ✅ Pico | ✅ Escenario {n} | **Verified in-game.** Event name and pickaxe were already right; the stage word was wrong (we said "Etapa"). Note "escenario" is masculine where "etapa" was feminine, so the agreements changed with it. |
-| French | 1,253 | ❗ | ❗ | ❗ | Current "Chasse au trésor" is a literal guess. |
+| French | 1,253 | ✅ Chasse au trésor | ✅ Pioche | ✅ Niveau {n} | **Verified in-game, and all three were already correct.** |
 | Thai | 1,195 | ❗ | ❗ | ❗ | |
 | Russian | 935 | ❗ | ❗ | ❗ | Current "Охота за сокровищами" is a literal guess. |
-| Indonesian | 737 | ❗ | ❗ | ❗ | |
+| Indonesian | 737 | ✅ Treasure Hunt | ✅ Pickaxe | ✅ Stage {n} | **Verified in-game. The Indonesian client does not translate the game terms at all** — it keeps "Treasure Hunt", "Pickaxe", and "Stage" in English inside Indonesian sentences ("menggali harta dalam Treasure Hunt"). Our locale had translated all three ("Berburu Harta Karun" / "beliung" / "Level"), so an Indonesian player would not have recognized any of them. **The Indonesian SEO keyword is therefore the English "Treasure Hunt", not a translation** (which also sidesteps the Clash of Clans collision). |
 | German | 682 | ✅ Schatzsuche | ✅ Spitzhacke | ✅ Stufe {n} | **Verified in-game, and all three were already correct.** Separately fixed a picks-vs-digs bug: `estimate.heading`/`estimate.button` said "Grabungen" (digs) while its own `estimate.allDug` correctly said "Spitzhacken". |
 | Chinese (Simplified) | 492 | ✅ 营地寻宝 | ✅ 铁镐 | ✅ 第{n}关 | **Verified in-game.** |
 | Chinese (Traditional) | ↑ | ✅ 營地尋寶 | ✅ 鐵鎬 | ✅ 第{n}關 | **Verified in-game.** The character conversion from Simplified held exactly. |
 | Portuguese | 478 | ❗ | ❗ | ❗ | Current "Caça ao tesouro" is a literal guess. |
-| Italian | 421 | ❗ | ❗ | ❗ | |
+| Italian | 421 | ✅ Caccia al Tesoro | ✅ Piccone | ✅ Livello {n} | **Verified in-game.** Pickaxe and stage were already right; only the event-name casing was off (the game capitalizes Tesoro). |
 | Vietnamese | 224 | ❗ | ❗ | ❗ | Game *name* verified: **Chiến Thú Hỗn Chiến** (Play Store). Event/pickaxe/stage still guessed. |
 | Polish | 200 | ❗ | ❗ | ❗ | |
 | Korean | 69 | ✅ 캠프 보물찾기 | ✅ 곡괭이 | ✅ 스테이지 {n} | **Verified in-game.** Event name was missing the 캠프 ("camp") qualifier. Pickaxe and stage were already right. |
