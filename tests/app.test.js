@@ -257,12 +257,32 @@ const setLang = (win, doc, L) => {
 };
 
 test("language selector lists all locales and defaults to English in jsdom", () => {
-  const { doc } = boot();
+  const { window, doc } = boot();
   const sel = doc.querySelector("#langSelect");
   assert.ok(sel, "a language selector exists");
-  assert.strictEqual(sel.querySelectorAll("option").length, 10, "10 UI languages");
+  const locales = window.eval("Object.keys(I18N).length");
+  assert.strictEqual(locales, 16, "16 UI languages");
+  assert.strictEqual(sel.querySelectorAll("option").length, locales, "every I18N locale is offered in the picker");
   assert.strictEqual(sel.value, "en", "navigator en-US -> English default");
   assert.strictEqual(doc.documentElement.lang, "en");
+});
+
+test("every locale defines the full English key set, plurals included", () => {
+  const { window } = boot();
+  const gaps = window.eval(`(() => {
+    const out = [];
+    for (const [loc, table] of Object.entries(I18N)) {
+      for (const [k, en] of Object.entries(I18N.en)) {
+        const v = table[k];
+        if (v == null) { out.push(loc + " missing " + k); continue; }
+        // A plural entry in English must stay a plural entry, and every locale
+        // needs at least "other" — pluralForm() falls back to it.
+        if (typeof en === "object" && (typeof v !== "object" || v.other == null)) out.push(loc + " bad plural " + k);
+      }
+    }
+    return out.join(", ");
+  })()`);
+  assert.strictEqual(gaps, "", "no locale is missing a key");
 });
 
 test("switching language re-renders the UI; switching back restores English exactly", () => {
