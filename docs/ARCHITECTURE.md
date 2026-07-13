@@ -131,6 +131,35 @@ The locale set is chosen from real traffic, not guessed: `th`, `id`, `it`, `vi`,
 - **Dynamic strings** (status line, estimator, the three popovers, dropdown labels, the stage-info line) all go through `t()`. `setLang()` persists to `localStorage["th.lang"]`, then runs `applyStaticI18n()` + `refreshDynamicUI()` (re-paints stage options, quick-add, the piece table, and the heatmap). `detectLang()` resolves `localStorage["th.lang"]` → `navigator.languages` (region-aware: `zh-CN`→`zh-Hans`, `zh-TW`/`zh-HK`→`zh-Hant`, `pt-*`→`pt`, base-tag fallback) → `en`.
 - **Treasure names are never displayed** — the UI shows only dimensions (`w×h`). `TREASURES`/`STAGES` keep names purely as lookup keys for sizes, so there are no game-specific terms to translate (and no risk of mismatching the game's official localized names). English strings are kept byte-identical to the pre-i18n UI so the existing tests still assert on them.
 
+### Game terminology: copy the game, do not translate it
+
+Three words appear in the UI that also appear **in the game**: the **event name**, the **pickaxe** item, and the **stage** label. For these, the only correct source is the game client itself. All 15 locales that have a client were read off it directly (2026-07-12); none of these are translations.
+
+> **Do not "correct" anything in this table.** Several entries look like mistakes and are not. Indonesian genuinely leaves the game's terms in English. Chinese and Korean genuinely add a "camp" qualifier that exists in no other locale. Japanese genuinely writes the event in katakana. If one of these looks wrong, it is because the game's localizers made a choice you would not have made.
+
+| Locale | Event name | Pickaxe | Stage |
+|---|---|---|---|
+| `en` | Treasure Hunt | Pickaxe | Stage {n} |
+| `zh-Hans` | 营地寻宝 | 铁镐 | 第{n}关 |
+| `zh-Hant` | 營地尋寶 | 鐵鎬 | 第{n}關 |
+| `es` | Búsqueda del tesoro | Pico | Escenario {n} |
+| `pt` | Caça ao Tesouro | Picareta | Fase {n} |
+| `fr` | Chasse au trésor | Pioche | Niveau {n} |
+| `de` | Schatzsuche | Spitzhacke | Stufe {n} |
+| `ru` | Поиски сокровищ | Кирка | Этап {n} |
+| `ja` | オタカラ探し | ツルハシ | ステージ {n} |
+| `ko` | 캠프 보물찾기 | 곡괭이 | 스테이지 {n} |
+| `th` | ล่าขุมทรัพย์ | อีเต้อ | ด่านที่ {n} |
+| `id` | **Treasure Hunt** | **Pickaxe** | **Stage {n}** |
+| `it` | Caccia al Tesoro | Piccone | Livello {n} |
+| `vi` | Truy Tìm Kho Báu | Cuốc Chim | Màn {n} |
+| `pl` | Poszukiwanie skarbów | Kilof | Etap {n} |
+| `nl` | *(no game client)* | *(literal translation)* | *(literal translation)* |
+
+Two related facts. The **game name** is "Clash of Critters" everywhere except `vi` (**Chiến Thú Hỗn Chiến**), `ja` (モンスターサバイバル), `ko` (뚜까펫: 서바이벌), `zh-Hans` (塔塔冒险队), `zh-Hant` (塔塔冒險隊). And **Dutch has no game client at all** (the game ships in 16 languages and Dutch is not one of them), so the `nl` locale has nothing to match and keeps ordinary translations. Turkish *does* have a client but no locale here.
+
+To verify a new locale, switch the game's language and screenshot three things: the event banner, the pickaxe item tooltip (its description repeats the event name), and the stage chip.
+
 ## Tests & CI
 
 [`tests/app.test.js`](../tests/app.test.js) loads `index.html` in jsdom and drives the real DOM (`node --test`, i.e. `npm test`). It covers boot, digging, the popover regression, preset loading, the custom-switch, the best-tile highlight, the dug/buried split and toggle, the empty-board path, the estimator (including the regression that it counts every treasure tile, not one hit per treasure), the **DP toggle** (exact `(DP)` engine on a dense stage where DFS bails, and the Monte-Carlo fallback when it's off), **persistence** (a board round-tripping through a refresh, restored treasure identity, the stale-preset fallback to custom, corrupt saves ignored, and New game not resurrecting the old board), and **i18n** (the language selector, switching/restoring strings, region-aware auto-detection, and that treasure names never surface). GitHub Actions runs the suite on every PR and on pushes to `main`; `main` is protected so changes go through PRs with the `test` check passing.
