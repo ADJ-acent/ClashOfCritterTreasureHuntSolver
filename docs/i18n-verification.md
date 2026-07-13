@@ -1,8 +1,10 @@
 # In-game terminology verification
 
-The app's localized titles and copy should use the **same words the game uses**, because those are the words players recognize and the words they type into Google. Literal translation is not good enough: Simplified Chinese calls the event **营地寻宝** ("Camp Treasure Hunt"), which no literal translation of "Treasure Hunt" would ever produce.
+The app's localized titles and copy should use the **same words the game uses**, because those are the words players recognize and the words they type into Google.
 
-This file tracks which locales have been verified against the real game client, and what is still guessed.
+Literal translation is not good enough. The English event is "Treasure Hunt" (confirmed), but Simplified Chinese calls it **营地寻宝**, "*Camp* Treasure Hunt". The Chinese localizers added a qualifier that is not in the English source. So **each locale's event name is whatever that locale's translators chose, and cannot be derived from English by translating it.** Every locale has to be read off the real client.
+
+This file tracks which locales have been verified against the game, and what is still guessed.
 
 ## The game ships in 16 languages
 
@@ -39,7 +41,7 @@ Ordered by traffic.
 
 | Language | Sessions | Event name | Pickaxe | Stage | Notes |
 |---|---|---|---|---|---|
-| English | 18,288 | ❗ | ❗ | ❗ | **Highest priority.** Is it "Treasure Hunt" or "Camp Treasure Hunt"? The wiki says the former, but wikis abbreviate, and zh-Hans has the 营地 ("camp") qualifier. If English is wrong, the main title serving 68% of traffic is built on the wrong keyword. |
+| English | 18,288 | ✅ Treasure Hunt | ❗ | ❗ | **Confirmed correct as shipped.** The 营地 ("camp") qualifier is something the Chinese localization added; it is not in the English source. So each locale's name is whatever that locale's translators chose, and cannot be derived from English. |
 | Spanish | 1,469 | ❗ | ❗ | ❗ | Current "Búsqueda del tesoro" is a literal guess. |
 | French | 1,253 | ❗ | ❗ | ❗ | Current "Chasse au trésor" is a literal guess. |
 | Thai | 1,195 | ❗ | ❗ | ❗ | |
