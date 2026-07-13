@@ -66,15 +66,15 @@ Ordered by traffic.
 | Thai | 1,195 | ❗ | ❗ | ❗ | |
 | Russian | 935 | ❗ | ❗ | ❗ | Current "Охота за сокровищами" is a literal guess. |
 | Indonesian | 737 | ❗ | ❗ | ❗ | |
-| German | 682 | ❗ | ❗ | ❗ | Current "Schatzsuche" is a literal guess. |
+| German | 682 | ✅ Schatzsuche | ✅ Spitzhacke | ✅ Stufe {n} | **Verified in-game, and all three were already correct.** Separately fixed a picks-vs-digs bug: `estimate.heading`/`estimate.button` said "Grabungen" (digs) while its own `estimate.allDug` correctly said "Spitzhacken". |
 | Chinese (Simplified) | 492 | ✅ 营地寻宝 | ✅ 铁镐 | ✅ 第{n}关 | **Verified in-game.** |
 | Chinese (Traditional) | ↑ | ✅ 營地尋寶 | ✅ 鐵鎬 | ✅ 第{n}關 | **Verified in-game.** The character conversion from Simplified held exactly. |
 | Portuguese | 478 | ❗ | ❗ | ❗ | Current "Caça ao tesouro" is a literal guess. |
 | Italian | 421 | ❗ | ❗ | ❗ | |
 | Vietnamese | 224 | ❗ | ❗ | ❗ | Game *name* verified: **Chiến Thú Hỗn Chiến** (Play Store). Event/pickaxe/stage still guessed. |
 | Polish | 200 | ❗ | ❗ | ❗ | |
-| Korean | 69 | ❗ | ❗ | ❗ | |
-| Japanese | 12 | ❗ | ❗ | ❗ | |
+| Korean | 69 | ✅ 캠프 보물찾기 | ✅ 곡괭이 | ✅ 스테이지 {n} | **Verified in-game.** Event name was missing the 캠프 ("camp") qualifier. Pickaxe and stage were already right. |
+| Japanese | 12 | ✅ オタカラ探し | ✅ ツルハシ | ✅ ステージ {n} | **Verified in-game.** Event name was 宝探し; the game uses katakana **オタカラ探し**. Pickaxe and stage were already right. |
 | Dutch | 190 | N/A | N/A | N/A | No game client. Nothing to verify. |
 
 ## Official game name by locale
