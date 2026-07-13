@@ -121,9 +121,11 @@ The board survives a refresh. `state` is plain JSON (no DOM refs, no Maps), so `
 
 ## Internationalization (i18n)
 
-The UI ships in 10 languages (English + `de`, `es`, `fr`, `pt`, `ru`, `zh-Hans`, `zh-Hant`, `ko`, `ja`). To preserve the "one static file, just open it via `file://`" property, translations live **inline** in the same `<script>` as a plain object — no `fetch`, no JSON side-files, no i18n library.
+The UI ships in 16 languages (English + `de`, `es`, `fr`, `pt`, `ru`, `zh-Hans`, `zh-Hant`, `ko`, `ja`, `th`, `id`, `it`, `vi`, `pl`, `nl`). To preserve the "one static file, just open it via `file://`" property, translations live **inline** in the same `<script>` as a plain object — no `fetch`, no JSON side-files, no i18n library.
 
-- **`I18N`** maps each language code to a flat `key → string` table (~73 keys). **`LANGS`** is the ordered `[code, autonym]` list that fills the header `#langSelect` (languages are listed in their own name).
+The locale set is chosen from real traffic, not guessed: `th`, `id`, `it`, `vi`, `pl`, `nl` were added because each drew more visitors than `ko` and `ja`, which shipped from the start. Everything below `nl` in the tail is under 0.3% of sessions.
+
+- **`I18N`** maps each language code to a flat `key → string` table (83 keys). **`LANGS`** is the ordered `[code, autonym]` list that fills the header `#langSelect` (languages are listed in their own name). A test asserts every locale defines the full English key set, so a locale can never half-silently fall back to English.
 - **`t(key, params)`** looks up `I18N[LANG][key]`, falls back to English, then to the raw key, and interpolates `{placeholder}` tokens. Count-sensitive entries (`status.exact`, `status.estimated`) are `{one,few,many,other}` objects resolved with `Intl.PluralRules` — pass the count as `params._n` — so e.g. Russian picks the right раскладка/раскладки/раскладок. Numbers go through `nfmt` (`toLocaleString(LANG)`).
 - **Static chrome** carries `data-i18n` / `data-i18n-html` / `data-i18n-title` attributes; `applyStaticI18n()` walks them and also sets `<title>` and `document.documentElement.lang`. The English text stays in the HTML as the readable default (and as a fallback if the script fails).
 - **Dynamic strings** (status line, estimator, the three popovers, dropdown labels, the stage-info line) all go through `t()`. `setLang()` persists to `localStorage["th.lang"]`, then runs `applyStaticI18n()` + `refreshDynamicUI()` (re-paints stage options, quick-add, the piece table, and the heatmap). `detectLang()` resolves `localStorage["th.lang"]` → `navigator.languages` (region-aware: `zh-CN`→`zh-Hans`, `zh-TW`/`zh-HK`→`zh-Hant`, `pt-*`→`pt`, base-tag fallback) → `en`.

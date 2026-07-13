@@ -12,7 +12,7 @@ A single-page web app that helps you play the **Treasure Hunt** event efficientl
 - **Manual setup** — set any grid size and add treasures by dimension for custom boards.
 - **Your board is remembered.** Refresh the page or come back later and the board is exactly as you left it: the stage, every dig, and every located treasure. It is saved in your own browser and never uploaded. Press **New game** to start over.
 - **Exact probabilities (DP) toggle** — on by default, computes exact heatmaps for every stage with a dynamic-programming solver (usually as fast as or faster than the sampler); turn it off on low-end devices to use the time-capped Monte-Carlo sampler, which has a more predictable worst case on the densest boards.
-- **10 languages** — the whole UI is localized (English, 简体中文, 繁體中文, Español, Português, Français, Deutsch, Русский, 日本語, 한국어). It auto-detects your browser language, remembers your choice, and has a language selector in the header. Treasures are shown by dimension only (`1×3`), so nothing depends on item names.
+- **16 languages.** The whole UI is localized (English, 简体中文, 繁體中文, Español, Português, Français, Deutsch, Русский, 日本語, 한국어, ไทย, Bahasa Indonesia, Italiano, Tiếng Việt, Polski, Nederlands). It auto-detects your browser language, remembers your choice, and has a language selector in the header. Treasures are shown by dimension only (`1×3`), so nothing depends on item names.
 
 ## How to use it
 
