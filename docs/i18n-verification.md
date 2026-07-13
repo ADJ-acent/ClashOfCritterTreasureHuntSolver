@@ -61,7 +61,7 @@ Ordered by traffic.
 | Language | Sessions | Event name | Pickaxe | Stage | Notes |
 |---|---|---|---|---|---|
 | English | 18,288 | ✅ Treasure Hunt | ❗ | ❗ | **Confirmed correct as shipped.** The 营地 ("camp") qualifier is something the Chinese localization added; it is not in the English source. So each locale's name is whatever that locale's translators chose, and cannot be derived from English. |
-| Spanish | 1,469 | ❗ | ❗ | ❗ | Current "Búsqueda del tesoro" is a literal guess. |
+| Spanish | 1,469 | ✅ Búsqueda del tesoro | ✅ Pico | ✅ Escenario {n} | **Verified in-game.** Event name and pickaxe were already right; the stage word was wrong (we said "Etapa"). Note "escenario" is masculine where "etapa" was feminine, so the agreements changed with it. |
 | French | 1,253 | ❗ | ❗ | ❗ | Current "Chasse au trésor" is a literal guess. |
 | Thai | 1,195 | ❗ | ❗ | ❗ | |
 | Russian | 935 | ❗ | ❗ | ❗ | Current "Охота за сокровищами" is a literal guess. |
