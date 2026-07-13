@@ -6,16 +6,32 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { JSDOM } = require("jsdom");
 
-const HTML = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+const ROOT = path.join(__dirname, "..");
+
+// The app is index.html + three sibling assets (styles.css, i18n.js, app.js), loaded
+// as classic <script src>/<link> so the page still runs over file://. jsdom's
+// runScripts:"dangerously" does NOT fetch external scripts, and switching it to
+// resources:"usable" would make every boot async. So we inline the scripts into the
+// HTML in place instead: same order, and classic scripts have no other load semantics
+// to preserve, so this is faithful and boot() stays synchronous. The stylesheet is
+// dropped; jsdom never resolved the old inline <style> either, which is why the
+// contrast test carries its own copy of the colours.
+const inlineAssets = (html, dir) =>
+  html
+    .replace(/<script src="([^"]+)"><\/script>/g,
+      (_, src) => "<script>" + fs.readFileSync(path.resolve(dir, src), "utf8") + "</script>")
+    .replace(/<link rel="stylesheet"[^>]*>/g, "");
+
+const HTML = inlineAssets(fs.readFileSync(path.join(ROOT, "index.html"), "utf8"), ROOT);
 
 // Boot a fresh page; collect any uncaught JS errors so tests can assert none.
 // jsdom serves index.html from about:blank, an opaque origin with no localStorage,
 // so by default the app's persistence is a no-op and every boot starts clean. Pass
 // a storage shim (see makeStorage) to exercise it, reusing one across two boots to
 // simulate a refresh.
-function boot({ storage } = {}) {
+function boot({ storage, html = HTML } = {}) {
   const errors = [];
-  const { window } = new JSDOM(HTML, {
+  const { window } = new JSDOM(html, {
     runScripts: "dangerously",
     pretendToBeVisual: true,
     beforeParse(win) {
@@ -250,21 +266,33 @@ test("DP toggle: exact on a dense stage where DFS bails, falls back to MC when o
 });
 
 // ---------- Localization (i18n) ----------
-const setLang = (win, doc, L) => {
-  const s = doc.querySelector("#langSelect");
-  s.value = L;
-  s.dispatchEvent(new win.Event("change", { bubbles: true }));
-};
+// Choosing a language is a navigation to that locale's URL, not an in-place swap, so a
+// "switch to Japanese" in a test means booting the prerendered ja/index.html. Its assets
+// sit one level up, which path.resolve against the locale dir handles.
+const localeHtml = code =>
+  inlineAssets(fs.readFileSync(path.join(ROOT, code, "index.html"), "utf8"), path.join(ROOT, code));
+const bootLocale = (code, opts) => boot({ ...opts, html: localeHtml(code) });
 
-test("language selector lists all locales and defaults to English in jsdom", () => {
+test("language picker offers every locale as a real link to its own URL", () => {
   const { window, doc } = boot();
-  const sel = doc.querySelector("#langSelect");
-  assert.ok(sel, "a language selector exists");
-  const locales = window.eval("Object.keys(I18N).length");
-  assert.strictEqual(locales, 16, "16 UI languages");
-  assert.strictEqual(sel.querySelectorAll("option").length, locales, "every I18N locale is offered in the picker");
-  assert.strictEqual(sel.value, "en", "navigator en-US -> English default");
-  assert.strictEqual(doc.documentElement.lang, "en");
+  const langs = window.eval("JSON.stringify(LANGS)");
+  const LANGS = JSON.parse(langs);
+  assert.strictEqual(LANGS.length, 16, "16 UI languages");
+  assert.strictEqual(window.eval("Object.keys(I18N).length"), 16);
+
+  const links = [...doc.querySelectorAll("#langMenu a[data-lang]")];
+  assert.strictEqual(links.length, LANGS.length, "every locale is offered in the picker");
+  // Real anchors, not a <select>: this is how the locale pages get crawled at all.
+  LANGS.forEach(([code, autonym], i) => {
+    assert.strictEqual(links[i].dataset.lang, code, "picker follows LANGS order");
+    assert.strictEqual(links[i].textContent, autonym, `${code} is listed under its own name`);
+    // jsdom has no location.protocol === "file:", so the hrefs stay in their clean form.
+    assert.strictEqual(links[i].getAttribute("href"), code === "en" ? "./" : code + "/");
+  });
+
+  assert.strictEqual(doc.documentElement.lang, "en", "navigator en-US -> English default");
+  assert.strictEqual(doc.querySelector("#langCurrent").textContent, "English");
+  assert.strictEqual(doc.querySelector('#langMenu a[data-lang="en"]').getAttribute("aria-current"), "true");
 });
 
 test("every locale defines the full English key set, plurals included", () => {
@@ -285,19 +313,48 @@ test("every locale defines the full English key set, plurals included", () => {
   assert.strictEqual(gaps, "", "no locale is missing a key");
 });
 
-test("switching language re-renders the UI; switching back restores English exactly", () => {
-  const { window, doc, errors } = boot();
-  setLang(window, doc, "ja");
-  assert.strictEqual(doc.documentElement.lang, "ja", "<html lang> follows the choice");
-  assert.match(doc.querySelector("h1").textContent, /確率ソルバー/, "static chrome translated");
+test("a prerendered locale page boots in its language, static chrome and dynamic strings alike", () => {
+  const { doc, errors } = bootLocale("ja");
+  assert.strictEqual(doc.documentElement.lang, "ja");
+  assert.match(doc.querySelector("h1").textContent, /確率ソルバー/, "static chrome");
   const ja = doc.querySelector("#status").textContent;
-  assert.ok(!/Remaining to find/.test(ja), "status line no longer English");
-  assert.match(ja, /発見すべき宝/, "status line translated (dynamic string)");
-  // back to English: byte-identical to the original strings the other tests rely on
-  setLang(window, doc, "en");
+  assert.ok(!/Remaining to find/.test(ja), "status line is not English");
+  assert.match(ja, /発見すべき宝/, "status line translated (built by t() at runtime)");
+  assert.strictEqual(errors.length, 0, errors.join("\n"));
+});
+
+test("the English root keeps its strings byte-identical (the other tests assert on them)", () => {
+  const { doc } = boot();
   assert.strictEqual(doc.querySelector("h1").textContent, "Clash of Critters Treasure Hunt Probability Solver");
   assert.match(doc.querySelector("#status").textContent, /Remaining to find/);
+});
+
+// The case that would feel broken if nobody thought about it: someone who picked Italian
+// last week clicks a Thai search result. The URL is an explicit choice and wins, so the page
+// they land on is the page they clicked. It must not paint Thai and then flip to Italian.
+test("a locale URL outranks a stored preference, and adopts it", () => {
+  const storage = makeStorage({ "th.lang": "it" });
+  const { doc, errors } = bootLocale("th", { storage });
+  assert.strictEqual(doc.documentElement.lang, "th", "the URL wins over localStorage");
+  assert.match(doc.querySelector("h1").textContent, /ล่าขุมทรัพย์/, "renders Thai, not Italian");
+  assert.strictEqual(storage.getItem("th.lang"), "th", "and the choice sticks for the root later");
   assert.strictEqual(errors.length, 0, errors.join("\n"));
+});
+
+// The flip side, and the requirement that drove the whole design: the root still auto-detects.
+test("the root still auto-detects, so a German visitor lands on German", () => {
+  const { window } = new JSDOM(HTML, {
+    runScripts: "dangerously",
+    pretendToBeVisual: true,
+    beforeParse(win) {
+      if (!win.performance) win.performance = { now: () => Date.now() };
+      Object.defineProperty(win.navigator, "languages", { value: ["de-AT", "de"], configurable: true });
+    },
+  });
+  const doc = window.document;
+  assert.strictEqual(doc.documentElement.lang, "de", "no pin, no stored choice -> browser language");
+  assert.match(doc.querySelector("h1").textContent, /Wahrscheinlichkeits/, "chrome swapped in place, no redirect");
+  assert.strictEqual(doc.querySelector("#langCurrent").textContent, "Deutsch", "picker agrees");
 });
 
 test("auto-detects the UI language from the browser, region-aware (zh-TW -> Traditional)", () => {
@@ -314,7 +371,7 @@ test("auto-detects the UI language from the browser, region-aware (zh-TW -> Trad
   });
   const doc = window.document;
   assert.strictEqual(doc.documentElement.lang, "zh-Hant", "zh-TW resolves to Traditional Chinese");
-  assert.strictEqual(doc.querySelector("#langSelect").value, "zh-Hant");
+  assert.strictEqual(doc.querySelector("#langCurrent").textContent, "繁體中文");
   assert.strictEqual(errors.length, 0, errors.join("\n"));
 });
 
@@ -332,8 +389,7 @@ test("treasure names are never shown — dimensions only", () => {
 });
 
 test("language switch localizes the popover while keeping dimensions intact", () => {
-  const { window, doc } = boot();
-  setLang(window, doc, "ja");
+  const { window, doc } = bootLocale("ja");
   click(window, cells(doc)[0]);
   const labels = popButtons(doc).map(b => b.textContent);
   assert.ok(labels.some(t => /1×3/.test(t)), "the dimension survives translation");
@@ -350,9 +406,10 @@ test("footer has a localized feedback link to the Discord post", () => {
   assert.strictEqual(a.target, "_blank");
   assert.match(a.textContent, /Feedback/, "English label by default");
   // localizes along with the rest of the UI (text + tooltip)
-  setLang(window, doc, "ja");
-  assert.match(feedback().textContent, /フィードバック/, "label translated");
-  assert.ok(feedback().title.length > 0, "tooltip is set");
+  const ja = bootLocale("ja").doc;
+  const jaLink = [...ja.querySelectorAll("footer a")].find(x => /discord\.com/.test(x.href));
+  assert.match(jaLink.textContent, /フィードバック/, "label translated");
+  assert.ok(jaLink.title.length > 0, "tooltip is set");
 });
 
 /* ---------- Persistence (localStorage["th.board"]) ---------- */
@@ -517,4 +574,96 @@ test("every glyph clears WCAG AA against its actual background, on every stage",
   }
   assert.ok(worst.r >= 4.5,
     `worst glyph contrast ${worst.r.toFixed(2)}:1 on stage ${worst.stage} ("${worst.text}") is below WCAG AA`);
+});
+
+/* ---------- Per-locale pages (SEO) ----------
+   These assert on the files scripts/build-locales.js writes. They are checking what a crawler
+   is served, so they read the raw HTML rather than booting it: the whole point is that the
+   translation is in the markup before any JS runs. CI separately re-runs the generator and
+   fails if the committed output moved, so "the tests pass" cannot mean "the pages are stale". */
+
+const BASE = "https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/";
+const parse = html => new JSDOM(html).window.document;   // no scripts: a crawler's first look
+const rootDoc = () => parse(fs.readFileSync(path.join(ROOT, "index.html"), "utf8"));
+const localeDoc = code => parse(fs.readFileSync(path.join(ROOT, code, "index.html"), "utf8"));
+const langCodes = () => JSON.parse(boot().window.eval("JSON.stringify(LANGS)")).map(([c]) => c);
+const hreflangs = doc =>
+  [...doc.querySelectorAll('link[rel="alternate"]')].map(l => [l.getAttribute("hreflang"), l.getAttribute("href")]);
+const urlFor = code => (code === "en" ? BASE : BASE + code + "/");
+
+test("the root declares one alternate per locale, plus x-default, and nothing else", () => {
+  const expected = [["x-default", BASE]].concat(langCodes().map(c => [c, urlFor(c)]));
+  // Adding a locale to LANGS without adding its <link> here would silently leave the new page
+  // uncrawlable, which is exactly the bug this whole change exists to fix.
+  assert.deepStrictEqual(hreflangs(rootDoc()), expected);
+});
+
+test("every locale has a page, pinned and self-canonical, with the reciprocal alternate set", () => {
+  const codes = langCodes();
+  const expected = [["x-default", BASE]].concat(codes.map(c => [c, urlFor(c)]));
+
+  for (const code of codes.filter(c => c !== "en")) {
+    const doc = localeDoc(code);
+    const where = `${code}/index.html`;
+
+    assert.strictEqual(doc.documentElement.getAttribute("lang"), code, `${where}: <html lang>`);
+    assert.strictEqual(doc.documentElement.dataset.pinnedLang, code, `${where}: the language pin`);
+    assert.strictEqual(doc.querySelector('link[rel="canonical"]').getAttribute("href"), urlFor(code),
+      `${where}: canonical points at itself, not the English root`);
+    // Reciprocity: Google drops a whole hreflang cluster if the links do not point back.
+    assert.deepStrictEqual(hreflangs(doc), expected, `${where}: alternates`);
+
+    // Served to a crawler in its language, before a line of JS runs. This is the entire point.
+    const title = doc.querySelector("title").textContent;
+    const desc = doc.querySelector('meta[name="description"]').getAttribute("content");
+    const h1 = doc.querySelector("h1").textContent;
+    for (const [what, s] of [["title", title], ["description", desc], ["h1", h1]]) {
+      assert.ok(s && s.length > 0, `${where}: ${what} is empty`);
+    }
+    assert.strictEqual(doc.querySelector('meta[property="og:url"]').getAttribute("content"), urlFor(code));
+    assert.ok(doc.querySelector('meta[property="og:locale"]'), `${where}: og:locale`);
+    assert.strictEqual(JSON.parse(doc.querySelector('script[type="application/ld+json"]').textContent).inLanguage,
+      code, `${where}: JSON-LD inLanguage`);
+
+    // Assets live one level up; the analytics beacon is protocol-relative and must be left alone.
+    assert.strictEqual(doc.querySelector('link[rel="stylesheet"]').getAttribute("href"), "../styles.css");
+    assert.deepStrictEqual([...doc.querySelectorAll("script[src]")].map(s => s.getAttribute("src")),
+      ["../i18n.js", "../app.js", "//gc.zgo.at/count.js"], `${where}: script srcs`);
+
+    // The picker links back out to every sibling, so each page is one hop from all the others.
+    const links = [...doc.querySelectorAll("#langMenu a[data-lang]")];
+    assert.deepStrictEqual(links.map(a => a.dataset.lang), codes, `${where}: picker lists every locale`);
+    assert.deepStrictEqual(links.map(a => a.getAttribute("href")),
+      codes.map(c => (c === "en" ? "../" : "../" + c + "/")), `${where}: picker hrefs`);
+    assert.strictEqual(doc.querySelector(`#langMenu a[data-lang="${code}"]`).getAttribute("aria-current"), "true");
+  }
+});
+
+test("the English title and description are not left sitting in a translated page", () => {
+  const en = rootDoc();
+  const enTitle = en.querySelector("title").textContent;
+  const enDesc = en.querySelector('meta[name="description"]').getAttribute("content");
+
+  // id is the deliberate exception: its game client leaves the event name in English, so its
+  // title legitimately contains "Treasure Hunt". It still must not be the *English string*.
+  for (const code of langCodes().filter(c => c !== "en")) {
+    const doc = localeDoc(code);
+    assert.notStrictEqual(doc.querySelector("title").textContent, enTitle, `${code}: untranslated title`);
+    assert.notStrictEqual(doc.querySelector('meta[name="description"]').getAttribute("content"), enDesc,
+      `${code}: untranslated description`);
+  }
+});
+
+test("the sitemap lists every locale URL with the full alternate cluster", () => {
+  const xml = fs.readFileSync(path.join(ROOT, "sitemap.xml"), "utf8");
+  const codes = langCodes();
+
+  const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1]);
+  assert.deepStrictEqual(locs, codes.map(urlFor), "one <url> per locale, in LANGS order");
+
+  // Each entry repeats the whole cluster: sitemap hreflang is the signal that does not depend
+  // on a crawler reaching and parsing the page head.
+  const alts = [...xml.matchAll(/hreflang="([^"]+)"/g)].map(m => m[1]);
+  assert.strictEqual(alts.length, codes.length * (codes.length + 1), "16 entries x (16 locales + x-default)");
+  assert.ok(xml.includes('hreflang="x-default"'), "x-default is declared");
 });

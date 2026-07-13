@@ -2,7 +2,9 @@
 
 Developer-facing notes on how the solver works. For user instructions see the [README](../README.md).
 
-The whole app is one static file, [`index.html`](../index.html) — HTML + CSS + vanilla JS, no build step, no dependencies at runtime. (jsdom is a dev-only dependency for the tests.) Open the file in a browser to run it.
+The app is [`index.html`](../index.html) plus three siblings it loads directly: [`app.js`](../app.js) (everything the app does), [`i18n.js`](../i18n.js) (the 16-locale string table), and [`styles.css`](../styles.css). Vanilla JS, no dependencies at runtime, and **no build step to run it**: they load as classic `<script src>`/`<link>` tags, not ES modules (which would need CORS and die on `file://`), so opening the file straight off the filesystem still works. jsdom is a dev-only dependency, used by the tests and by the locale-page generator.
+
+It was one file until the per-locale pages arrived; each of those would otherwise have had to inline a copy of the whole app. See [Per-locale pages and SEO](#per-locale-pages-and-seo).
 
 ## The model
 
@@ -121,14 +123,14 @@ The board survives a refresh. `state` is plain JSON (no DOM refs, no Maps), so `
 
 ## Internationalization (i18n)
 
-The UI ships in 16 languages (English + `de`, `es`, `fr`, `pt`, `ru`, `zh-Hans`, `zh-Hant`, `ko`, `ja`, `th`, `id`, `it`, `vi`, `pl`, `nl`). To preserve the "one static file, just open it via `file://`" property, translations live **inline** in the same `<script>` as a plain object — no `fetch`, no JSON side-files, no i18n library.
+The UI ships in 16 languages (English + `de`, `es`, `fr`, `pt`, `ru`, `zh-Hans`, `zh-Hant`, `ko`, `ja`, `th`, `id`, `it`, `vi`, `pl`, `nl`). Translations live in [`i18n.js`](../i18n.js) as a plain object, loaded as a classic script: no `fetch`, no JSON side-files, no i18n library, so `file://` still works. Each language also has **its own URL** (`/de/`, `/th/`, …), prerendered from this same table; see [Per-locale pages and SEO](#per-locale-pages-and-seo).
 
 The locale set is chosen from real traffic, not guessed: `th`, `id`, `it`, `vi`, `pl`, `nl` were added because each drew more visitors than `ko` and `ja`, which shipped from the start. Everything below `nl` in the tail is under 0.3% of sessions.
 
 - **`I18N`** maps each language code to a flat `key → string` table (83 keys). **`LANGS`** is the ordered `[code, autonym]` list that fills the header `#langSelect` (languages are listed in their own name). A test asserts every locale defines the full English key set, so a locale can never half-silently fall back to English.
 - **`t(key, params)`** looks up `I18N[LANG][key]`, falls back to English, then to the raw key, and interpolates `{placeholder}` tokens. Count-sensitive entries (`status.exact`, `status.estimated`) are `{one,few,many,other}` objects resolved with `Intl.PluralRules` — pass the count as `params._n` — so e.g. Russian picks the right раскладка/раскладки/раскладок. Numbers go through `nfmt` (`toLocaleString(LANG)`).
-- **Static chrome** carries `data-i18n` / `data-i18n-html` / `data-i18n-title` attributes; `applyStaticI18n()` walks them and also sets `<title>` and `document.documentElement.lang`. The English text stays in the HTML as the readable default (and as a fallback if the script fails).
-- **Dynamic strings** (status line, estimator, the three popovers, dropdown labels, the stage-info line) all go through `t()`. `setLang()` persists to `localStorage["th.lang"]`, then runs `applyStaticI18n()` + `refreshDynamicUI()` (re-paints stage options, quick-add, the piece table, and the heatmap). `detectLang()` resolves `localStorage["th.lang"]` → `navigator.languages` (region-aware: `zh-CN`→`zh-Hans`, `zh-TW`/`zh-HK`→`zh-Hant`, `pt-*`→`pt`, base-tag fallback) → `en`.
+- **Static chrome** carries `data-i18n` / `data-i18n-html` / `data-i18n-title` attributes; `applyStaticI18n()` walks them and also sets `<title>` and `document.documentElement.lang`. The English text stays in `index.html` as the readable default (and as a fallback if the script fails). The locale-page generator applies **exactly this transform** ahead of time, off the same three attributes, which is why the prerendered pages cannot drift from what the runtime would have painted.
+- **Dynamic strings** (status line, estimator, the three popovers, dropdown labels, the stage-info line) all go through `t()`. There is **no in-place language switch**: `LANG` is resolved once at boot, before anything renders, and the picker navigates to another URL instead of re-painting the current one (see below).
 - **Treasure names are never displayed** — the UI shows only dimensions (`w×h`). `TREASURES`/`STAGES` keep names purely as lookup keys for sizes, so there are no game-specific terms to translate (and no risk of mismatching the game's official localized names). English strings are kept byte-identical to the pre-i18n UI so the existing tests still assert on them.
 
 ### Game terminology: copy the game, do not translate it
@@ -160,6 +162,52 @@ Two related facts. The **game name** is "Clash of Critters" everywhere except `v
 
 To verify a new locale, switch the game's language and screenshot three things: the event banner, the pickaxe item tooltip (its description repeats the event name), and the stage chip.
 
+## Per-locale pages and SEO
+
+Sixteen locales used to live behind **one URL**. Language was chosen at runtime, Googlebot crawls with an English `Accept-Language` and no `localStorage`, and Google works out a page's language from **the text it is served**, not from `<html lang>` or `hreflang`. So Google saw an English page, sixteen times over, and there was no second URL to file a translation under even if it hadn't. The fifteen non-English locales were not content; they were a runtime behaviour of an English page.
+
+Now each locale is a real page at its own URL:
+
+| | |
+|---|---|
+| `/` | the English page **and** the `x-default`. The only page that auto-detects. |
+| `/de/`, `/th/`, `/zh-Hans/`, … | 15 prerendered pages, each **language-pinned**. |
+
+Every page carries the same reciprocal `hreflang` block (16 locales + `x-default` → root), and `sitemap.xml` repeats it as `xhtml:link` alternates, which is the signal that survives a crawler never parsing the head. GitHub Pages serves static files only (no server-side redirects, no `Content-Language`, and a `robots.txt` committed here would sit at the *project* path where no crawler reads it), so all of this has to be static, and it is.
+
+### Auto-detection survives, because detecting is not redirecting
+
+Google discourages redirecting on `Accept-Language`, because a crawler that gets bounced never reaches the other versions. It does not discourage *detecting*. So the detection is confined to the one URL that is allowed to be language-neutral, and the fifteen indexable URLs never auto-anything:
+
+**Precedence (`detectLang()`): URL pin → `localStorage["th.lang"]` → `navigator.languages` → `en`.**
+
+- The **pin** is `<html data-pinned-lang>`, stamped in by the generator. It is read from the DOM, not parsed out of `location.pathname`, which would have to cope with `file://` and with the `/ClashOfCritterTreasureHuntSolver/` project sub-path.
+- **The pin wins outright.** Someone who picked Italian last week clicks a Thai search result: they get Thai. The page's own HTML already *is* Thai, so letting a stored preference override it would paint Thai and then flip to Italian, which is the one genuinely surprising outcome available here. Landing on a locale URL is an explicit choice, exactly like using the picker, so boot persists it (`th.lang = "th"`), and one click of the picker takes them back to `/it/`.
+- **The root never redirects.** It auto-detects and renders **in place**, exactly as it always did. A German visitor still lands on German without touching anything. Googlebot, arriving as `en-US`, sees English and indexes it as English/`x-default`. Redirecting would buy nothing (the locale pages are indexed via the sitemap, the `hreflang` set, and the picker links regardless) and would cost a round trip, a flash, and an escape hatch to build.
+- **No flash on a locale page.** The German is already in the markup; `applyStaticI18n()` re-applies German over German and nothing moves.
+
+### The picker is links, not a `<select>`
+
+`#langMenu` is 16 real `<a href>` anchors, one per `LANGS` entry, in the HTML. That is how the locale pages get crawled and how link equity reaches them, and it means choosing a language is a **navigation**: the URL and the content can never disagree. `initLangPicker()` only marks the current entry, rewrites `de/` to `de/index.html` when `location.protocol === "file:"` (no directory index over `file://`), and persists the click before the navigation lands. That last part is what makes the "English" link work *from* a locale page: it points at the auto-detecting root, which would otherwise just re-detect German.
+
+### The generator
+
+[`scripts/build-locales.js`](../scripts/build-locales.js) (`npm run build:locales`) treats **`index.html` as the template** and never writes it, so the root stays hand-edited and doubles as the English page. For each other locale it clones the DOM (jsdom, already a dev dependency), applies the same `data-i18n*` transform `applyStaticI18n()` applies at runtime, sets the head metadata the runtime cannot usefully set (title, `meta description` from the `meta.description` key, canonical, Open Graph, `og:locale`, JSON-LD `inLanguage`), rewrites the sibling asset paths to `../`, and points the picker links up a level. It also emits `sitemap.xml`.
+
+Two properties are load-bearing:
+
+- **Surgical, not a render.** No scripts run, the board stays empty, nothing is timestamped (`LASTMOD` is a constant on purpose: a live date would make every build dirty by the next day). Same input, same bytes.
+- **Generated pages are committed, and CI regenerates and diffs them.** A PR that changes a string without rebuilding fails. This is the only reason it is safe to have 15 copies of the chrome in the repo at all.
+
+The cost is honest: the "single static file" property is gone (a locale page would otherwise inline the entire app 15 times), and copy changes now need a rebuild. Running the app still needs no build step, which is the property that actually mattered.
+
 ## Tests & CI
 
-[`tests/app.test.js`](../tests/app.test.js) loads `index.html` in jsdom and drives the real DOM (`node --test`, i.e. `npm test`). It covers boot, digging, the popover regression, preset loading, the custom-switch, the best-tile highlight, the dug/buried split and toggle, the empty-board path, the estimator (including the regression that it counts every treasure tile, not one hit per treasure), the **DP toggle** (exact `(DP)` engine on a dense stage where DFS bails, and the Monte-Carlo fallback when it's off), **persistence** (a board round-tripping through a refresh, restored treasure identity, the stale-preset fallback to custom, corrupt saves ignored, and New game not resurrecting the old board), and **i18n** (the language selector, switching/restoring strings, region-aware auto-detection, and that treasure names never surface). GitHub Actions runs the suite on every PR and on pushes to `main`; `main` is protected so changes go through PRs with the `test` check passing.
+[`tests/app.test.js`](../tests/app.test.js) loads `index.html` in jsdom and drives the real DOM (`node --test`, i.e. `npm test`). It covers boot, digging, the popover regression, preset loading, the custom-switch, the best-tile highlight, the dug/buried split and toggle, the empty-board path, the estimator (including the regression that it counts every treasure tile, not one hit per treasure), the **DP toggle** (exact `(DP)` engine on a dense stage where DFS bails, and the Monte-Carlo fallback when it's off), **persistence** (a board round-tripping through a refresh, restored treasure identity, the stale-preset fallback to custom, corrupt saves ignored, and New game not resurrecting the old board), **i18n** (the picker's per-locale links, a prerendered page booting in its language, region-aware auto-detection on the root, and that treasure names never surface), and the **per-locale pages** (reciprocal `hreflang`, self-canonicals, the pin outranking a stored preference, `../` asset paths, and the sitemap).
+
+Two wrinkles worth knowing:
+
+- `boot()` **inlines the external scripts** into the HTML string before handing it to jsdom. `runScripts: "dangerously"` does not fetch `<script src>`, and `resources: "usable"` would make every boot async and force all 37 tests to await a load event. Inlining in place is faithful (same order; classic scripts have no other load semantics) and keeps `boot()` synchronous. The stylesheet is dropped, which changes nothing: jsdom never resolved the old inline `<style>` either, which is why the contrast test carries its own copy of the colours.
+- The locale-page tests read the **raw generated HTML** rather than booting it. They are asserting what a crawler is served, and the whole point is that the translation is in the markup before any JS runs.
+
+GitHub Actions runs the suite on every PR and on pushes to `main`, then re-runs `npm run build:locales` and fails if the committed pages moved. `main` is protected so changes go through PRs with the `test` check passing.

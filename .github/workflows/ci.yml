@@ -15,3 +15,17 @@ jobs:
           node-version: 20
       - run: npm ci
       - run: npm test
+
+      # The per-locale pages are generated and committed, so they can go stale: change a string in
+      # i18n.js or the chrome in index.html, forget to rebuild, and the 15 indexed pages quietly keep
+      # serving the old copy. Regenerate and fail if anything moved. The generator is deterministic
+      # (no timestamps), so a clean tree here means the committed pages match the source exactly.
+      - name: Locale pages and sitemap are up to date
+        run: |
+          npm run build:locales
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Generated pages are stale. Run 'npm run build:locales' and commit the result."
+            git status --porcelain
+            git --no-pager diff
+            exit 1
+          fi

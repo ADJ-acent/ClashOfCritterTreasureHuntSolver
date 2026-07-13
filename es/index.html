@@ -1,0 +1,229 @@
+<!DOCTYPE html><html lang="es" data-pinned-lang="es"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Google Search Console ownership verification (keep this; removing it un-verifies the site) -->
+<meta name="google-site-verification" content="fGwtbJfe_ClbO0XRU523D6bJ_AjwEHXk6AG-Jv6pVxU">
+
+<!-- The JS rewrites document.title from the app.pageTitle i18n string on load; this static title is the
+     no-JS / first-paint fallback and is kept in sync with the English app.pageTitle. -->
+<title>Solucionador de probabilidades para la Búsqueda del tesoro de Clash of Critters</title>
+<meta name="description" content="Solucionador gratuito de la Búsqueda del tesoro de Clash of Critters: la probabilidad de cada casilla oculta, la mejor casilla para cavar y los picos que faltan para completar cada escenario.">
+<link rel="canonical" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/es/">
+<meta name="robots" content="index, follow">
+
+<!-- One indexable URL per language. This root is the English page AND the x-default: it is the
+     only page that auto-detects (see detectLang() in app.js). Every /<code>/ page is prerendered
+     by scripts/build-locales.js, pins its language, and carries this same block, so the set is
+     reciprocal. Adding a locale means adding a line here; a test enforces it against LANGS. -->
+<link rel="alternate" hreflang="x-default" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/">
+<link rel="alternate" hreflang="en" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/">
+<link rel="alternate" hreflang="zh-Hans" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/zh-Hans/">
+<link rel="alternate" hreflang="zh-Hant" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/zh-Hant/">
+<link rel="alternate" hreflang="es" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/es/">
+<link rel="alternate" hreflang="pt" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/pt/">
+<link rel="alternate" hreflang="fr" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/fr/">
+<link rel="alternate" hreflang="de" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/de/">
+<link rel="alternate" hreflang="ru" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/ru/">
+<link rel="alternate" hreflang="ja" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/ja/">
+<link rel="alternate" hreflang="ko" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/ko/">
+<link rel="alternate" hreflang="th" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/th/">
+<link rel="alternate" hreflang="id" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/id/">
+<link rel="alternate" hreflang="it" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/it/">
+<link rel="alternate" hreflang="vi" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/vi/">
+<link rel="alternate" hreflang="pl" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/pl/">
+<link rel="alternate" hreflang="nl" href="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/nl/">
+<meta name="theme-color" content="#15171c">
+<link rel="icon" href="../icon.png" type="image/png">
+
+<!-- Open Graph (link previews on Discord, Reddit, forums, etc.) -->
+<meta property="og:locale" content="es_ES"><meta property="og:type" content="website">
+<meta property="og:site_name" content="Clash of Critters Treasure Hunt Solver">
+<meta property="og:title" content="Solucionador de probabilidades para la Búsqueda del tesoro de Clash of Critters">
+<meta property="og:description" content="Solucionador gratuito de la Búsqueda del tesoro de Clash of Critters: la probabilidad de cada casilla oculta, la mejor casilla para cavar y los picos que faltan para completar cada escenario.">
+<meta property="og:url" content="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/es/">
+<meta property="og:image" content="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/icon.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+
+<!-- Twitter / X card -->
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Solucionador de probabilidades para la Búsqueda del tesoro de Clash of Critters">
+<meta name="twitter:description" content="Solucionador gratuito de la Búsqueda del tesoro de Clash of Critters: la probabilidad de cada casilla oculta, la mejor casilla para cavar y los picos que faltan para completar cada escenario.">
+<meta name="twitter:image" content="https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/icon.png">
+
+<!-- Structured data: tells Google this is a free browser-based tool -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Solucionador de probabilidades para la Búsqueda del tesoro de Clash of Critters",
+  "url": "https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/es/",
+  "image": "https://adj-acent.github.io/ClashOfCritterTreasureHuntSolver/icon.png",
+  "description": "Solucionador gratuito de la Búsqueda del tesoro de Clash of Critters: la probabilidad de cada casilla oculta, la mejor casilla para cavar y los picos que faltan para completar cada escenario.",
+  "keywords": "Clash of Critters, Treasure Hunt, 营地寻宝, 營地尋寶, Chiến Thú Hỗn Chiến, treasure hunt solver, probability, heatmap",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Any (modern web browser)",
+  "browserRequirements": "Requires JavaScript",
+  "inLanguage": "es",
+  "isAccessibleForFree": true,
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "author": {
+    "@type": "Person",
+    "name": "Andy Jiang"
+  },
+  "about": {
+    "@type": "VideoGame",
+    "name": "Clash of Critters",
+    "alternateName": [
+      "モンスターサバイバル",
+      "塔塔冒险队",
+      "塔塔冒險隊",
+      "뚜까펫: 서바이벌",
+      "Chiến Thú Hỗn Chiến"
+    ],
+    "publisher": {
+      "@type": "Organization",
+      "name": "Farlight Games"
+    }
+  }
+}
+</script>
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<header>
+  <div class="head-main">
+    <h1 data-i18n="app.title">Solucionador de probabilidades para la Búsqueda del tesoro de Clash of Critters</h1>
+    <p data-i18n="app.subtitle">Define el tamaño de la cuadrícula y los tesoros ocultos en este escenario, y luego cava. Cada casilla oculta muestra la probabilidad de que cubra un tesoro.</p>
+  </div>
+  <!-- Real links, one per locale URL, not a control that swaps text in place: the URL and the
+       language must never disagree. This is also how the per-locale pages get crawled and how
+       link equity reaches them. build-locales.js rewrites these hrefs to ../ on each locale page
+       and marks the current one; app.js does the same at runtime and remembers the click. -->
+  <details id="langPicker">
+    <summary title="Idioma" aria-label="Language" data-i18n-title="lang.label"><span id="langCurrent">Español</span></summary>
+    <nav id="langMenu" aria-label="Language">
+      <a href="../" data-lang="en" hreflang="en" lang="en">English</a>
+      <a href="../zh-Hans/" data-lang="zh-Hans" hreflang="zh-Hans" lang="zh-Hans">简体中文</a>
+      <a href="../zh-Hant/" data-lang="zh-Hant" hreflang="zh-Hant" lang="zh-Hant">繁體中文</a>
+      <a href="../es/" data-lang="es" hreflang="es" lang="es" aria-current="true">Español</a>
+      <a href="../pt/" data-lang="pt" hreflang="pt" lang="pt">Português</a>
+      <a href="../fr/" data-lang="fr" hreflang="fr" lang="fr">Français</a>
+      <a href="../de/" data-lang="de" hreflang="de" lang="de">Deutsch</a>
+      <a href="../ru/" data-lang="ru" hreflang="ru" lang="ru">Русский</a>
+      <a href="../ja/" data-lang="ja" hreflang="ja" lang="ja">日本語</a>
+      <a href="../ko/" data-lang="ko" hreflang="ko" lang="ko">한국어</a>
+      <a href="../th/" data-lang="th" hreflang="th" lang="th">ไทย</a>
+      <a href="../id/" data-lang="id" hreflang="id" lang="id">Bahasa Indonesia</a>
+      <a href="../it/" data-lang="it" hreflang="it" lang="it">Italiano</a>
+      <a href="../vi/" data-lang="vi" hreflang="vi" lang="vi">Tiếng Việt</a>
+      <a href="../pl/" data-lang="pl" hreflang="pl" lang="pl">Polski</a>
+      <a href="../nl/" data-lang="nl" hreflang="nl" lang="nl">Nederlands</a>
+    </nav>
+  </details>
+</header>
+
+<div class="wrap">
+  <!-- ============ CONTROLS ============ -->
+  <div class="panel controls">
+    <section>
+      <h2 data-i18n="setup.heading">Configuración del escenario</h2>
+      <div class="row">
+        <label><span data-i18n="setup.preset">Preajuste</span>
+          <select id="stageSelect">
+            <option value="" data-i18n="stage.custom">(personalizado)</option>
+          </select>
+        </label>
+      </div>
+      <div id="stageInfo" class="hint"></div>
+      <div class="row" style="margin-top:8px">
+        <label><span data-i18n="setup.gridSize">Tamaño de cuadrícula</span> <input id="gridSize" type="number" min="2" max="12" value="5"> × <span id="gridSizeEcho">5</span></label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label><span data-i18n="setup.pickPerTile">Picos / casilla</span> <input id="pickPerTile" type="number" min="1" max="999" value="15"></label>
+      </div>
+    </section>
+
+    <section>
+      <h2 data-i18n="pieces.heading">Tesoros en este escenario</h2>
+      <table class="pieces">
+        <thead><tr><th data-i18n="pieces.colSize">Tamaño</th><th data-i18n="pieces.colCount">Cantidad</th><th data-i18n="pieces.colFound">Hallados</th><th></th></tr></thead>
+        <tbody id="pieceRows"></tbody>
+      </table>
+      <div class="row" style="margin-top:10px">
+        <input id="newW" type="number" min="1" max="12" value="1" title="ancho" data-i18n-title="setup.widthTitle">×
+        <input id="newH" type="number" min="1" max="12" value="3" title="alto" data-i18n-title="setup.heightTitle">
+        <input id="newC" type="number" min="1" max="12" value="1" title="cantidad" data-i18n-title="setup.countTitle">
+        <button id="addPiece" data-i18n="setup.add">Añadir</button>
+      </div>
+      <div class="quick-add" id="quickAdd"></div>
+      <div class="hint" data-i18n="setup.quickAddHint">Los botones rápidos son tamaños comunes de tesoro. El solucionador solo considera las dimensiones, así que los tesoros del mismo tamaño se combinan.</div>
+    </section>
+
+    <section>
+      <button id="newGame" class="primary" data-i18n="board.start">Iniciar / Reiniciar tablero</button>
+      <button id="clearDigs" data-i18n="board.clearDigs">Borrar excavaciones</button>
+    </section>
+
+    <section>
+      <h2 data-i18n="estimate.heading">Estimación de coste en picos</h2>
+      <button id="estimate" data-i18n="estimate.button">Estimar picos para terminar</button>
+      <div id="estimateOut" class="hint" style="margin-top:8px"></div>
+    </section>
+  </div>
+
+  <!-- ============ STAGE ============ -->
+  <div class="panel stage-area">
+    <div id="status" data-i18n="board.statusInitial">Configura un escenario y pulsa «Iniciar / Reiniciar tablero».</div>
+    <label class="dp-toggle" style="display:flex;align-items:center;gap:6px;margin:6px 0;font-size:13px;cursor:pointer" title="Calcula probabilidades exactas con un solucionador de programación dinámica en lugar de muestreo Monte-Carlo. Suele ser igual de rápido o más, pero en los escenarios más densos puede tardar ~0,5–0,7 s y (a diferencia del muestreo) no tiene límite de tiempo. Desactívalo en dispositivos de gama baja." data-i18n-title="dp.title">
+      <input type="checkbox" id="dpToggle"> <span data-i18n="dp.label">Probabilidades exactas (DP)</span> <span class="hint" style="display:inline;margin:0" data-i18n="dp.sub">exactas, no muestreadas</span>
+    </label>
+    <div id="grid"></div>
+    <div class="legend">
+      <div class="legend-scale"><span>0%</span><div class="bar"></div><span>100%</span></div>
+      <div class="legend-keys">
+        <span><span style="display:inline-block;width:11px;height:11px;background:var(--empty);border-radius:2px;vertical-align:middle"></span> <span data-i18n="legend.empty">vacía</span></span>
+        <span><span style="display:inline-block;width:11px;height:11px;background:repeating-linear-gradient(45deg,var(--item) 0 3px,#9b7b29 3px 6px);border-radius:2px;vertical-align:middle"></span> <span data-i18n="legend.located">⛏ localizado (enterrado)</span></span>
+        <span><span style="display:inline-block;width:11px;height:11px;background:var(--item);border-radius:2px;vertical-align:middle"></span> <span data-i18n="legend.dugOut">✓ excavado</span></span>
+        <span data-i18n="legend.best">★ mejor casilla para cavar</span>
+      </div>
+    </div>
+    <div class="hint" data-i18n-html="board.hint">Haz clic en una casilla oculta → elige <b>Vacía</b> o qué tesoro encontraste, y luego elige la colocación que coincida con la dirección. Los tesoros localizados aún hay que desenterrarlos. Haz clic en uno para marcarlo como ✓ excavado. La ★ marca las casillas desconocidas con mayor probabilidad para cavar a continuación.</div>
+  </div>
+</div>
+
+<footer style="width:100%;max-width:980px;margin:0 auto;padding:16px 14px;text-align:center;color:var(--muted);font-size:12px;line-height:1.7;border-top:1px solid var(--line)">
+  © 2026 Andy Jiang ·
+  <span data-i18n="footer.source">Código fuente:</span> <a href="https://github.com/adj-acent/ClashOfCritterTreasureHuntSolver" target="_blank" rel="noopener" style="color:var(--accent)">GitHub</a> ·
+  <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" style="color:var(--accent)" title="Deja comentarios, errores o sugerencias" data-i18n="footer.feedback" data-i18n-title="footer.feedbackTitle">Comentarios</a> ·
+  <button id="creditsLink" type="button" data-i18n="footer.credits" style="background:none;border:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline">Traductores</button> ·
+  <a href="https://github.com/adj-acent/ClashOfCritterTreasureHuntSolver/blob/main/LICENSE" target="_blank" rel="noopener" style="color:var(--accent)" data-i18n="footer.license">Solo uso no comercial. PolyForm-NC 1.0.0</a><br>
+  <span data-i18n="footer.disclaimer">Herramienta de fans. Sin afiliación ni respaldo del juego ni de su editor.</span>
+</footer>
+
+<dialog id="creditsDialog" class="credits-dialog" aria-labelledby="creditsTitle">
+  <h2 id="creditsTitle" data-i18n="credits.title" style="margin:0 0 12px;font-size:16px;color:var(--text)">Créditos de traducción</h2>
+  <ul id="creditsList" style="list-style:none;padding:0;margin:0 0 14px;font-size:13px;line-height:1.9"></ul>
+  <p data-i18n="credits.aiNote" style="margin:0 0 16px;font-size:12px;color:var(--muted);line-height:1.6">Los demás idiomas se tradujeron con IA y se revisaron para la interfaz. ¿Ves un error o falta un idioma? Avísame aquí:</p>
+  <div style="display:flex;gap:14px;align-items:center;justify-content:flex-end;flex-wrap:wrap">
+    <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" data-i18n="credits.contribute" style="color:var(--accent);font-size:13px">Pregunta en Discord</a>
+    <button id="creditsClose" type="button" class="primary" data-i18n="common.close">Cerrar</button>
+  </div>
+</dialog>
+
+<div id="pop"></div>
+
+<script src="../i18n.js"></script>
+<script src="../app.js"></script>
+
+<!-- Visitor analytics: GoatCounter. Privacy-friendly, no cookies, no consent banner.
+     Dashboard: https://adjacent.goatcounter.com/ -->
+<script data-goatcounter="https://adjacent.goatcounter.com/count" async="" src="//gc.zgo.at/count.js"></script>
+
+
+</body></html>
