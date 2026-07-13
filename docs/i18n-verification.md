@@ -8,9 +8,28 @@ This file tracks which locales have been verified against the game, and what is 
 
 ## The game ships in 16 languages
 
-Confirmed from the in-game language selector (2026-07-12), and matching the App Store listing:
+Confirmed from the in-game language selector (2026-07-12), and matching the App Store listing.
 
-中文 · English · 한국어 · 日本語 · Deutsch · Italiano · 中文繁體 · Français · Indonesia · Polski · Português · Русский · Español · ภาษาไทย · Türkçe · Tiếng Việt
+**The in-game selector labels each language in its own script**, which makes it easy to tap the wrong one. This table maps the button you see in game, in menu order, to the locale code in `I18N`:
+
+| # | Button in game | Language | Our locale code |
+|---|---|---|---|
+| 1 | 中文 | Chinese (Simplified) | `zh-Hans` |
+| 2 | English | English | `en` |
+| 3 | 한국어 | Korean | `ko` |
+| 4 | 日本語 | Japanese | `ja` |
+| 5 | Deutsch | German | `de` |
+| 6 | Italiano | Italian | `it` |
+| 7 | 中文繁體 | Chinese (Traditional) | `zh-Hant` |
+| 8 | Français | French | `fr` |
+| 9 | Indonesia | Indonesian | `id` |
+| 10 | Polski | Polish | `pl` |
+| 11 | Português | Portuguese | `pt` |
+| 12 | Русский | Russian | `ru` |
+| 13 | Español | Spanish | `es` |
+| 14 | ภาษาไทย | Thai | `th` |
+| 15 | Türkçe | Turkish | *(no locale)* |
+| 16 | Tiếng Việt | Vietnamese | `vi` |
 
 Two consequences:
 
@@ -48,8 +67,8 @@ Ordered by traffic.
 | Russian | 935 | ❗ | ❗ | ❗ | Current "Охота за сокровищами" is a literal guess. |
 | Indonesian | 737 | ❗ | ❗ | ❗ | |
 | German | 682 | ❗ | ❗ | ❗ | Current "Schatzsuche" is a literal guess. |
-| Chinese (Simplified) | 492 | ✅ 营地寻宝 | ✅ 铁镐 | ✅ 第{n}关 | **Verified from in-game screenshots.** |
-| Chinese (Traditional) | ↑ | ⚠️ 營地尋寶 | ⚠️ 鐵鎬 | ⚠️ 第{n}關 | Deterministic conversion of the verified Simplified terms. Confirm against a Traditional client. |
+| Chinese (Simplified) | 492 | ✅ 营地寻宝 | ✅ 铁镐 | ✅ 第{n}关 | **Verified in-game.** |
+| Chinese (Traditional) | ↑ | ✅ 營地尋寶 | ✅ 鐵鎬 | ✅ 第{n}關 | **Verified in-game.** The character conversion from Simplified held exactly. |
 | Portuguese | 478 | ❗ | ❗ | ❗ | Current "Caça ao tesouro" is a literal guess. |
 | Italian | 421 | ❗ | ❗ | ❗ | |
 | Vietnamese | 224 | ❗ | ❗ | ❗ | Game *name* verified: **Chiến Thú Hỗn Chiến** (Play Store). Event/pickaxe/stage still guessed. |
