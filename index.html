@@ -159,6 +159,9 @@
     <section>
       <h2 data-i18n="estimate.heading">Pick-cost estimate</h2>
       <button id="estimate" data-i18n="estimate.button">Estimate picks to finish</button>
+      <label class="dp-toggle" style="display:flex;align-items:center;gap:6px;margin:8px 0 0;font-size:13px;cursor:pointer" title="A dig on an empty tile can set off a bomb that opens extra tiles for free, which lowers the estimate. Digging a treasure tile never sets one off." data-i18n-title="bomb.title">
+        <input type="checkbox" id="bombToggle" /> <span data-i18n="bomb.label">Account for bombs</span> <span class="hint" style="display:inline;margin:0" data-i18n="bomb.sub">bombs collect tiles free</span>
+      </label>
       <div id="estimateOut" class="hint" style="margin-top:8px"></div>
     </section>
   </div>

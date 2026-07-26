@@ -173,6 +173,9 @@
     <section>
       <h2 data-i18n="estimate.heading">鐵鎬數估算</h2>
       <button id="estimate" data-i18n="estimate.button">估算完成所需鐵鎬數</button>
+      <label class="dp-toggle" style="display:flex;align-items:center;gap:6px;margin:8px 0 0;font-size:13px;cursor:pointer" title="假設挖開空格子可能觸發炸彈，免費挖開額外格子，從而降低估算。挖到寶藏格子不會觸發炸彈。" data-i18n-title="bomb.title">
+        <input type="checkbox" id="bombToggle"> <span data-i18n="bomb.label">計入炸彈</span> <span class="hint" style="display:inline;margin:0" data-i18n="bomb.sub">炸彈免費挖開格子</span>
+      </label>
       <div id="estimateOut" class="hint" style="margin-top:8px"></div>
     </section>
   </div>

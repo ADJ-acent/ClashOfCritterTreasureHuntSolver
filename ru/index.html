@@ -173,6 +173,9 @@
     <section>
       <h2 data-i18n="estimate.heading">Оценка затрат кирок</h2>
       <button id="estimate" data-i18n="estimate.button">Оценить кирки до конца</button>
+      <label class="dp-toggle" style="display:flex;align-items:center;gap:6px;margin:8px 0 0;font-size:13px;cursor:pointer" title="Предполагается, что раскопка пустой клетки может вызвать бомбу, которая бесплатно вскрывает лишние клетки и снижает оценку. Раскопка клетки с сокровищем бомбу не вызывает." data-i18n-title="bomb.title">
+        <input type="checkbox" id="bombToggle"> <span data-i18n="bomb.label">Учитывать бомбы</span> <span class="hint" style="display:inline;margin:0" data-i18n="bomb.sub">бомбы вскрывают клетки бесплатно</span>
+      </label>
       <div id="estimateOut" class="hint" style="margin-top:8px"></div>
     </section>
   </div>
