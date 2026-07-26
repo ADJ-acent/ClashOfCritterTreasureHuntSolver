@@ -101,6 +101,7 @@
     <h1 data-i18n="app.title">Wahrscheinlichkeitslöser für die Clash of Critters Schatzsuche</h1>
     <p data-i18n="app.subtitle">Lege die Rastergröße und die in dieser Stufe versteckten Schätze fest und grabe dann. Jedes verborgene Feld zeigt die Chance, dass es einen Schatz bedeckt.</p>
   </div>
+  <div class="head-tools">
   <!-- Real links, one per locale URL, not a control that swaps text in place: the URL and the
        language must never disagree. This is also how the per-locale pages get crawled and how
        link equity reaches them. build-locales.js rewrites these hrefs to ../ on each locale page
@@ -126,6 +127,12 @@
       <a href="../nl/" data-lang="nl" hreflang="nl" lang="nl">Nederlands</a>
     </nav>
   </details>
+    <!-- Opens the first-run walkthrough. On a suspected first visit app.js also nudges this
+         button (a pulse + a small "New here?" bubble) instead of auto-opening the modal, so a
+         returning browser is never interrupted. aria-label is set from i18n at boot; the static
+         one here is the no-JS fallback. -->
+    <button id="tutBtn" type="button" class="head-btn" aria-label="How this works" title="So funktioniert es" data-i18n-title="tutorial.open">?</button>
+  </div>
 </header>
 
 <div class="wrap">
@@ -174,7 +181,7 @@
       <h2 data-i18n="estimate.heading">Schätzung der Spitzhacken-Kosten</h2>
       <button id="estimate" data-i18n="estimate.button">Spitzhacken bis zum Ziel schätzen</button>
       <label class="dp-toggle" style="display:flex;align-items:center;gap:6px;margin:8px 0 0;font-size:13px;cursor:pointer" title="Nimm an, dass das Ausgraben eines leeren Feldes eine Bombe auslösen kann, die weitere Felder gratis aufdeckt und die Schätzung senkt. Ein Schatzfeld auszugraben löst nie eine aus." data-i18n-title="bomb.title">
-        <input type="checkbox" id="bombToggle"> <span data-i18n="bomb.label">Bomben berücksichtigen</span> <span class="hint" style="display:inline;margin:0" data-i18n="bomb.sub">Bomben legen Felder gratis frei</span>
+        <input type="checkbox" id="bombToggle"> <span data-i18n="bomb.label">Bomben berücksichtigen</span>
       </label>
       <div id="estimateOut" class="hint" style="margin-top:8px"></div>
     </section>

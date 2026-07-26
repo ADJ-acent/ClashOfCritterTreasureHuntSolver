@@ -101,6 +101,7 @@
     <h1 data-i18n="app.title">モンスターサバイバルのオタカラ探し確率ソルバー</h1>
     <p data-i18n="app.subtitle">グリッドのサイズとこのステージに隠された宝を設定して掘りましょう。隠れた各マスには、それが宝を覆っている確率が表示されます。</p>
   </div>
+  <div class="head-tools">
   <!-- Real links, one per locale URL, not a control that swaps text in place: the URL and the
        language must never disagree. This is also how the per-locale pages get crawled and how
        link equity reaches them. build-locales.js rewrites these hrefs to ../ on each locale page
@@ -126,6 +127,12 @@
       <a href="../nl/" data-lang="nl" hreflang="nl" lang="nl">Nederlands</a>
     </nav>
   </details>
+    <!-- Opens the first-run walkthrough. On a suspected first visit app.js also nudges this
+         button (a pulse + a small "New here?" bubble) instead of auto-opening the modal, so a
+         returning browser is never interrupted. aria-label is set from i18n at boot; the static
+         one here is the no-JS fallback. -->
+    <button id="tutBtn" type="button" class="head-btn" aria-label="How this works" title="使い方" data-i18n-title="tutorial.open">?</button>
+  </div>
 </header>
 
 <div class="wrap">
@@ -174,7 +181,7 @@
       <h2 data-i18n="estimate.heading">ツルハシ消費の見積もり</h2>
       <button id="estimate" data-i18n="estimate.button">完了までのツルハシを見積もる</button>
       <label class="dp-toggle" style="display:flex;align-items:center;gap:6px;margin:8px 0 0;font-size:13px;cursor:pointer" title="空マスを掘ると爆弾が発生し、追加のマスを無料で開けることがあり、見積もりが下がると仮定します。宝のマスを掘っても爆弾は発生しません。" data-i18n-title="bomb.title">
-        <input type="checkbox" id="bombToggle"> <span data-i18n="bomb.label">爆弾を考慮</span> <span class="hint" style="display:inline;margin:0" data-i18n="bomb.sub">爆弾がマスを無料で開ける</span>
+        <input type="checkbox" id="bombToggle"> <span data-i18n="bomb.label">爆弾を考慮</span>
       </label>
       <div id="estimateOut" class="hint" style="margin-top:8px"></div>
     </section>
