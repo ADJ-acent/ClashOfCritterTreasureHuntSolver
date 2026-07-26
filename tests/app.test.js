@@ -603,6 +603,62 @@ test("every glyph clears WCAG AA against its actual background, on every stage",
     `worst glyph contrast ${worst.r.toFixed(2)}:1 on stage ${worst.stage} ("${worst.text}") is below WCAG AA`);
 });
 
+/* ---------- First-run walkthrough (tutorial) ---------- */
+const isOpen = dlg => !!dlg && (dlg.open || dlg.hasAttribute("open"));
+
+test("the ? button opens the walkthrough and steps through every card to a close", () => {
+  const { window, doc, errors } = boot();
+  click(window, doc.querySelector("#tutBtn"));
+  const dlg = doc.querySelector(".tut-dialog");
+  assert.ok(isOpen(dlg), "the walkthrough opens from the ? button");
+  assert.strictEqual(dlg.querySelectorAll(".tut-dots span").length, 6, "one progress dot per card");
+  const next = () => dlg.querySelector(".tut-nav .tut-btn.primary");
+  const back = () => dlg.querySelector(".tut-nav .tut-btn:not(.primary)");
+  assert.ok(back().disabled, "Back is disabled on the first card");
+  assert.ok(dlg.querySelector(".tut-fig .tut-board, .tut-fig .tut-bar-wrap, .tut-fig .tut-badge"), "the card shows an inline diagram");
+  for (let i = 0; i < 5; i++) click(window, next());   // advance through all six cards
+  assert.match(next().textContent, /done/i, "the last card's primary action closes the walkthrough");
+  click(window, next());                                // finish
+  assert.ok(!isOpen(dlg), "the dialog closes on finish");
+  assert.deepStrictEqual(errors, [], "no uncaught errors driving the walkthrough");
+});
+
+test("the walkthrough opens and completes on a touch layout too", () => {
+  const { window, doc } = boot();
+  setMobile(window);
+  click(window, doc.querySelector("#tutBtn"));
+  const dlg = doc.querySelector(".tut-dialog");
+  assert.ok(isOpen(dlg), "opens on mobile too");
+  const next = () => dlg.querySelector(".tut-nav .tut-btn.primary");
+  for (let i = 0; i < 5; i++) click(window, next());
+  assert.match(next().textContent, /done/i, "the last card closes on mobile as well");
+  click(window, next());
+  assert.ok(!isOpen(dlg), "the walkthrough closes on mobile");
+});
+
+test("a first-visit browser gets a nudge on the ? button, not an auto-opened modal", () => {
+  const storage = makeStorage();
+  const { doc } = boot({ storage });
+  assert.ok(doc.querySelector("#tutBtn").classList.contains("nudge"), "the ? button is nudged");
+  assert.ok(doc.querySelector("#tutBubble"), "a bubble points at it");
+  assert.ok(!isOpen(doc.querySelector(".tut-dialog")), "the modal is not auto-opened");
+  assert.strictEqual(storage.getItem("th.seenTutorial"), "1", "shown once: the flag is set");
+});
+
+test("the nudge never fires for a returning browser (a saved board suppresses it)", () => {
+  const storage = makeStorage();
+  boot({ storage });                       // first visit: builds a board and marks the nudge seen
+  storage.removeItem("th.seenTutorial");   // isolate the saved-board tiebreaker from the seen flag
+  const { doc } = boot({ storage });       // returning: this browser now has a saved board
+  assert.ok(!doc.querySelector("#tutBtn").classList.contains("nudge"), "no nudge for a browser that has played");
+  assert.ok(!doc.querySelector("#tutBubble"), "and no bubble");
+});
+
+test("the nudge does not repeat once the walkthrough has been seen", () => {
+  const { doc } = boot({ storage: makeStorage({ "th.seenTutorial": "1" }) });
+  assert.ok(!doc.querySelector("#tutBtn").classList.contains("nudge"), "seen flag suppresses the nudge");
+});
+
 /* ---------- Per-locale pages (SEO) ----------
    These assert on the files scripts/build-locales.js writes. They are checking what a crawler
    is served, so they read the raw HTML rather than booting it: the whole point is that the
