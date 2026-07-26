@@ -197,6 +197,11 @@
     box-shadow: 0 8px 24px rgba(0,0,0,.5);
     display: none;
     min-width: 180px;
+    /* A long candidate list (e.g. a 2x4 on a big board) can outgrow the viewport;
+       cap it and scroll inside rather than overflowing off-screen. The mobile
+       .sheet variant sets its own max-height and overrides this. */
+    max-height: calc(100vh - 16px);
+    overflow-y: auto;
   }
   #pop .ttl { font-size: 11px; color: var(--muted); padding: 3px 6px 6px; }
   #pop button { display: block; width: 100%; text-align: left; margin: 2px 0; }
