@@ -173,6 +173,9 @@
     <section>
       <h2 data-i18n="estimate.heading">Stima del costo in picconi</h2>
       <button id="estimate" data-i18n="estimate.button">Stima i picconi per finire</button>
+      <label class="dp-toggle" style="display:flex;align-items:center;gap:6px;margin:8px 0 0;font-size:13px;cursor:pointer" title="Si presume che scavare una casella vuota possa innescare una bomba che scopre caselle extra gratis, riducendo la stima. Scavare una casella con tesoro non ne innesca mai una." data-i18n-title="bomb.title">
+        <input type="checkbox" id="bombToggle"> <span data-i18n="bomb.label">Considera le bombe</span> <span class="hint" style="display:inline;margin:0" data-i18n="bomb.sub">le bombe scoprono caselle gratis</span>
+      </label>
       <div id="estimateOut" class="hint" style="margin-top:8px"></div>
     </section>
   </div>

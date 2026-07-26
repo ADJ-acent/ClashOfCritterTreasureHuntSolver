@@ -164,8 +164,8 @@ test("pick-cost estimator counts every treasure tile, not one hit per treasure",
   await new Promise(r => setTimeout(r, 80)); // runEstimate defers compute via setTimeout
 
   const txt = doc.querySelector("#estimateOut").textContent;
-  const tiles = parseFloat((txt.match(/([\d.]+) tiles/) || [])[1]);
-  assert.ok(tiles >= 9, `mean tiles (${tiles}) must be >= 9 (all treasure tiles dug out)`);
+  const digs = parseFloat((txt.match(/(\d+) digs/) || [])[1]);
+  assert.ok(digs >= 9, `mean digs (${digs}) must be >= 9 (all treasure tiles dug out)`);
   assert.match(txt, /pickaxes/);
   assert.strictEqual(errors.length, 0, errors.join("\n"));
 });
@@ -263,6 +263,33 @@ test("DP toggle: exact on a dense stage where DFS bails, falls back to MC when o
   cb.checked = true;
   cb.dispatchEvent(new window.Event("change", { bubbles: true }));
   assert.match(status(), /\(DP\)/);
+});
+
+// Bombs collect tiles for free, so the bomb-aware estimate is below the conservative
+// one, and the detail line flips from "ignores bombs" to "assumes bombs".
+test("bomb toggle lowers the estimate and relabels it", async () => {
+  const { window, doc, errors } = boot();
+  loadStage(window, doc, 1); // three 1×3 = 9 treasure tiles on 5×5
+
+  // default OFF: the conservative estimate that ignores bombs
+  click(window, doc.querySelector("#estimate"));
+  await new Promise(r => setTimeout(r, 80));
+  const offTxt = doc.querySelector("#estimateOut").textContent;
+  const picksOff = parseInt((offTxt.match(/([\d,]+) pickaxes/) || [])[1].replace(/,/g, ""), 10);
+  assert.match(offTxt, /excludes bombs/);
+
+  // ON: fewer picks (free bomb collection), and the label flips
+  const cb = doc.querySelector("#bombToggle");
+  cb.checked = true;
+  cb.dispatchEvent(new window.Event("change", { bubbles: true }));
+  click(window, doc.querySelector("#estimate"));
+  await new Promise(r => setTimeout(r, 80));
+  const onTxt = doc.querySelector("#estimateOut").textContent;
+  const picksOn = parseInt((onTxt.match(/([\d,]+) pickaxes/) || [])[1].replace(/,/g, ""), 10);
+  assert.match(onTxt, /includes bombs/);
+
+  assert.ok(picksOn < picksOff, `bomb estimate (${picksOn}) should be below the no-bomb one (${picksOff})`);
+  assert.strictEqual(errors.length, 0, errors.join("\n"));
 });
 
 // ---------- Localization (i18n) ----------

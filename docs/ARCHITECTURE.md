@@ -67,7 +67,17 @@ Only the empty-hunt cost is random, so `estimateSolve()` Monte-Carlos just that 
 
 Special cases: nothing left → "done"; everything located but still buried → deterministic (`mean = buriedCount`, no simulation).
 
-Caveats: the per-dig score sums placements per treasure independently (a fast proxy, not the exact conditional probability of the heatmap), the greedy strategy is near-optimal not provably optimal, and bombs are ignored (they only make the real cost lower). Bounded by `EST_TRIALS` / `EST_TIME_MS`.
+Caveats: the per-dig score sums placements per treasure independently (a fast proxy, not the exact conditional probability of the heatmap), the greedy strategy is near-optimal not provably optimal, and by default bombs are ignored (they only make the real cost lower). Bounded by `EST_TRIALS` / `EST_TIME_MS`.
+
+### Bomb toggle (`bombEnabled()`, `simulateBomb()`)
+
+The **Account for bombs** checkbox (`#bombToggle`, off by default, persisted in `localStorage["th.bomb"]`) swaps the estimator's engine. With it on, `estimateSolve()` runs `simulateBomb()` instead of `simulateGreedy() + fixed`, because the game's bombs collect tiles for free and the fixed treasure-tile term stops being fixed. The bomb model (from the game's `BombWeight` table, standard tablet):
+
+- A paid dig of an **empty** tile sets off a bomb that opens `k` extra tiles, `k ~ BOMB_DIST` (`{0:.40, 1:.35, 2:.16, 3:.08, 4:.01}`, E = 0.95). Digging a treasure tile (locating one, or digging one out) sets off **nothing**, so the dig-out phase never triggers bombs.
+- A bomb opens tiles **uniformly over all unopened cells**, including located-but-buried treasure tiles (`preBuried`), and a bomb-opened tile is **collected for free** (no pickaxe; treasure tiles also locate their piece). Bomb-opened tiles do not chain.
+- `simulateBomb()` returns the **total** paid digs (not just empties), so the caller adds no fixed cost. The estimate's detail line switches from "excludes bombs" to "includes bombs" (`estimate.detailBomb`).
+
+Measured effect vs the conservative estimate: ~13.5% fewer pickaxes overall (per-stage 5 to 19%, more on sparse boards that force more empty digs), tablet band 11 to 16%. Variance stays tight (cv ~0.1) and is not wider than the no-bomb estimate. It defaults off because two inputs are assumptions not yet verified in-game: uniform bomb targeting, and that the `BombWeight` distribution is the standard tablet's (three of 48 tablets deviate). Perf is a non-issue: a 600-trial call is ~13 ms on the densest stage, ~100× under `EST_TIME_MS`.
 
 ## Render
 
@@ -127,7 +137,7 @@ The UI ships in 16 languages (English + `de`, `es`, `fr`, `pt`, `ru`, `zh-Hans`,
 
 The locale set is chosen from real traffic, not guessed: `th`, `id`, `it`, `vi`, `pl`, `nl` were added because each drew more visitors than `ko` and `ja`, which shipped from the start. Everything below `nl` in the tail is under 0.3% of sessions.
 
-- **`I18N`** maps each language code to a flat `key → string` table (83 keys). **`LANGS`** is the ordered `[code, autonym]` list that fills the header `#langSelect` (languages are listed in their own name). A test asserts every locale defines the full English key set, so a locale can never half-silently fall back to English.
+- **`I18N`** maps each language code to a flat `key → string` table (87 keys). **`LANGS`** is the ordered `[code, autonym]` list that fills the header `#langSelect` (languages are listed in their own name). A test asserts every locale defines the full English key set, so a locale can never half-silently fall back to English.
 - **`t(key, params)`** looks up `I18N[LANG][key]`, falls back to English, then to the raw key, and interpolates `{placeholder}` tokens. Count-sensitive entries (`status.exact`, `status.estimated`) are `{one,few,many,other}` objects resolved with `Intl.PluralRules` — pass the count as `params._n` — so e.g. Russian picks the right раскладка/раскладки/раскладок. Numbers go through `nfmt` (`toLocaleString(LANG)`).
 - **Static chrome** carries `data-i18n` / `data-i18n-html` / `data-i18n-title` attributes; `applyStaticI18n()` walks them and also sets `<title>` and `document.documentElement.lang`. The English text stays in `index.html` as the readable default (and as a fallback if the script fails). The locale-page generator applies **exactly this transform** ahead of time, off the same three attributes, which is why the prerendered pages cannot drift from what the runtime would have painted.
 - **Dynamic strings** (status line, estimator, the three popovers, dropdown labels, the stage-info line) all go through `t()`. There is **no in-place language switch**: `LANG` is resolved once at boot, before anything renders, and the picker navigates to another URL instead of re-painting the current one (see below).

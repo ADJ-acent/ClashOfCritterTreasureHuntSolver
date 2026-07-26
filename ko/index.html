@@ -173,6 +173,9 @@
     <section>
       <h2 data-i18n="estimate.heading">곡괭이 비용 추정</h2>
       <button id="estimate" data-i18n="estimate.button">완료까지 곡괭이 추정</button>
+      <label class="dp-toggle" style="display:flex;align-items:center;gap:6px;margin:8px 0 0;font-size:13px;cursor:pointer" title="빈 칸을 파면 폭탄이 터져 추가 칸을 공짜로 열 수 있어 추정치가 낮아진다고 가정합니다. 보물 칸을 파도 폭탄은 터지지 않습니다." data-i18n-title="bomb.title">
+        <input type="checkbox" id="bombToggle"> <span data-i18n="bomb.label">폭탄 반영</span> <span class="hint" style="display:inline;margin:0" data-i18n="bomb.sub">폭탄이 칸을 공짜로 파냄</span>
+      </label>
       <div id="estimateOut" class="hint" style="margin-top:8px"></div>
     </section>
   </div>

@@ -173,6 +173,9 @@
     <section>
       <h2 data-i18n="estimate.heading">Estimación de coste en picos</h2>
       <button id="estimate" data-i18n="estimate.button">Estimar picos para terminar</button>
+      <label class="dp-toggle" style="display:flex;align-items:center;gap:6px;margin:8px 0 0;font-size:13px;cursor:pointer" title="Supón que cavar una casilla vacía puede activar una bomba que destapa casillas extra gratis, lo que reduce la estimación. Cavar una casilla con tesoro nunca activa una." data-i18n-title="bomb.title">
+        <input type="checkbox" id="bombToggle"> <span data-i18n="bomb.label">Considerar las bombas</span> <span class="hint" style="display:inline;margin:0" data-i18n="bomb.sub">las bombas destapan casillas gratis</span>
+      </label>
       <div id="estimateOut" class="hint" style="margin-top:8px"></div>
     </section>
   </div>
