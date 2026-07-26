@@ -101,6 +101,7 @@
     <h1 data-i18n="app.title">塔塔冒险队营地寻宝概率求解器</h1>
     <p data-i18n="app.subtitle">设置网格大小和本关卡隐藏的宝藏，然后开挖。每个隐藏格子都会显示它覆盖宝藏的概率。</p>
   </div>
+  <div class="head-tools">
   <!-- Real links, one per locale URL, not a control that swaps text in place: the URL and the
        language must never disagree. This is also how the per-locale pages get crawled and how
        link equity reaches them. build-locales.js rewrites these hrefs to ../ on each locale page
@@ -126,6 +127,12 @@
       <a href="../nl/" data-lang="nl" hreflang="nl" lang="nl">Nederlands</a>
     </nav>
   </details>
+    <!-- Opens the first-run walkthrough. On a suspected first visit app.js also nudges this
+         button (a pulse + a small "New here?" bubble) instead of auto-opening the modal, so a
+         returning browser is never interrupted. aria-label is set from i18n at boot; the static
+         one here is the no-JS fallback. -->
+    <button id="tutBtn" type="button" class="head-btn" aria-label="How this works" title="使用说明" data-i18n-title="tutorial.open">?</button>
+  </div>
 </header>
 
 <div class="wrap">
@@ -174,7 +181,7 @@
       <h2 data-i18n="estimate.heading">铁镐数估算</h2>
       <button id="estimate" data-i18n="estimate.button">估算完成所需铁镐数</button>
       <label class="dp-toggle" style="display:flex;align-items:center;gap:6px;margin:8px 0 0;font-size:13px;cursor:pointer" title="假设挖开空格子可能触发炸弹，免费挖开额外格子，从而降低估算。挖到宝藏格子不会触发炸弹。" data-i18n-title="bomb.title">
-        <input type="checkbox" id="bombToggle"> <span data-i18n="bomb.label">计入炸弹</span> <span class="hint" style="display:inline;margin:0" data-i18n="bomb.sub">炸弹免费挖开格子</span>
+        <input type="checkbox" id="bombToggle"> <span data-i18n="bomb.label">计入炸弹</span>
       </label>
       <div id="estimateOut" class="hint" style="margin-top:8px"></div>
     </section>

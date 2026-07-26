@@ -101,6 +101,7 @@
     <h1 data-i18n="app.title">Kalkulator Probabilitas Treasure Hunt Clash of Critters</h1>
     <p data-i18n="app.subtitle">Heatmap probabilitas untuk event Treasure Hunt di Clash of Critters. Atur ukuran papan dan harta karun yang terkubur di Stage ini, lalu mulai menggali. Setiap petak tersembunyi menunjukkan peluang adanya harta karun di bawahnya.</p>
   </div>
+  <div class="head-tools">
   <!-- Real links, one per locale URL, not a control that swaps text in place: the URL and the
        language must never disagree. This is also how the per-locale pages get crawled and how
        link equity reaches them. build-locales.js rewrites these hrefs to ../ on each locale page
@@ -126,6 +127,12 @@
       <a href="../nl/" data-lang="nl" hreflang="nl" lang="nl">Nederlands</a>
     </nav>
   </details>
+    <!-- Opens the first-run walkthrough. On a suspected first visit app.js also nudges this
+         button (a pulse + a small "New here?" bubble) instead of auto-opening the modal, so a
+         returning browser is never interrupted. aria-label is set from i18n at boot; the static
+         one here is the no-JS fallback. -->
+    <button id="tutBtn" type="button" class="head-btn" aria-label="How this works" title="Cara kerjanya" data-i18n-title="tutorial.open">?</button>
+  </div>
 </header>
 
 <div class="wrap">
@@ -174,7 +181,7 @@
       <h2 data-i18n="estimate.heading">Perkiraan biaya Pickaxe</h2>
       <button id="estimate" data-i18n="estimate.button">Perkirakan sisa Pickaxe</button>
       <label class="dp-toggle" style="display:flex;align-items:center;gap:6px;margin:8px 0 0;font-size:13px;cursor:pointer" title="Anggap menggali petak kosong bisa memicu bom yang membuka petak tambahan secara gratis, sehingga menurunkan estimasi. Menggali petak harta karun tidak pernah memicunya." data-i18n-title="bomb.title">
-        <input type="checkbox" id="bombToggle"> <span data-i18n="bomb.label">Perhitungkan bom</span> <span class="hint" style="display:inline;margin:0" data-i18n="bomb.sub">bom membuka petak gratis</span>
+        <input type="checkbox" id="bombToggle"> <span data-i18n="bomb.label">Perhitungkan bom</span>
       </label>
       <div id="estimateOut" class="hint" style="margin-top:8px"></div>
     </section>

@@ -101,6 +101,7 @@
     <h1 data-i18n="app.title">Kansberekening voor de Schattenjacht van Clash of Critters</h1>
     <p data-i18n="app.subtitle">Een heatmap met kansen voor het Schattenjacht-event van Clash of Critters. Stel de bordgrootte in, voeg de schatten toe die in dit level begraven liggen en begin met graven. Elk verborgen vakje toont de kans dat er een schat onder ligt.</p>
   </div>
+  <div class="head-tools">
   <!-- Real links, one per locale URL, not a control that swaps text in place: the URL and the
        language must never disagree. This is also how the per-locale pages get crawled and how
        link equity reaches them. build-locales.js rewrites these hrefs to ../ on each locale page
@@ -126,6 +127,12 @@
       <a href="../nl/" data-lang="nl" hreflang="nl" lang="nl" aria-current="true">Nederlands</a>
     </nav>
   </details>
+    <!-- Opens the first-run walkthrough. On a suspected first visit app.js also nudges this
+         button (a pulse + a small "New here?" bubble) instead of auto-opening the modal, so a
+         returning browser is never interrupted. aria-label is set from i18n at boot; the static
+         one here is the no-JS fallback. -->
+    <button id="tutBtn" type="button" class="head-btn" aria-label="How this works" title="Zo werkt het" data-i18n-title="tutorial.open">?</button>
+  </div>
 </header>
 
 <div class="wrap">
@@ -174,7 +181,7 @@
       <h2 data-i18n="estimate.heading">Geschatte kosten in houwelen</h2>
       <button id="estimate" data-i18n="estimate.button">Schat de resterende houwelen</button>
       <label class="dp-toggle" style="display:flex;align-items:center;gap:6px;margin:8px 0 0;font-size:13px;cursor:pointer" title="Neem aan dat het graven van een leeg vakje een bom kan laten afgaan die extra vakjes gratis blootlegt, wat de schatting verlaagt. Een schatvakje opgraven zet er nooit een af." data-i18n-title="bomb.title">
-        <input type="checkbox" id="bombToggle"> <span data-i18n="bomb.label">Bommen meerekenen</span> <span class="hint" style="display:inline;margin:0" data-i18n="bomb.sub">bommen leggen vakjes gratis bloot</span>
+        <input type="checkbox" id="bombToggle"> <span data-i18n="bomb.label">Bommen meerekenen</span>
       </label>
       <div id="estimateOut" class="hint" style="margin-top:8px"></div>
     </section>

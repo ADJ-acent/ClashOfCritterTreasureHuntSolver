@@ -1316,6 +1316,166 @@ if (creditsDialog) {
   $("#creditsClose").onclick = closeCredits;
   creditsDialog.addEventListener("click", e => { if (e.target === creditsDialog) closeCredits(); });
 }
+/* ---------- First-run walkthrough (tutorial) ---------- */
+// A carousel modal that covers every capability, plus a first-visit *nudge* on the "?"
+// button (a pulse + a bubble) instead of auto-opening, so a returning browser is never
+// interrupted. All copy comes from t() at open time, so it always paints in the current
+// language. The card diagrams are little boards drawn in the DOM (no image assets), so
+// they localize cleanly and work over file://.
+
+// Draw a small board: `spec` is an array of null | {p} (heatmap tile) | {cls, glyph}.
+function tutBoard(n, spec) {
+  const g = document.createElement("div");
+  g.className = "tut-board";
+  g.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+  for (let i = 0; i < n * n; i++) {
+    const s = document.createElement("span"), c = spec[i];
+    if (c && c.p != null) { s.style.background = heat(c.p); s.style.color = inkFor(c.p); }
+    if (c && c.cls) s.className = c.cls;
+    if (c && c.glyph) s.textContent = c.glyph;
+    g.appendChild(s);
+  }
+  return g;
+}
+function tutFigHeatmap() {
+  const P = [.10, .25, .15, .05,  .30, .55, .35, .10,  .20, .85, .50, .15,  .10, .30, .20, .05];
+  const star = P.indexOf(Math.max(...P));
+  return tutBoard(4, P.map((p, i) => (i === star ? { p, cls: "star", glyph: "★" } : { p })));
+}
+// Cards 2 and 6 show a cropped screenshot of the real controls, one image per locale
+// (tutorial-<name>-<lang>.png at the repo root, e.g. tutorial-setup-de.png). LANG is
+// resolved at boot. The assets live at the repo root; from a /<locale>/ page the runtime
+// reaches up one level (static paths are rewritten by the generator, but these <img>s are
+// built at runtime, so we prefix them ourselves off the same pin). Falls back to the
+// English crop if a locale image is ever missing.
+const TUT_ASSET_PREFIX = document.documentElement.dataset.pinnedLang ? "../" : "";
+function tutShot(name) {
+  const img = document.createElement("img");
+  img.className = "tut-shot";
+  img.src = TUT_ASSET_PREFIX + "tutorial-" + name + "-" + LANG + ".png";
+  img.alt = ""; img.loading = "lazy";   // decorative: the card text carries the meaning
+  img.onerror = () => { img.onerror = null; img.src = TUT_ASSET_PREFIX + "tutorial-" + name + "-en.png"; };
+  return img;
+}
+function tutFigHot() {
+  const wrap = document.createElement("div"); wrap.className = "tut-bar-wrap";
+  const bar = document.createElement("div"); bar.className = "tut-bar";
+  const labels = document.createElement("div"); labels.className = "tut-bar-labels";
+  const lo = document.createElement("span"); lo.textContent = "0%";
+  const hi = document.createElement("span"); hi.textContent = "100% ★";
+  labels.append(lo, hi); wrap.append(bar, labels);
+  return wrap;
+}
+function tutFigRecord() {   // a freshly located 1×3: the clicked tile dug (✓), the rest buried (⛏)
+  const spec = new Array(16).fill(null);
+  spec[5] = { cls: "dug", glyph: "✓" }; spec[9] = { cls: "buried", glyph: "⛏" }; spec[13] = { cls: "buried", glyph: "⛏" };
+  return tutBoard(4, spec);
+}
+function tutFigBuried() {   // the same treasure being dug out: two tiles now ✓, one still ⛏
+  const spec = new Array(16).fill(null);
+  spec[5] = { cls: "dug", glyph: "✓" }; spec[9] = { cls: "dug", glyph: "✓" }; spec[13] = { cls: "buried", glyph: "⛏" };
+  return tutBoard(4, spec);
+}
+const TUT_CARDS = [
+  { h: "tutorial.c1.title", p: "tutorial.c1.body", fig: tutFigHeatmap },
+  { h: "tutorial.c2.title", p: "tutorial.c2.body", fig: () => tutShot("setup") },
+  { h: "tutorial.c3.title", p: "tutorial.c3.body", fig: tutFigHot },
+  { h: "tutorial.c4.title", p: "tutorial.c4.body", fig: tutFigRecord },
+  { h: "tutorial.c5.title", p: "tutorial.c5.body", fig: tutFigBuried },
+  { h: "tutorial.c6.title", p: "tutorial.c6.body", fig: () => tutShot("estimate") },
+];
+
+let tutStep = 0, tutEls = null;
+function buildTutDialog() {
+  if (tutEls) return tutEls;
+  const dlg = document.createElement("dialog"); dlg.className = "tut-dialog";
+  const top = document.createElement("div"); top.className = "tut-top";
+  const dots = document.createElement("div"); dots.className = "tut-dots";
+  TUT_CARDS.forEach(() => dots.appendChild(document.createElement("span")));
+  const skip = document.createElement("button"); skip.type = "button"; skip.className = "tut-skip";
+  top.append(dots, skip);
+  const body = document.createElement("div"); body.className = "tut-body";
+  const fig = document.createElement("div"); fig.className = "tut-fig";
+  const h = document.createElement("h2"); h.className = "tut-h";
+  const p = document.createElement("p"); p.className = "tut-p";
+  body.append(fig, h, p);
+  const nav = document.createElement("div"); nav.className = "tut-nav";
+  const back = document.createElement("button"); back.type = "button"; back.className = "tut-btn";
+  const spacer = document.createElement("div"); spacer.className = "spacer";
+  const next = document.createElement("button"); next.type = "button"; next.className = "tut-btn primary";
+  nav.append(back, spacer, next);
+  dlg.append(top, body, nav);
+  document.body.appendChild(dlg);
+
+  skip.onclick = closeTutorial;
+  back.onclick = () => renderTut(tutStep - 1);
+  next.onclick = () => {
+    if (tutStep >= TUT_CARDS.length - 1) closeTutorial();
+    else renderTut(tutStep + 1);
+  };
+  dlg.addEventListener("click", e => { if (e.target === dlg) closeTutorial(); });   // backdrop click
+  dlg.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") { e.preventDefault(); if (tutStep < TUT_CARDS.length - 1) renderTut(tutStep + 1); }
+    if (e.key === "ArrowLeft")  { e.preventDefault(); if (tutStep > 0) renderTut(tutStep - 1); }
+  });
+  tutEls = { dlg, dots, skip, fig, h, p, back, next };
+  return tutEls;
+}
+function renderTut(i) {
+  const els = buildTutDialog();
+  tutStep = Math.max(0, Math.min(TUT_CARDS.length - 1, i));
+  const card = TUT_CARDS[tutStep], last = tutStep === TUT_CARDS.length - 1;
+  els.fig.innerHTML = ""; els.fig.appendChild(card.fig());
+  els.h.textContent = t(card.h);
+  els.p.innerHTML = t(card.p);
+  els.skip.textContent = t("tutorial.skip");
+  els.back.textContent = t("tutorial.back"); els.back.disabled = tutStep === 0;
+  els.next.textContent = last ? t("tutorial.done") : t("tutorial.next");
+  Array.from(els.dots.children).forEach((d, k) => d.classList.toggle("on", k === tutStep));
+}
+function openTutorial() {
+  dismissNudge(); markTutorialSeen();
+  const els = buildTutDialog();
+  renderTut(0);
+  if (els.dlg.showModal) { try { els.dlg.showModal(); } catch (_) { els.dlg.setAttribute("open", ""); } }
+  else els.dlg.setAttribute("open", "");
+}
+function closeTutorial() {
+  if (!tutEls) return;
+  const d = tutEls.dlg;
+  if (d.open && d.close) { try { d.close(); } catch (_) { d.removeAttribute("open"); } }
+  else d.removeAttribute("open");
+}
+
+// First-run detection. "First visit" means this browser profile has no record; it is not the
+// same as a new person, so the gate is deliberately conservative (see below).
+function tutStorageOK() { try { const k = "th._probe"; localStorage.setItem(k, "1"); localStorage.removeItem(k); return true; } catch (_) { return false; } }
+function tutSeen() { try { return !!localStorage.getItem("th.seenTutorial"); } catch (_) { return true; } }
+function markTutorialSeen() { try { localStorage.setItem("th.seenTutorial", "1"); } catch (_) {} }
+function maybeFirstRunNudge(hadSavedBoard) {
+  if (hadSavedBoard) return;    // this browser has already used the tool: never interrupt it
+  if (!tutStorageOK()) return;  // can't persist "seen", so a nudge would repeat forever: skip it
+  if (tutSeen()) return;
+  markTutorialSeen();           // show at most once per browser; the "?" button replays it
+  showNudge();
+}
+function showNudge() {
+  const btn = $("#tutBtn"), tools = $(".head-tools");
+  if (!btn || !tools) return;
+  btn.classList.add("nudge");
+  const bubble = document.createElement("div"); bubble.className = "tut-bubble"; bubble.id = "tutBubble";
+  const span = document.createElement("span"); span.textContent = t("tutorial.nudge");
+  const dismiss = document.createElement("button"); dismiss.type = "button"; dismiss.textContent = t("tutorial.dismiss");
+  dismiss.onclick = e => { e.stopPropagation(); dismissNudge(); };
+  bubble.append(span, dismiss);
+  bubble.onclick = openTutorial;   // tapping the bubble body opens the walkthrough
+  tools.appendChild(bubble);
+}
+function dismissNudge() {
+  const btn = $("#tutBtn"); if (btn) btn.classList.remove("nudge");
+  const b = document.getElementById("tutBubble"); if (b) b.remove();
+}
+
 const langPickerEl = $("#langPicker");
 document.addEventListener("click", e => {
   if (!popEl.contains(e.target)) hidePop();
@@ -1345,4 +1505,11 @@ try { $("#bombToggle").checked = (localStorage.getItem("th.bomb") ?? "0") !== "0
 catch (_) { $("#bombToggle").checked = false; }   // default OFF; persisted opt-in
 renderQuickAdd();
 populateStages();
-if (!restoreBoard()) loadStage(1);   // last board from localStorage["th.board"], else Stage 1
+const hadSavedBoard = restoreBoard();   // true = this browser has played before
+if (!hadSavedBoard) loadStage(1);       // last board from localStorage["th.board"], else Stage 1
+
+// Walkthrough: the "?" button replays it anytime; a first-visit browser gets a gentle nudge
+// (not an auto-open) so a returning browser is never interrupted. See maybeFirstRunNudge.
+const tutBtn = $("#tutBtn");
+if (tutBtn) { tutBtn.setAttribute("aria-label", t("tutorial.open")); tutBtn.onclick = openTutorial; }
+maybeFirstRunNudge(hadSavedBoard);
