@@ -1083,9 +1083,13 @@ function placePop(ev) {
   }
   popEl.classList.remove("sheet");
   const pad = 8, w = popEl.offsetWidth, h = popEl.offsetHeight;
-  let x = ev.clientX + 6, y = ev.clientY + 6;
-  if (x + w + pad > innerWidth) x = innerWidth - w - pad;
-  if (y + h + pad > innerHeight) y = innerHeight - h - pad;
+  // Anchor near the cursor, then keep the whole popover on-screen. Clamp on BOTH
+  // ends: pinning the far edge alone (innerHeight - h - pad) goes negative when a
+  // long candidate list is taller than the viewport, shoving the title and top
+  // rows off the top. Math.max(pad, ...) pins it at the top instead; the #pop
+  // max-height/overflow then lets the list scroll rather than run off the page.
+  const x = Math.max(pad, Math.min(ev.clientX + 6, innerWidth - w - pad));
+  const y = Math.max(pad, Math.min(ev.clientY + 6, innerHeight - h - pad));
   popEl.style.left = x + "px";
   popEl.style.top = y + "px";
 }
@@ -1236,8 +1240,14 @@ function placementLabel(cells) {
   const rs = cells.map(x => x / N | 0), cs = cells.map(x => x % N);
   const r0 = Math.min(...rs) + 1, r1 = Math.max(...rs) + 1;
   const c0 = Math.min(...cs) + 1, c1 = Math.max(...cs) + 1;
-  const horiz = (r0 === r1);
-  return `${horiz ? t("place.horizontal") : t("place.vertical")}  ${t("place.coords", { r0, c0, r1, c1 })}`;
+  const coords = t("place.coords", { r0, c0, r1, c1 });
+  // Orientation from the footprint's proportions, not "is it one row?" (which is
+  // only ever true for a thin 1xk piece; a 2x4 spans rows either way, so the old
+  // r0===r1 test labeled every thick placement "vertical"). A square footprint
+  // (2x2, 3x3) has no direction, so it shows coords alone.
+  const rowspan = r1 - r0, colspan = c1 - c0;
+  if (rowspan === colspan) return coords;
+  return `${colspan > rowspan ? t("place.horizontal") : t("place.vertical")}  ${coords}`;
 }
 
 function previewCells(cells) {
