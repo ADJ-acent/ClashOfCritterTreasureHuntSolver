@@ -88,7 +88,7 @@ const I18N = {
     "notice.title": "Treasure Hunt changed, presets are paused",
     "notice.intro": "From the game's patch notes:",
     "notice.patchHeading": "Treasure Hunt",
-    "notice.patchBody": "Added variety to levels. Now, a set of treasures will be selected at random from several sets of similar difficulty for the current level.",
+    "notice.patchBody": "Added variety to stages. Now, a set of treasures will be selected at random from several sets of similar difficulty for the current stage.",
     "notice.deprecated": "Each stage now draws its treasures from one of several sets, so the previous presets are deprecated. Every stage still fills in its grid size and pickaxes per tile, and you add the treasures you actually see.",
     "notice.help": "How to help: post a screenshot in the Discord channel showing the stage number and the treasures listed for it. Once enough sets are collected, presets come back with a picker for which set you got.",
     "notice.discord": "Post a screenshot on Discord",
