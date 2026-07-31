@@ -141,6 +141,9 @@
         </label>
       </div>
       <div id="stageInfo" class="hint"></div>
+      <!-- Reopens the patch notice. It sits here, not in the footer, because this is
+           where someone finds out the presets are empty and might send a screenshot. -->
+      <button id="presetsLink" type="button" class="linkish" data-i18n="notice.why">Почему пресеты пустые?</button>
       <div class="row" style="margin-top:8px">
         <label><span data-i18n="setup.gridSize">Размер сетки</span> <input id="gridSize" type="number" min="2" max="12" value="5"> × <span id="gridSizeEcho">5</span></label>
       </div>
@@ -216,6 +219,25 @@
   <div style="display:flex;gap:14px;align-items:center;justify-content:flex-end;flex-wrap:wrap">
     <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" data-i18n="credits.contribute" style="color:var(--accent);font-size:13px">Спросить в Discord</a>
     <button id="creditsClose" type="button" class="primary" data-i18n="common.close">Закрыть</button>
+  </div>
+</dialog>
+
+<!-- Patch notice. The game now picks each stage's treasures from one of several sets, so the
+     per-stage presets can't be right any more and have been emptied. Opens once per browser
+     (localStorage["th.seenNotice"], a version string so a later notice can re-fire) and any time
+     from the "Why are the presets empty?" link in the setup panel. -->
+<dialog id="noticeDialog" class="credits-dialog notice-dialog" aria-labelledby="noticeTitle">
+  <h2 id="noticeTitle" data-i18n="notice.title">«Поиски сокровищ» изменились, пресеты пока отключены</h2>
+  <p data-i18n="notice.intro">Из примечаний к обновлению игры:</p>
+  <blockquote>
+    <b data-i18n="notice.patchHeading">Поиски сокровищ</b><br>
+    <span data-i18n="notice.patchBody">Этапы стали разнообразнее. Теперь набор сокровищ для текущего этапа выбирается случайным образом из нескольких наборов схожей сложности.</span>
+  </blockquote>
+  <p data-i18n="notice.deprecated">Теперь на каждом этапе сокровища выбираются случайным образом из нескольких наборов, поэтому прежние пресеты устарели. Размер сетки и кирки на клетку по-прежнему подставляются автоматически, а сокровища вы добавляете сами.</p>
+  <p data-i18n="notice.help">Как помочь: выложите в канал Discord скриншот, на котором видны номер этапа и список его сокровищ. Когда наборов накопится достаточно, пресеты вернутся, и можно будет выбрать, какой набор вам выпал.</p>
+  <div class="notice-actions">
+    <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" data-i18n="notice.discord">Выложить скриншот в Discord</a>
+    <button id="noticeClose" type="button" class="primary" data-i18n="notice.gotIt">Понятно</button>
   </div>
 </dialog>
 

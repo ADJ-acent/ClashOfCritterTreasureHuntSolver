@@ -138,6 +138,10 @@
   .stage-area { flex: 0 1 auto; min-width: 0; }
   #status { font-size: 14px; color: var(--muted); margin: 0 0 10px; min-height: 18px; }
   #status .warn { color: #ff9b6b; }
+  /* The no-treasures notice points at the setup panel, which is the left column on
+     desktop and sits below the board on mobile (.stage-area { order: -1 }). One
+     string, two arrows, and the breakpoint picks which one is showing. */
+  #status .point-down { display: none; }
   #grid {
     display: grid;
     gap: 4px;
@@ -227,6 +231,9 @@
     .controls { width: 100%; border-right: none; padding: 14px 16px; }
     /* Grid first so the bottom-sheet picker covers the setup, not the board. */
     .stage-area { min-width: 0; flex-basis: auto; width: 100%; order: -1; }
+    /* ...which puts the setup panel below the board, so the notice points down. */
+    #status .point-left { display: none; }
+    #status .point-down { display: inline; }
     input[type=number], select { font-size: 16px; }   /* >=16px stops iOS zoom-on-focus */
     /* popover becomes a bottom sheet: thumb-reachable, big targets, no finger occlusion */
     #pop.sheet {
@@ -247,3 +254,20 @@
     box-shadow: 0 12px 40px rgba(0,0,0,.5);
   }
   .credits-dialog::backdrop { background: rgba(0,0,0,.55); }
+  /* Patch notice. Same shell as the credits dialog, wider because it is prose. */
+  .notice-dialog { max-width: 460px; font-size: 13px; line-height: 1.6; }
+  .notice-dialog h2 { margin: 0 0 10px; font-size: 16px; color: var(--text); }
+  .notice-dialog p { margin: 0 0 12px; color: var(--muted); }
+  .notice-dialog blockquote {
+    margin: 0 0 12px; padding: 8px 12px;
+    border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0;
+    background: rgba(255,255,255,.03); color: var(--text);
+  }
+  .notice-actions { display: flex; gap: 14px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+  .notice-actions a { color: var(--accent); }
+  /* A button that reads as a link (the footer's Translators button predates this). */
+  .linkish {
+    background: none; border: none; padding: 0; margin-top: 6px;
+    font: inherit; font-size: 13px; color: var(--accent);
+    cursor: pointer; text-decoration: underline;
+  }

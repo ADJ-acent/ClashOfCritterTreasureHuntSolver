@@ -33,39 +33,81 @@ const TREASURES = [
 ];
 
 /* ---------- Stage presets (from the in-game stage table). ----------
-   pieces: [name, count] using TREASURES sizes; same-size pieces merge in the solver.
-   Stage 12's 2×3 and 1×2 are labelled Radio / Outdated Console, but could be
-   TV / Syringe (same sizes). Labels only, no effect on the probabilities. */
+   Grid size and pickaxes/tile only: every treasure list is empty on purpose.
+   The game patch ("Added variety to levels: a set of treasures will be selected
+   at random from several sets of similar difficulty for the current level") means
+   a stage no longer has *the* treasure list, so the old one-per-stage presets are
+   deprecated. Grid size and pickaxes/tile did not change, so those still autofill.
+
+   This is a data change, not a code change: an empty `pieces` already meant "stage
+   known, treasures not published" everywhere (empty board, "add them manually" in
+   the stage info, the no-treasures notice in the status line).
+
+   When the sets have been collected, the shape this wants is a list of sets per
+   stage plus a picker for which one you got. See docs/ARCHITECTURE.md. */
 const STAGES = [
-  { n: 1,  grid: 5, pick: 15,  pieces: [["Zobo Cola", 3]] },
-  { n: 2,  grid: 5, pick: 15,  pieces: [["Zobo Zine", 1], ["Syringe", 3]] },
-  { n: 3,  grid: 5, pick: 15,  pieces: [["Trumpet", 1], ["Zobo Zine", 1], ["Outdated Console", 2]] },
-  { n: 4,  grid: 6, pick: 20,  pieces: [["Zobo Cola", 1], ["Outdated Console", 2], ["Radio", 1]] },
-  { n: 5,  grid: 6, pick: 20,  pieces: [["Pirated Magazine", 2], ["Zobo Zine", 2]] },
-  { n: 6,  grid: 6, pick: 20,  pieces: [["Zobo Cola", 2], ["Zobo Zine", 1], ["TV", 1]] },
-  { n: 7,  grid: 7, pick: 25,  pieces: [["Zobo Zine", 1], ["Radio", 1], ["Cyberlimb", 2]] },
-  { n: 8,  grid: 7, pick: 25,  pieces: [["Outdated Console", 2], ["Cyberlimb", 1], ["Spaceship", 1]] },
-  { n: 9,  grid: 7, pick: 25,  pieces: [["Syringe", 2], ["Pirated Magazine", 2], ["Statue", 1]] },
-  { n: 10, grid: 7, pick: 35,  pieces: [["Outdated Console", 2], ["Cyberlimb", 2], ["Spaceship", 1]] },
-  { n: 11, grid: 7, pick: 35,  pieces: [["Zobo Cola", 2], ["Outdated Console", 2], ["Trumpet", 1], ["Statue", 1]] },
-  { n: 12, grid: 7, pick: 35,  pieces: [["Cyberlimb", 2], ["Radio", 1], ["Outdated Console", 2], ["Spaceship", 1]] },
-  { n: 13, grid: 7, pick: 70,  pieces: [["Outdated Console", 2], ["Statue", 2]] },
-  { n: 14, grid: 7, pick: 70,  pieces: [["Radio", 1], ["Cyberlimb", 2], ["Spaceship", 1]] },
-  { n: 15, grid: 7, pick: 70,  pieces: [["Zobo Cola", 2], ["Syringe", 2], ["TV", 1], ["Statue", 1]] },
-  { n: 16, grid: 7, pick: 100, pieces: [["Outdated Console", 2], ["Pirated Magazine", 2], ["Statue", 1]] },
-  { n: 17, grid: 7, pick: 100, pieces: [["Outdated Console", 2], ["Zobo Cola", 2], ["Radio", 1], ["Spaceship", 1]] },
-  { n: 18, grid: 7, pick: 100, pieces: [["Outdated Console", 2], ["Cyberlimb", 2], ["TV", 1], ["Spaceship", 1]] },
-  { n: 19, grid: 7, pick: 150, pieces: [["Outdated Console", 2], ["Zobo Zine", 2], ["Statue", 1]] },
-  { n: 20, grid: 7, pick: 150, pieces: [["Outdated Console", 2], ["Zobo Cola", 2], ["Radio", 1], ["Spaceship", 1]] },
-  { n: 21, grid: 7, pick: 150, pieces: [["Outdated Console", 2], ["Cyberlimb", 2], ["Radio", 1], ["Spaceship", 1]] },
-  { n: 22, grid: 7, pick: 200, pieces: [["Outdated Console", 2], ["Zobo Zine", 2], ["Statue", 1]] },
-  { n: 23, grid: 7, pick: 200, pieces: [["Outdated Console", 2], ["Zobo Cola", 2], ["Radio", 1], ["Spaceship", 1]] },
-  { n: 24, grid: 7, pick: 200, pieces: [["Outdated Console", 2], ["Cyberlimb", 2], ["Radio", 1], ["Spaceship", 1]] },
+  { n: 1,  grid: 5, pick: 15,  pieces: [] },
+  { n: 2,  grid: 5, pick: 15,  pieces: [] },
+  { n: 3,  grid: 5, pick: 15,  pieces: [] },
+  { n: 4,  grid: 6, pick: 20,  pieces: [] },
+  { n: 5,  grid: 6, pick: 20,  pieces: [] },
+  { n: 6,  grid: 6, pick: 20,  pieces: [] },
+  { n: 7,  grid: 7, pick: 25,  pieces: [] },
+  { n: 8,  grid: 7, pick: 25,  pieces: [] },
+  { n: 9,  grid: 7, pick: 25,  pieces: [] },
+  { n: 10, grid: 7, pick: 35,  pieces: [] },
+  { n: 11, grid: 7, pick: 35,  pieces: [] },
+  { n: 12, grid: 7, pick: 35,  pieces: [] },
+  { n: 13, grid: 7, pick: 70,  pieces: [] },
+  { n: 14, grid: 7, pick: 70,  pieces: [] },
+  { n: 15, grid: 7, pick: 70,  pieces: [] },
+  { n: 16, grid: 7, pick: 100, pieces: [] },
+  { n: 17, grid: 7, pick: 100, pieces: [] },
+  { n: 18, grid: 7, pick: 100, pieces: [] },
+  { n: 19, grid: 7, pick: 150, pieces: [] },
+  { n: 20, grid: 7, pick: 150, pieces: [] },
+  { n: 21, grid: 7, pick: 150, pieces: [] },
+  { n: 22, grid: 7, pick: 200, pieces: [] },
+  { n: 23, grid: 7, pick: 200, pieces: [] },
+  { n: 24, grid: 7, pick: 200, pieces: [] },
 ];
-// Stages loadable by the test suite but hidden from the dropdown (e.g. an empty
-// board for the "nothing left to find" path). Negative n keeps them out of sight.
+// Stages loadable by the test suite but hidden from the dropdown. Negative n keeps
+// them out of sight (loadStage() reads ALL_STAGES, populateStages() reads STAGES).
+//
+// -101..-124 are the pre-patch treasure lists for stages 1..24, i.e. -(100 + n).
+// They are not dead data: each is one real set that the stage can still draw, and
+// the tests need boards that actually have treasures to solve. They are kept out of
+// the dropdown because there is no way to tell a player which set they got.
+// pieces: [name, count] using TREASURES sizes; same-size pieces merge in the solver.
+// Stage 12's 2×3 and 1×2 are labelled Radio / Outdated Console, but could be
+// TV / Syringe (same sizes). Labels only, no effect on the probabilities.
 const HIDDEN_STAGES = [
-  { n: -1, grid: 5, pick: 15, pieces: [] }, // empty board. Used by tests only
+  { n: -1, grid: 5, pick: 15, pieces: [] },                  // no treasures set up. Tests only
+  { n: -2, grid: 5, pick: 15, pieces: [["Syringe", 1]] },    // one 1×2, for the all-dug-out path. Tests only
+  { n: -101, grid: 5, pick: 15,  pieces: [["Zobo Cola", 3]] },
+  { n: -102, grid: 5, pick: 15,  pieces: [["Zobo Zine", 1], ["Syringe", 3]] },
+  { n: -103, grid: 5, pick: 15,  pieces: [["Trumpet", 1], ["Zobo Zine", 1], ["Outdated Console", 2]] },
+  { n: -104, grid: 6, pick: 20,  pieces: [["Zobo Cola", 1], ["Outdated Console", 2], ["Radio", 1]] },
+  { n: -105, grid: 6, pick: 20,  pieces: [["Pirated Magazine", 2], ["Zobo Zine", 2]] },
+  { n: -106, grid: 6, pick: 20,  pieces: [["Zobo Cola", 2], ["Zobo Zine", 1], ["TV", 1]] },
+  { n: -107, grid: 7, pick: 25,  pieces: [["Zobo Zine", 1], ["Radio", 1], ["Cyberlimb", 2]] },
+  { n: -108, grid: 7, pick: 25,  pieces: [["Outdated Console", 2], ["Cyberlimb", 1], ["Spaceship", 1]] },
+  { n: -109, grid: 7, pick: 25,  pieces: [["Syringe", 2], ["Pirated Magazine", 2], ["Statue", 1]] },
+  { n: -110, grid: 7, pick: 35,  pieces: [["Outdated Console", 2], ["Cyberlimb", 2], ["Spaceship", 1]] },
+  { n: -111, grid: 7, pick: 35,  pieces: [["Zobo Cola", 2], ["Outdated Console", 2], ["Trumpet", 1], ["Statue", 1]] },
+  { n: -112, grid: 7, pick: 35,  pieces: [["Cyberlimb", 2], ["Radio", 1], ["Outdated Console", 2], ["Spaceship", 1]] },
+  { n: -113, grid: 7, pick: 70,  pieces: [["Outdated Console", 2], ["Statue", 2]] },
+  { n: -114, grid: 7, pick: 70,  pieces: [["Radio", 1], ["Cyberlimb", 2], ["Spaceship", 1]] },
+  { n: -115, grid: 7, pick: 70,  pieces: [["Zobo Cola", 2], ["Syringe", 2], ["TV", 1], ["Statue", 1]] },
+  { n: -116, grid: 7, pick: 100, pieces: [["Outdated Console", 2], ["Pirated Magazine", 2], ["Statue", 1]] },
+  { n: -117, grid: 7, pick: 100, pieces: [["Outdated Console", 2], ["Zobo Cola", 2], ["Radio", 1], ["Spaceship", 1]] },
+  { n: -118, grid: 7, pick: 100, pieces: [["Outdated Console", 2], ["Cyberlimb", 2], ["TV", 1], ["Spaceship", 1]] },
+  { n: -119, grid: 7, pick: 150, pieces: [["Outdated Console", 2], ["Zobo Zine", 2], ["Statue", 1]] },
+  { n: -120, grid: 7, pick: 150, pieces: [["Outdated Console", 2], ["Zobo Cola", 2], ["Radio", 1], ["Spaceship", 1]] },
+  { n: -121, grid: 7, pick: 150, pieces: [["Outdated Console", 2], ["Cyberlimb", 2], ["Radio", 1], ["Spaceship", 1]] },
+  { n: -122, grid: 7, pick: 200, pieces: [["Outdated Console", 2], ["Zobo Zine", 2], ["Statue", 1]] },
+  { n: -123, grid: 7, pick: 200, pieces: [["Outdated Console", 2], ["Zobo Cola", 2], ["Radio", 1], ["Spaceship", 1]] },
+  { n: -124, grid: 7, pick: 200, pieces: [["Outdated Console", 2], ["Cyberlimb", 2], ["Radio", 1], ["Spaceship", 1]] },
 ];
 const ALL_STAGES = STAGES.concat(HIDDEN_STAGES);   // dropdown shows STAGES; loadStage() accepts either
 const sizeOf = name => { const t = TREASURES.find(t => t[0] === name); return [t[1], t[2]]; };
@@ -171,14 +213,13 @@ function renderStageInfo() {
   const pick = $("#pickPerTile").value;
   const list = state.pieces.length
     ? state.pieces.map(p => `${p.w}×${p.h}×${p.count}`).join(", ")
-    : t("setup.notPublished");
+    : t("setup.treasuresVary");
   el.innerHTML = t("setup.pickInfo", { pick, _n: +pick }) + "<br>" + list;
 }
-// Dropdown label; appends a "no data" marker for stages whose treasures aren't published yet.
-function stageLabel(s) {
-  const base = t("stage.option", { n: s.n, grid: s.grid });
-  return s.pieces.length ? base : base + "  (" + t("stage.noData") + ")";
-}
+// Dropdown label. There used to be a "(no data)" marker for stages whose treasures
+// weren't published; now that no stage ships a treasure list it would be on all 24,
+// so the stage info line and the no-treasures notice carry that on their own.
+function stageLabel(s) { return t("stage.option", { n: s.n, grid: s.grid }); }
 // (There is no in-place language switch. LANG is resolved once, at boot, before anything renders:
 // the picker navigates, and every dynamic string is built through t() afterwards.)
 
@@ -924,6 +965,9 @@ function estimateSolve() {
 function runEstimate() {
   const out = $("#estimateOut");
   const pick = Math.max(1, +$("#pickPerTile").value || 1);
+  // No treasures entered is now the state every stage starts in, and estimateSolve()
+  // would call that "done" (nothing left to find) rather than "not started".
+  if (!state.pieces.length) { out.innerHTML = `<span class="warn">${t("board.noTreasures")}</span>`; return; }
   out.textContent = t("estimate.simulating");
   // let the "Simulating…" paint before the blocking compute
   setTimeout(() => {
@@ -1003,18 +1047,30 @@ function recompute() {
     }
   }
 
-  // status line
-  const remList = state.pieces
-    .filter(p => remainingOf(p) > 0)
-    .map(p => t("status.remItem", { w: p.w, h: p.h, n: remainingOf(p) })).join(", ") || t("status.none");
-  let msg = t("status.remaining", { list: remList });
-  if (!res.ok && res.total === 0) {
-    msg += `<span class="warn">${t("status.noLayout")}</span>`;
-  } else if (res.mode === "exact" || res.mode === "dp") {
-    msg += t("status.exact", { _n: res.total, total: nfmt(res.total), dp: res.mode === "dp" ? t("status.dpSuffix") : "" });
+  // Status line. With no treasures entered there is nothing to solve, and the normal
+  // line would read "Remaining to find: none. Exact over 1 layout", i.e. "you're
+  // done" on an untouched board. So it becomes the prompt to enter them, pointing at
+  // the setup panel: left of the board on desktop, below it on mobile. Which arrow
+  // shows is CSS (the same 720px breakpoint that reorders the columns), so the copy
+  // is one string and nothing here has to ask matchMedia.
+  let msg;
+  if (!state.pieces.length) {
+    msg = '<span class="warn"><span class="point-left" aria-hidden="true">← </span>'
+        + '<span class="point-down" aria-hidden="true">↓ </span>'
+        + t("board.noTreasures") + "</span>";
   } else {
-    const rej = res.samples ? (100 * (1 - res.total / res.samples)).toFixed(0) : 0;
-    msg += t("status.estimated", { _n: res.total, total: nfmt(res.total), rej });
+    const remList = state.pieces
+      .filter(p => remainingOf(p) > 0)
+      .map(p => t("status.remItem", { w: p.w, h: p.h, n: remainingOf(p) })).join(", ") || t("status.none");
+    msg = t("status.remaining", { list: remList });
+    if (!res.ok && res.total === 0) {
+      msg += `<span class="warn">${t("status.noLayout")}</span>`;
+    } else if (res.mode === "exact" || res.mode === "dp") {
+      msg += t("status.exact", { _n: res.total, total: nfmt(res.total), dp: res.mode === "dp" ? t("status.dpSuffix") : "" });
+    } else {
+      const rej = res.samples ? (100 * (1 - res.total / res.samples)).toFixed(0) : 0;
+      msg += t("status.estimated", { _n: res.total, total: nfmt(res.total), rej });
+    }
   }
   $("#status").innerHTML = msg;
   $("#estimateOut").textContent = "";   // board changed -> previous estimate is stale
@@ -1110,7 +1166,9 @@ function openDigMenu(i, ev) {
   });
   if (!any) {
     const n = document.createElement("div");
-    n.className = "ttl"; n.textContent = t("dig.allFound");
+    // "All treasures already found" is wrong when none were ever entered, which is
+    // now the state every stage starts in.
+    n.className = "ttl"; n.textContent = state.pieces.length ? t("dig.allFound") : t("board.noTreasures");
     popEl.appendChild(n);
   }
   popEl.appendChild(mkBtn(t("common.cancel"), hidePop));
@@ -1316,6 +1374,38 @@ if (creditsDialog) {
   $("#creditsClose").onclick = closeCredits;
   creditsDialog.addEventListener("click", e => { if (e.target === creditsDialog) closeCredits(); });
 }
+/* ---------- Patch notice ---------- */
+// The game now picks each stage's treasures from one of several sets, so the per-stage
+// presets were emptied (see STAGES). This says so once per browser and asks for the
+// screenshots needed to rebuild them.
+//
+// The stored value is a version string rather than a flag: a later notice only has to
+// change NOTICE_V to re-fire for everyone, which is exactly what bringing the presets
+// back will want. Storage that throws (private mode, opaque origin, and jsdom's
+// about:blank) counts as already seen. The no-treasures line in the status area carries
+// the part you must not miss, and a modal on every single load would be worse.
+const NOTICE_V = "presets-paused-2026-07";
+const noticeSeen = () => { try { return localStorage.getItem("th.seenNotice") === NOTICE_V; } catch (_) { return true; } };
+const markNoticeSeen = () => { try { localStorage.setItem("th.seenNotice", NOTICE_V); } catch (_) {} };
+const noticeDialog = $("#noticeDialog");
+function openNotice() {
+  if (!noticeDialog) return;
+  // showModal where supported; fall back to the open attribute on older engines (and jsdom).
+  if (noticeDialog.showModal) { try { noticeDialog.showModal(); return; } catch (_) {} }
+  noticeDialog.setAttribute("open", "");
+}
+function closeNotice() {
+  if (!noticeDialog) return;
+  markNoticeSeen();
+  if (noticeDialog.close) noticeDialog.close(); else noticeDialog.removeAttribute("open");
+}
+if (noticeDialog) {
+  $("#presetsLink").onclick = openNotice;
+  $("#noticeClose").onclick = closeNotice;
+  noticeDialog.addEventListener("click", e => { if (e.target === noticeDialog) closeNotice(); });
+  noticeDialog.addEventListener("close", markNoticeSeen);   // Esc closes a <dialog> natively
+}
+
 const langPickerEl = $("#langPicker");
 document.addEventListener("click", e => {
   if (!popEl.contains(e.target)) hidePop();
@@ -1346,3 +1436,4 @@ catch (_) { $("#bombToggle").checked = false; }   // default OFF; persisted opt-
 renderQuickAdd();
 populateStages();
 if (!restoreBoard()) loadStage(1);   // last board from localStorage["th.board"], else Stage 1
+if (!noticeSeen()) openNotice();     // the presets-are-paused notice, once per browser
