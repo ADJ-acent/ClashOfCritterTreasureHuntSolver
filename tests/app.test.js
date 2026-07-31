@@ -67,6 +67,14 @@ function loadStage(win, doc, n) {
 // Hidden stages aren't in the dropdown, so load them via the global loader directly.
 const loadHidden = (win, n) => win.loadStage(n);
 
+// The shipped presets carry grid size and pickaxes only: the game picks each stage's
+// treasure set at random from several, so there is no single list to preset. The
+// pre-patch lists live on in HIDDEN_STAGES at -(100 + n), which is where a test gets a
+// board with something to solve. FIX.s1 is the old Stage 1 (three 1×3 on a 5×5), the
+// default fixture, since most tests just need "a board with treasures on it".
+const FIX = { empty: -1, one: -2, s1: -101, s5: -105, s9: -109, s12: -112, s13: -113, s15: -115, s22: -122 };
+const bootPlaying = opts => { const b = boot(opts); loadHidden(b.window, FIX.s1); return b; };
+
 // jsdom has no matchMedia (=> desktop/hover flow by default). Call this to simulate
 // a touch device: matchMedia matches both the no-hover and phone-width queries.
 const setMobile = win => {
@@ -76,16 +84,38 @@ const setMobile = win => {
 const popButtons = doc => [...doc.querySelectorAll("#pop button")];
 const cells = doc => [...doc.querySelector("#grid").children];
 
-test("boots Stage 1 with a 5x5 grid and computed probabilities", () => {
+test("boots Stage 1 as a 5x5 board that asks for the stage's treasures", () => {
   const { doc, errors } = boot();
   assert.strictEqual(errors.length, 0, errors.join("\n"));
   assert.strictEqual(cells(doc).length, 25);
+  // A preset no longer brings treasures, so the status line is the prompt to enter
+  // them. "Remaining to find: none" would read as "you're done" on a fresh board.
+  const status = doc.querySelector("#status");
+  assert.match(status.textContent, /Add this stage's treasures/);
+  assert.ok(!/Remaining to find/.test(status.textContent), "nothing to solve yet");
+  // Both arrows ship; the 720px breakpoint shows ← (controls are the left column) or
+  // ↓ (controls sit below the board), so the copy stays one string.
+  assert.ok(status.querySelector(".point-left") && status.querySelector(".point-down"),
+    "the notice points at the setup panel both ways");
+});
+
+test("a board with treasures computes probabilities", () => {
+  const { doc, errors } = bootPlaying();
+  assert.strictEqual(errors.length, 0, errors.join("\n"));
   assert.match(cells(doc)[0].textContent, /%/);
   assert.match(doc.querySelector("#status").textContent, /Remaining to find/);
 });
 
+test("the no-treasures notice clears as soon as a treasure is added", () => {
+  const { window, doc } = boot();
+  assert.match(doc.querySelector("#status").textContent, /Add this stage's treasures/);
+  click(window, doc.querySelector("#quickAdd button"));   // quick-add any size
+  click(window, doc.querySelector("#newGame"));
+  assert.match(doc.querySelector("#status").textContent, /Remaining to find/, "back to the solver line");
+});
+
 test("digging an empty tile marks it and recomputes", () => {
-  const { window, doc, errors } = boot();
+  const { window, doc, errors } = bootPlaying();
   click(window, cells(doc)[0]);
   const empty = popButtons(doc).find(b => /Empty/.test(b.textContent));
   assert.ok(empty, "Empty option should be offered");
@@ -98,7 +128,7 @@ test("digging an empty tile marks it and recomputes", () => {
 // (the clicked button was detached by innerHTML rebuild, so the outside-click
 // handler hid it). On desktop a single click on a placement commits it.
 test("desktop: placement submenu stays open and a click places the treasure", () => {
-  const { window, doc, errors } = boot();   // jsdom has no matchMedia -> desktop (hover) flow
+  const { window, doc, errors } = bootPlaying();   // jsdom has no matchMedia -> desktop (hover) flow
   click(window, cells(doc)[0]);
   const sizeBtn = popButtons(doc).find(b => /1×3/.test(b.textContent));
   assert.ok(sizeBtn, "1×3 option should be offered");
@@ -116,7 +146,7 @@ test("desktop: placement submenu stays open and a click places the treasure", ()
 });
 
 test("mobile: placement is select-then-place (tap previews, Place it commits)", () => {
-  const { window, doc } = boot();
+  const { window, doc } = bootPlaying();
   setMobile(window);
   click(window, cells(doc)[0]);
   click(window, popButtons(doc).find(b => /1×3/.test(b.textContent)));
@@ -130,20 +160,61 @@ test("mobile: placement is select-then-place (tap previews, Place it commits)", 
   assert.strictEqual(cells(doc).filter(c => /\bitem\b/.test(c.className)).length, 3, "Place it commits the 3 tiles");
 });
 
-test("stage presets load grid size, treasures, and pickaxes-per-tile", () => {
+// The patch ("a set of treasures will be selected at random from several sets") means a
+// stage has no single treasure list to preset. Grid size and pickaxes/tile didn't change,
+// so those still autofill; the treasures are the player's to enter.
+test("stage presets load grid size and pickaxes-per-tile, and no treasures", () => {
   const { window, doc } = boot();
-  assert.strictEqual(doc.querySelectorAll("#stageSelect option").length, 25, "custom + 24 stages (test stage is hidden)");
+  assert.strictEqual(doc.querySelectorAll("#stageSelect option").length, 25, "custom + 24 stages (test stages are hidden)");
 
   loadStage(window, doc, 9);
   assert.strictEqual(doc.querySelector("#gridSize").value, "7");
   assert.strictEqual(doc.querySelector("#pickPerTile").value, "25");
-  const rows9 = [...doc.querySelectorAll("#pieceRows tr")].map(r => r.textContent);
-  assert.ok(rows9.some(t => /2×4/.test(t)), "Stage 9 includes a 2×4 Statue");
+  assert.strictEqual(cells(doc).length, 49, "board built at the preset's size");
+  const rows = [...doc.querySelectorAll("#pieceRows tr")].map(r => r.textContent).join(" ");
+  assert.ok(!/×/.test(rows), "a preset ships no treasures");
+  assert.match(doc.querySelector("#stageInfo").textContent, /treasures vary/);
 
-  loadStage(window, doc, 12);
-  const rows12 = [...doc.querySelectorAll("#pieceRows tr")].map(r => r.textContent);
-  assert.ok(rows12.some(t => /3×3/.test(t)), "Stage 12 includes a 3×3 Spaceship");
-  assert.ok(rows12.some(t => /1×4/.test(t)), "Stage 12 includes a 1×4 Cyberlimb");
+  // The "(no data)" marker used to flag the odd stage with unpublished treasures.
+  // It would now be on all 24, so the stage info line carries it instead.
+  const labels = [...doc.querySelectorAll("#stageSelect option")].map(o => o.textContent).join(" ");
+  assert.ok(!/no data/.test(labels), "no per-option marker when it would be universal");
+});
+
+// The presets are paused, not gone: the sets have to be collected first. The notice
+// explains that and asks for screenshots, and the setup panel can reopen it.
+test("the patch notice opens once per browser, and the setup link reopens it", () => {
+  const storage = makeStorage();
+  const dlg = doc => doc.querySelector("#noticeDialog");
+
+  // First visit: it opens by itself. (jsdom has no showModal, so this is the
+  // open-attribute fallback path, same as an old engine.)
+  const first = boot({ storage });
+  assert.ok(dlg(first.doc).hasAttribute("open"), "shown on a first visit");
+  assert.match(dlg(first.doc).textContent, /set of treasures will be selected at random/, "quotes the patch notes");
+  assert.match(dlg(first.doc).textContent, /screenshot/i, "asks for screenshots");
+  const discord = dlg(first.doc).querySelector("a[href*='discord.com']");
+  assert.ok(discord, "links to the Discord channel");
+  assert.match(discord.href, /discord\.com\/channels\/1343763804349267989\/1517044316177039502/);
+  assert.match(discord.getAttribute("rel") || "", /noopener/);
+
+  click(first.window, first.doc.querySelector("#noticeClose"));
+  assert.ok(!dlg(first.doc).hasAttribute("open"), "dismissed");
+  assert.strictEqual(storage.getItem("th.seenNotice"), "presets-paused-2026-07", "remembered by version");
+
+  // Second visit: not shown again, but still one click away.
+  const second = boot({ storage });
+  assert.ok(!dlg(second.doc).hasAttribute("open"), "not shown twice");
+  click(second.window, second.doc.querySelector("#presetsLink"));
+  assert.ok(dlg(second.doc).hasAttribute("open"), "the setup-panel link reopens it");
+  assert.strictEqual(second.errors.length, 0, second.errors.join("\n"));
+});
+
+// Storage that throws (private mode, opaque origin) must not mean a modal on every load.
+test("the patch notice stays shut when localStorage is unavailable", () => {
+  const { doc, errors } = boot();   // jsdom's about:blank has no localStorage
+  assert.ok(!doc.querySelector("#noticeDialog").hasAttribute("open"), "no storage -> treated as seen");
+  assert.strictEqual(errors.length, 0, errors.join("\n"));
 });
 
 test("editing pieces switches the preset dropdown to custom", () => {
@@ -159,7 +230,7 @@ test("editing pieces switches the preset dropdown to custom", () => {
 // (The old model counted ~1 dig per treasure and reported well under 9.)
 test("pick-cost estimator counts every treasure tile, not one hit per treasure", async () => {
   const { window, doc, errors } = boot();
-  loadStage(window, doc, 1); // three 1×3 = 9 treasure tiles
+  loadHidden(window, FIX.s1); // three 1×3 = 9 treasure tiles
   click(window, doc.querySelector("#estimate"));
   await new Promise(r => setTimeout(r, 80)); // runEstimate defers compute via setTimeout
 
@@ -170,16 +241,32 @@ test("pick-cost estimator counts every treasure tile, not one hit per treasure",
   assert.strictEqual(errors.length, 0, errors.join("\n"));
 });
 
-test("estimator reports 'already found' when nothing remains", async () => {
+test("estimator reports nothing left when every treasure is dug out", async () => {
   const { window, doc } = boot();
-  loadHidden(window, -1); // hidden empty test stage (not shown in the dropdown)
+  loadHidden(window, FIX.one);   // a single 1×2, so the board can be finished in two clicks
+  placeTreasure(window, doc, 0, /1×2/);
+  click(window, cells(doc).find(c => /buried/.test(c.className)));
+  click(window, popButtons(doc).find(b => /dug out/i.test(b.textContent)));
+
   click(window, doc.querySelector("#estimate"));
   await new Promise(r => setTimeout(r, 80));
   assert.match(doc.querySelector("#estimateOut").textContent, /already found|0 picks/i);
 });
 
+// An empty setup is not a finished board. estimateSolve() would call it "done"
+// (nothing left to find), which was harmless when presets brought treasures and is
+// the default state now that they don't.
+test("the estimator asks for treasures instead of calling an empty board finished", async () => {
+  const { window, doc } = boot();   // no treasures: a preset ships none
+  click(window, doc.querySelector("#estimate"));
+  await new Promise(r => setTimeout(r, 80));
+  const out = doc.querySelector("#estimateOut").textContent;
+  assert.match(out, /Add this stage's treasures/);
+  assert.ok(!/0 picks/.test(out), "an untouched board is not 'finished'");
+});
+
 test("highlights the best hidden tile(s) but never empties or found treasures", () => {
-  const { window, doc } = boot(); // Stage 1: three 1×3 on a 5×5
+  const { window, doc } = bootPlaying(); // three 1×3 on a 5×5
   // At least one best tile is marked on a fresh board.
   assert.ok(cells(doc).some(c => /best/.test(c.className)), "a best tile should be highlighted");
 
@@ -190,7 +277,7 @@ test("highlights the best hidden tile(s) but never empties or found treasures", 
   best.forEach(c => assert.ok(Math.abs(pct(c) - maxPct) < 0.6, "best tile is at (rounded) max probability"));
 
   // An empty test board has no treasures left -> nothing highlighted.
-  loadHidden(window, -1);
+  loadHidden(window, FIX.empty);
   assert.strictEqual(cells(doc).filter(c => /best/.test(c.className)).length, 0, "no best tile when nothing remains");
 });
 
@@ -202,7 +289,7 @@ function placeTreasure(win, doc, cellIndex, sizeRe) {
 }
 
 test("locating a treasure digs the clicked tile and leaves the rest buried", () => {
-  const { window, doc } = boot(); // Stage 1, 1×3
+  const { window, doc } = bootPlaying(); // 1×3
   placeTreasure(window, doc, 0, /1×3/);
   const item = cells(doc).filter(c => /\bitem\b/.test(c.className));
   assert.strictEqual(item.length, 3, "a 1×3 occupies 3 tiles");
@@ -211,7 +298,7 @@ test("locating a treasure digs the clicked tile and leaves the rest buried", () 
 });
 
 test("a buried treasure tile can be toggled to dug out", () => {
-  const { window, doc } = boot();
+  const { window, doc } = bootPlaying();
   placeTreasure(window, doc, 0, /1×3/);
   const buried = cells(doc).find(c => /buried/.test(c.className));
   click(window, buried);
@@ -222,7 +309,7 @@ test("a buried treasure tile can be toggled to dug out", () => {
 });
 
 test("mobile placement picker shows a mini-diagram for each candidate", () => {
-  const { window, doc } = boot();
+  const { window, doc } = bootPlaying();
   setMobile(window);
   click(window, cells(doc)[0]);
   click(window, popButtons(doc).find(b => /1×3/.test(b.textContent)));
@@ -232,7 +319,7 @@ test("mobile placement picker shows a mini-diagram for each candidate", () => {
 });
 
 test("desktop placement picker also shows mini-diagrams", () => {
-  const { window, doc } = boot(); // no matchMedia -> desktop flow
+  const { window, doc } = bootPlaying(); // no matchMedia -> desktop flow
   click(window, cells(doc)[0]);
   click(window, popButtons(doc).find(b => /1×3/.test(b.textContent)));
   const minis = doc.querySelectorAll("#pop .mini").length;
@@ -241,7 +328,7 @@ test("desktop placement picker also shows mini-diagrams", () => {
 });
 
 test("popover renders as a bottom sheet on small screens", () => {
-  const { window, doc } = boot();
+  const { window, doc } = bootPlaying();
   setMobile(window);
   click(window, cells(doc)[0]); // opens the dig menu -> placePop()
   assert.ok(doc.querySelector("#pop").classList.contains("sheet"), "popover should be a bottom sheet on mobile");
@@ -249,7 +336,7 @@ test("popover renders as a bottom sheet on small screens", () => {
 
 test("DP toggle: exact on a dense stage where DFS bails, falls back to MC when off", () => {
   const { window, doc, errors } = boot();
-  loadStage(window, doc, 13); // 7x7, ~556k layouts -> DFS bails (>EXACT_LEAF_BUDGET)
+  loadHidden(window, FIX.s13); // 7x7, ~556k layouts -> DFS bails (>EXACT_LEAF_BUDGET)
   const status = () => doc.querySelector("#status").textContent;
   // default ON -> exact via the profile DP (no Monte-Carlo sampling)
   assert.match(status(), /Exact over [\d,]+ layouts \(DP\)/);
@@ -269,7 +356,7 @@ test("DP toggle: exact on a dense stage where DFS bails, falls back to MC when o
 // one, and the detail line flips from "ignores bombs" to "assumes bombs".
 test("bomb toggle lowers the estimate and relabels it", async () => {
   const { window, doc, errors } = boot();
-  loadStage(window, doc, 1); // three 1×3 = 9 treasure tiles on 5×5
+  loadHidden(window, FIX.s1); // three 1×3 = 9 treasure tiles on 5×5
 
   // default OFF: the conservative estimate that ignores bombs
   click(window, doc.querySelector("#estimate"));
@@ -341,9 +428,13 @@ test("every locale defines the full English key set, plurals included", () => {
 });
 
 test("a prerendered locale page boots in its language, static chrome and dynamic strings alike", () => {
-  const { doc, errors } = bootLocale("ja");
+  const { window, doc, errors } = bootLocale("ja");
   assert.strictEqual(doc.documentElement.lang, "ja");
   assert.match(doc.querySelector("h1").textContent, /確率ソルバー/, "static chrome");
+  // A preset ships no treasures, so a fresh board's status line is the notice.
+  assert.ok(!/Add this stage's treasures/.test(doc.querySelector("#status").textContent),
+    "the no-treasures notice is translated too");
+  loadHidden(window, FIX.s1);   // a board with something to solve -> the solver line
   const ja = doc.querySelector("#status").textContent;
   assert.ok(!/Remaining to find/.test(ja), "status line is not English");
   assert.match(ja, /発見すべき宝/, "status line translated (built by t() at runtime)");
@@ -353,7 +444,7 @@ test("a prerendered locale page boots in its language, static chrome and dynamic
 test("the English root keeps its strings byte-identical (the other tests assert on them)", () => {
   const { doc } = boot();
   assert.strictEqual(doc.querySelector("h1").textContent, "Clash of Critters Treasure Hunt Probability Solver");
-  assert.match(doc.querySelector("#status").textContent, /Remaining to find/);
+  assert.match(doc.querySelector("#status").textContent, /Add this stage's treasures in the setup panel\./);
 });
 
 // The case that would feel broken if nobody thought about it: someone who picked Italian
@@ -404,7 +495,7 @@ test("auto-detects the UI language from the browser, region-aware (zh-TW -> Trad
 
 test("treasure names are never shown — dimensions only", () => {
   const { window, doc } = boot();
-  loadStage(window, doc, 1); // Stage 1 is a 1×3 treasure (formerly labelled "Zobo Cola")
+  loadHidden(window, FIX.s1); // three 1×3 treasures (formerly labelled "Zobo Cola")
   const info = doc.querySelector("#stageInfo").textContent;
   assert.match(info, /1×3/, "stage info lists the dimension");
   assert.ok(!/Zobo|Cola|Syringe|Radio|Statue|Spaceship|Cyberlimb/.test(info), "no treasure names leak into the UI");
@@ -417,6 +508,7 @@ test("treasure names are never shown — dimensions only", () => {
 
 test("language switch localizes the popover while keeping dimensions intact", () => {
   const { window, doc } = bootLocale("ja");
+  loadHidden(window, FIX.s1);
   click(window, cells(doc)[0]);
   const labels = popButtons(doc).map(b => b.textContent);
   assert.ok(labels.some(t => /1×3/.test(t)), "the dimension survives translation");
@@ -441,13 +533,12 @@ test("footer has a localized feedback link to the Discord post", () => {
 
 /* ---------- Persistence (localStorage["th.board"]) ---------- */
 
-test("the board survives a refresh: stage, digs and located treasures all come back", () => {
+test("the board survives a refresh: treasures, digs and located treasures all come back", () => {
   const storage = makeStorage();
 
-  // First visit: switch stage, dig an empty tile, locate a 1×3.
+  // First visit: a board with treasures, dig an empty tile, locate a 1×3.
   {
-    const { window, doc, errors } = boot({ storage });
-    loadStage(window, doc, 4);
+    const { window, doc, errors } = bootPlaying({ storage });
     click(window, cells(doc)[0]);
     click(window, popButtons(doc).find(b => /Empty/.test(b.textContent)));
     placeTreasure(window, doc, 5, /1×3/);
@@ -457,8 +548,10 @@ test("the board survives a refresh: stage, digs and located treasures all come b
   // Refresh: same storage, brand-new page.
   const { doc, errors } = boot({ storage });
   assert.strictEqual(errors.length, 0, errors.join("\n"));
-  assert.strictEqual(doc.querySelector("#stageSelect").value, "4", "still on Stage 4");
   assert.match(cells(doc)[0].className, /empty/, "the dug-empty tile came back");
+  // The treasures are the player's own work now that no preset supplies them, so
+  // losing them on a refresh would cost more than it used to.
+  assert.ok([...doc.querySelectorAll("#pieceRows tr")].some(r => /1×3/.test(r.textContent)), "the entered treasures came back");
 
   const item = cells(doc).filter(c => /\bitem\b/.test(c.className));
   assert.strictEqual(item.length, 3, "the located 1×3 came back");
@@ -466,9 +559,29 @@ test("the board survives a refresh: stage, digs and located treasures all come b
   assert.match(doc.querySelector("#status").textContent, /Remaining to find/, "heatmap recomputed from the restored board");
 });
 
+// A preset is now just a grid size and a pickaxe cost, but which one you picked still
+// has to survive: matchesStage() compares the saved board against the stage's current
+// definition, and an empty treasure list has to count as a match.
+test("the selected preset survives a refresh", () => {
+  const storage = makeStorage();
+  {
+    const { window, doc } = boot({ storage });
+    loadStage(window, doc, 4);   // 6×6, 20 pickaxes/tile
+    click(window, cells(doc)[0]);
+    click(window, popButtons(doc).find(b => /Empty/.test(b.textContent)));
+  }
+
+  const { doc, errors } = boot({ storage });
+  assert.strictEqual(errors.length, 0, errors.join("\n"));
+  assert.strictEqual(doc.querySelector("#stageSelect").value, "4", "still on Stage 4");
+  assert.strictEqual(doc.querySelector("#gridSize").value, "6");
+  assert.strictEqual(doc.querySelector("#pickPerTile").value, "20");
+  assert.match(cells(doc)[0].className, /empty/, "the dug tile came back");
+});
+
 test("a restored treasure keeps its identity: clearing it frees exactly its own tiles", () => {
   const storage = makeStorage();
-  { const { window, doc } = boot({ storage }); placeTreasure(window, doc, 0, /1×3/); }
+  { const { window, doc } = bootPlaying({ storage }); placeTreasure(window, doc, 0, /1×3/); }
 
   // itemId/itemCounter must survive, or clearing would miss tiles (or collide with a new find).
   const { window, doc } = boot({ storage });
@@ -478,8 +591,8 @@ test("a restored treasure keeps its identity: clearing it frees exactly its own 
 });
 
 test("a preset that changed under a saved board relabels it custom but keeps the board", () => {
-  // Stage 1 is a 5×5 of three 1×3. This save claims Stage 1 with different pieces,
-  // exactly what a returning user would have if the stage's treasures were corrected.
+  // Stage 1 is a 5×5 that ships no treasures. This save claims Stage 1 *with* treasures,
+  // which is exactly what everyone who played before the presets were emptied now has.
   const storage = makeStorage({
     "th.board": JSON.stringify({
       v: 1, N: 5, stage: "1", grid: "5", pick: "15",
@@ -509,7 +622,7 @@ test("a corrupt save is ignored and the app boots Stage 1 as usual", () => {
 
 test("New game clears the persisted board rather than resurrecting it", () => {
   const storage = makeStorage();
-  { const { window, doc } = boot({ storage }); placeTreasure(window, doc, 0, /1×3/); click(window, doc.querySelector("#newGame")); }
+  { const { window, doc } = bootPlaying({ storage }); placeTreasure(window, doc, 0, /1×3/); click(window, doc.querySelector("#newGame")); }
 
   const { doc } = boot({ storage });
   assert.strictEqual(cells(doc).filter(c => /\bitem\b/.test(c.className)).length, 0, "board stays reset after a refresh");
@@ -524,7 +637,7 @@ test("New game clears the persisted board rather than resurrecting it", () => {
 // elements have no inline colour, so a refresh visibly changed the board.
 test("digging a tile hands its ink back to the stylesheet, live and after a refresh", () => {
   const storage = makeStorage();
-  const { window, doc } = boot({ storage });
+  const { window, doc } = bootPlaying({ storage });
 
   const hidden = cells(doc)[0];
   assert.notStrictEqual(hidden.style.color, "", "a hidden tile does carry an inline heatmap ink");
@@ -550,7 +663,7 @@ test("digging a tile hands its ink back to the stylesheet, live and after a refr
 // is the brightest part of the ramp even though p is only ~0.4, and the old
 // `p > 0.55` rule put light ink on it at 2.1:1.
 test("heatmap ink is chosen by luminance, so the bright midrange gets dark ink", () => {
-  const { window, doc } = boot();
+  const { window, doc } = bootPlaying();
   const inkFor = p => window.eval(`inkFor(${p})`);
   const DARK = "#000", LIGHT = "#fff";
 
@@ -585,9 +698,9 @@ test("every glyph clears WCAG AA against its actual background, on every stage",
   const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 
   let worst = { r: Infinity };
-  for (const stage of [1, 5, 12, 15, 22]) {
+  for (const stage of [FIX.s1, FIX.s5, FIX.s12, FIX.s15, FIX.s22]) {
     const { window, doc } = boot();
-    loadStage(window, doc, stage);
+    loadHidden(window, stage);
     for (const el of cells(doc)) {
       let bg, fg;
       if (/buried/.test(el.className)) [bg, fg] = CSS.buried.map(hex);

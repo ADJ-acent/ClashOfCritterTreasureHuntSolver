@@ -7,7 +7,7 @@ A single-page web app that helps you play the **Treasure Hunt** event efficientl
 ## What it does
 
 - **Probability heatmap** — every hidden tile is colored blue→red by how likely it is to contain part of a treasure, given everything you've dug so far.
-- **Stage presets** — pick any of the 24 stages to auto-fill the grid size, treasures, and pickaxes-per-tile.
+- **Stage presets** — pick any of the 24 stages to auto-fill the grid size and pickaxes-per-tile. The treasures are yours to enter: the game now picks each stage's set at random from several sets of similar difficulty, so there is no longer one list per stage to preset. A notice in the app explains this and asks for screenshots so the sets can be collected and the presets rebuilt.
 - **Pick-cost estimator** — estimates the average number of tiles (and pickaxes) needed to finish the stage from the current board, with a typical range.
 - **Manual setup** — set any grid size and add treasures by dimension for custom boards.
 - **Your board is remembered.** Refresh the page or come back later and the board is exactly as you left it: the stage, every dig, and every located treasure. It is saved in your own browser and never uploaded. Press **New game** to start over.
@@ -16,7 +16,7 @@ A single-page web app that helps you play the **Treasure Hunt** event efficientl
 
 ## How to use it
 
-1. Pick a stage from the **Preset** dropdown (or set the grid size and add treasures manually).
+1. Pick a stage from the **Preset** dropdown (or set the grid size yourself), then add the treasures the game shows for it.
 2. Click a hidden tile and tell the app what you found:
    - **Empty** — marks the tile as dug-and-empty.
    - **A treasure** — choose its size, then pick the placement that matches the direction it ran. Each option shows a little diagram of where the treasure sits on the board. On desktop, hover to preview and click to place; on touch, tap to preview then tap **Place it**. The clicked tile is marked **dug** (✓) and the rest of the footprint is shown **located but buried** (⛏, hatched) — you still have to dig those out to collect it.

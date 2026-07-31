@@ -141,6 +141,9 @@
         </label>
       </div>
       <div id="stageInfo" class="hint"></div>
+      <!-- Reopens the patch notice. It sits here, not in the footer, because this is
+           where someone finds out the presets are empty and might send a screenshot. -->
+      <button id="presetsLink" type="button" class="linkish" data-i18n="notice.why">為什麼預設是空的？</button>
       <div class="row" style="margin-top:8px">
         <label><span data-i18n="setup.gridSize">網格大小</span> <input id="gridSize" type="number" min="2" max="12" value="5"> × <span id="gridSizeEcho">5</span></label>
       </div>
@@ -216,6 +219,25 @@
   <div style="display:flex;gap:14px;align-items:center;justify-content:flex-end;flex-wrap:wrap">
     <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" data-i18n="credits.contribute" style="color:var(--accent);font-size:13px">在 Discord 提問</a>
     <button id="creditsClose" type="button" class="primary" data-i18n="common.close">關閉</button>
+  </div>
+</dialog>
+
+<!-- Patch notice. The game now picks each stage's treasures from one of several sets, so the
+     per-stage presets can't be right any more and have been emptied. Opens once per browser
+     (localStorage["th.seenNotice"], a version string so a later notice can re-fire) and any time
+     from the "Why are the presets empty?" link in the setup panel. -->
+<dialog id="noticeDialog" class="credits-dialog notice-dialog" aria-labelledby="noticeTitle">
+  <h2 id="noticeTitle" data-i18n="notice.title">營地尋寶有更新，預設暫停使用</h2>
+  <p data-i18n="notice.intro">摘自遊戲更新公告：</p>
+  <blockquote>
+    <b data-i18n="notice.patchHeading">營地尋寶</b><br>
+    <span data-i18n="notice.patchBody">增加了關卡的多樣性。現在，遊戲會為本關卡從若干難度相近的寶藏組合中隨機選擇一組。</span>
+  </blockquote>
+  <p data-i18n="notice.deprecated">每一關的寶藏現在都從若干組合中隨機抽取，所以原本的預設已經作廢。選擇關卡時仍會自動填入網格大小和每格所需鐵鎬，寶藏則由你依實際看到的內容新增。</p>
+  <p data-i18n="notice.help">想幫忙的話：在 Discord 頻道發一張截圖，顯示關卡編號和該關列出的寶藏。收集到足夠的組合後，預設就會恢復，並提供選擇器讓你指定這次抽到的是哪一組。</p>
+  <div class="notice-actions">
+    <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" data-i18n="notice.discord">在 Discord 發截圖</a>
+    <button id="noticeClose" type="button" class="primary" data-i18n="notice.gotIt">知道了</button>
   </div>
 </dialog>
 

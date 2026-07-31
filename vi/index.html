@@ -141,6 +141,9 @@
         </label>
       </div>
       <div id="stageInfo" class="hint"></div>
+      <!-- Reopens the patch notice. It sits here, not in the footer, because this is
+           where someone finds out the presets are empty and might send a screenshot. -->
+      <button id="presetsLink" type="button" class="linkish" data-i18n="notice.why">Vì sao các màn có sẵn đều trống?</button>
       <div class="row" style="margin-top:8px">
         <label><span data-i18n="setup.gridSize">Kích thước lưới</span> <input id="gridSize" type="number" min="2" max="12" value="5"> × <span id="gridSizeEcho">5</span></label>
       </div>
@@ -216,6 +219,25 @@
   <div style="display:flex;gap:14px;align-items:center;justify-content:flex-end;flex-wrap:wrap">
     <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" data-i18n="credits.contribute" style="color:var(--accent);font-size:13px">Hỏi trên Discord</a>
     <button id="creditsClose" type="button" class="primary" data-i18n="common.close">Đóng</button>
+  </div>
+</dialog>
+
+<!-- Patch notice. The game now picks each stage's treasures from one of several sets, so the
+     per-stage presets can't be right any more and have been emptied. Opens once per browser
+     (localStorage["th.seenNotice"], a version string so a later notice can re-fire) and any time
+     from the "Why are the presets empty?" link in the setup panel. -->
+<dialog id="noticeDialog" class="credits-dialog notice-dialog" aria-labelledby="noticeTitle">
+  <h2 id="noticeTitle" data-i18n="notice.title">Truy Tìm Kho Báu đã thay đổi, các màn có sẵn tạm dừng</h2>
+  <p data-i18n="notice.intro">Từ ghi chú cập nhật của trò chơi:</p>
+  <blockquote>
+    <b data-i18n="notice.patchHeading">Truy Tìm Kho Báu</b><br>
+    <span data-i18n="notice.patchBody">Bổ sung sự đa dạng cho các màn chơi. Giờ đây, bộ kho báu của màn hiện tại sẽ được chọn ngẫu nhiên từ nhiều bộ có độ khó tương đương.</span>
+  </blockquote>
+  <p data-i18n="notice.deprecated">Giờ đây mỗi màn lấy kho báu từ một trong nhiều bộ khác nhau, nên các màn có sẵn trước đây không còn dùng được. Kích thước lưới và cuốc chim mỗi ô vẫn được điền tự động, còn kho báu thì bạn tự thêm theo đúng những gì mình thấy.</p>
+  <p data-i18n="notice.help">Cách giúp sức: hãy đăng ảnh chụp màn hình trong kênh Discord, trong đó thấy rõ số màn và danh sách kho báu của màn đó. Khi đã thu thập đủ các bộ, tính năng màn có sẵn sẽ trở lại, kèm tùy chọn cho biết bạn gặp bộ nào.</p>
+  <div class="notice-actions">
+    <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" data-i18n="notice.discord">Đăng ảnh chụp màn hình lên Discord</a>
+    <button id="noticeClose" type="button" class="primary" data-i18n="notice.gotIt">Đã hiểu</button>
   </div>
 </dialog>
 
