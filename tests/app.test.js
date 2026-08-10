@@ -58,22 +58,33 @@ function makeStorage(seed = {}) {
 const click = (win, el) =>
   el.dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true, clientX: 50, clientY: 50 }));
 
-function loadStage(win, doc, n) {
+const setDialogOpen = doc => doc.querySelector("#setDialog").hasAttribute("open");
+const setOptions = doc => [...doc.querySelectorAll("#setOptions .set-opt")];
+// The chooser's last option is always "none of these, I'll enter them myself".
+const pickSet = (win, doc, i) => {
+  const opts = setOptions(doc);
+  click(win, i === "custom" ? opts[opts.length - 1] : opts[i]);
+};
+
+// Selecting a stage with a choice to make opens the chooser rather than loading anything,
+// so the helper answers it. Pass `i` to take a set other than the first, or "custom".
+function loadStage(win, doc, n, i = 0) {
   const sel = doc.querySelector("#stageSelect");
   sel.value = String(n);
   sel.dispatchEvent(new win.Event("change", { bubbles: true }));
+  if (setDialogOpen(doc)) pickSet(win, doc, i);
 }
 
-// Hidden stages aren't in the dropdown, so load them via the global loader directly.
-const loadHidden = (win, n) => win.loadStage(n);
+// Loads a fixture stage through the global loader, which is also how the two negative
+// test-only stages (not in the dropdown) get in.
+const loadFix = (win, n) => win.loadStage(n);
 
-// The shipped presets carry grid size and pickaxes only: the game picks each stage's
-// treasure set at random from several, so there is no single list to preset. The
-// pre-patch lists live on in HIDDEN_STAGES at -(100 + n), which is where a test gets a
-// board with something to solve. FIX.s1 is the old Stage 1 (three 1×3 on a 5×5), the
-// default fixture, since most tests just need "a board with treasures on it".
-const FIX = { empty: -1, one: -2, s1: -101, s5: -105, s9: -109, s12: -112, s13: -113, s15: -115, s22: -122 };
-const bootPlaying = opts => { const b = boot(opts); loadHidden(b.window, FIX.s1); return b; };
+// Fixture boards. Most are real stages, loaded at their first set: a preset ships the
+// stage's treasures again. The two negative ones are boards no stage provides, an empty
+// setup and a single 1×2. FIX.s1 (three 1×3 on a 5×5) is the default, since most tests
+// just need "a board with treasures on it".
+const FIX = { empty: -1, one: -2, s1: 1, s5: 5, s9: 9, s12: 12, s13: 13, s15: 15, s22: 22 };
+const bootPlaying = opts => { const b = boot(opts); loadFix(b.window, FIX.s1); return b; };
 
 // jsdom has no matchMedia (=> desktop/hover flow by default). Call this to simulate
 // a touch device: matchMedia matches both the no-hover and phone-width queries.
@@ -84,19 +95,15 @@ const setMobile = win => {
 const popButtons = doc => [...doc.querySelectorAll("#pop button")];
 const cells = doc => [...doc.querySelector("#grid").children];
 
-test("boots Stage 1 as a 5x5 board that asks for the stage's treasures", () => {
+test("boots Stage 1 as a 5x5 board carrying the stage's first treasure set", () => {
   const { doc, errors } = boot();
   assert.strictEqual(errors.length, 0, errors.join("\n"));
   assert.strictEqual(cells(doc).length, 25);
-  // A preset no longer brings treasures, so the status line is the prompt to enter
-  // them. "Remaining to find: none" would read as "you're done" on a fresh board.
+  // A preset ships the stage's treasures, so a fresh board already has something to solve.
   const status = doc.querySelector("#status");
-  assert.match(status.textContent, /Add this stage's treasures/);
-  assert.ok(!/Remaining to find/.test(status.textContent), "nothing to solve yet");
-  // Both arrows ship; the 720px breakpoint shows ← (controls are the left column) or
-  // ↓ (controls sit below the board), so the copy stays one string.
-  assert.ok(status.querySelector(".point-left") && status.querySelector(".point-down"),
-    "the notice points at the setup panel both ways");
+  assert.match(status.textContent, /Remaining to find/);
+  const rows = [...doc.querySelectorAll("#pieceRows tr")].map(r => r.textContent).join(" ");
+  assert.match(rows, /1×3/, "Stage 1's first set is three 1×3");
 });
 
 test("a board with treasures computes probabilities", () => {
@@ -106,12 +113,22 @@ test("a board with treasures computes probabilities", () => {
   assert.match(doc.querySelector("#status").textContent, /Remaining to find/);
 });
 
-test("the no-treasures notice clears as soon as a treasure is added", () => {
+// A board with no treasures is no longer the default, but it is still reachable (delete
+// every piece, or a custom board), and "Remaining to find: none" would read as "you're
+// done" on an untouched board. So the status line becomes the prompt to enter them.
+test("a board with no treasures asks for them, and clears as soon as one is added", () => {
   const { window, doc } = boot();
-  assert.match(doc.querySelector("#status").textContent, /Add this stage's treasures/);
+  loadFix(window, FIX.empty);
+  const status = doc.querySelector("#status");
+  assert.match(status.textContent, /Add this stage's treasures/);
+  assert.ok(!/Remaining to find/.test(status.textContent), "nothing to solve yet");
+  // Both arrows ship; the 720px breakpoint shows ← (controls are the left column) or
+  // ↓ (controls sit below the board), so the copy stays one string.
+  assert.ok(status.querySelector(".point-left") && status.querySelector(".point-down"),
+    "the notice points at the setup panel both ways");
   click(window, doc.querySelector("#quickAdd button"));   // quick-add any size
   click(window, doc.querySelector("#newGame"));
-  assert.match(doc.querySelector("#status").textContent, /Remaining to find/, "back to the solver line");
+  assert.match(status.textContent, /Remaining to find/, "back to the solver line");
 });
 
 test("digging an empty tile marks it and recomputes", () => {
@@ -161,9 +178,9 @@ test("mobile: placement is select-then-place (tap previews, Place it commits)", 
 });
 
 // The patch ("a set of treasures will be selected at random from several sets") means a
-// stage has no single treasure list to preset. Grid size and pickaxes/tile didn't change,
-// so those still autofill; the treasures are the player's to enter.
-test("stage presets load grid size and pickaxes-per-tile, and no treasures", () => {
+// preset is a list of sets rather than one list. It loads the first, and the stages with
+// more than one offer a picker.
+test("stage presets load the grid, the pickaxes, and the stage's first treasure set", () => {
   const { window, doc } = boot();
   assert.strictEqual(doc.querySelectorAll("#stageSelect option").length, 25, "custom + 24 stages (test stages are hidden)");
 
@@ -171,18 +188,151 @@ test("stage presets load grid size and pickaxes-per-tile, and no treasures", () 
   assert.strictEqual(doc.querySelector("#gridSize").value, "7");
   assert.strictEqual(doc.querySelector("#pickPerTile").value, "25");
   assert.strictEqual(cells(doc).length, 49, "board built at the preset's size");
-  const rows = [...doc.querySelectorAll("#pieceRows tr")].map(r => r.textContent).join(" ");
-  assert.ok(!/×/.test(rows), "a preset ships no treasures");
-  assert.match(doc.querySelector("#stageInfo").textContent, /treasures vary/);
+  assert.match(doc.querySelector("#stageInfo").textContent, /1×2 \(×2\), 2×2 \(×2\), 2×4/);
 
-  // The "(no data)" marker used to flag the odd stage with unpublished treasures.
-  // It would now be on all 24, so the stage info line carries it instead.
+  // The "(no data)" marker used to flag stages with unpublished treasures. Every stage
+  // has at least one set now, and the ones with a gap say so on the stage info line.
   const labels = [...doc.querySelectorAll("#stageSelect option")].map(o => o.textContent).join(" ");
   assert.ok(!/no data/.test(labels), "no per-option marker when it would be universal");
 });
 
-// The presets are paused, not gone: the sets have to be collected first. The notice
-// explains that and asks for screenshots, and the setup panel can reopen it.
+// 35 sets, entered by hand from the stage table. A typo that made one unplaceable would
+// render the whole board as "?" for whoever picked it, and a stage holding the same set
+// twice would give the picker two identical labels. Nothing else here would notice either.
+test("every treasure set fits its board, and no stage lists one twice", () => {
+  const { window: win } = boot();
+  const report = JSON.parse(win.eval(`(() => {
+    const bad = [], dup = [];
+    let sets = 0;
+    STAGES.forEach(s => {
+      const seen = new Set();
+      s.sets.forEach((set, i) => {
+        sets++;
+        loadStage(s.n, i);
+        if (!lastResult || lastResult.total <= 0) bad.push("stage " + s.n + " set " + (i + 1));
+        const label = dimsLabel(setDims(set));
+        if (seen.has(label)) dup.push("stage " + s.n + " set " + (i + 1));
+        seen.add(label);
+      });
+    });
+    return JSON.stringify({ bad, dup, sets });
+  })()`));
+  assert.deepStrictEqual(report.bad, [], "every set has at least one valid layout");
+  assert.deepStrictEqual(report.dup, [], "a repeated set would be indistinguishable in the picker");
+  assert.strictEqual(report.sets, 35, "24 stages, 35 distinct sets");
+});
+
+// Loading a set silently would be a guess, and every probability on the board depends on
+// it, so stages with a choice ask. The 15 with one set and no known gap just load.
+test("the set chooser opens only where a stage has a choice to make", () => {
+  const { window, doc } = boot();
+  const sel = doc.querySelector("#stageSelect");
+  const pick = n => { sel.value = String(n); sel.dispatchEvent(new window.Event("change", { bubbles: true })); };
+
+  pick(13);                       // one set, no gap: loads straight away
+  assert.ok(!setDialogOpen(doc), "no dialog on a single-set stage");
+  assert.match(doc.querySelector("#stageInfo").textContent, /2×4 \(×2\)/, "loaded it directly");
+  assert.ok(doc.querySelector("#setRow").hidden, "and nothing to switch between");
+
+  pick(9);                        // two sets: asks
+  assert.ok(setDialogOpen(doc), "dialog on a multi-set stage");
+  const labels = o => [...o.querySelectorAll(".plabel")].map(l => l.textContent);
+  assert.deepStrictEqual(
+    setOptions(doc).slice(0, -1).map(o => labels(o).join(", ")),
+    ["1×2 (×2), 2×2 (×2), 2×4", "1×2 (×2), 1×4 (×2), 2×4"],
+    "options are dimensions, never treasure names");
+  // One block per distinct size, each with its own label under it, not N copies of a block
+  // over one combined string.
+  const first = setOptions(doc)[0];
+  assert.strictEqual(first.querySelectorAll(".set-shapes .piece").length, 3, "1×2, 2×2, 2×4");
+  assert.deepStrictEqual(labels(first), ["1×2 (×2)", "2×2 (×2)", "2×4"],
+    "counted per shape, and the lone 2×4 carries no ×1");
+  assert.strictEqual(first.querySelectorAll(".piece")[0].querySelectorAll(".shape span").length, 2,
+    "the 1×2 block is drawn once, at 2 cells");
+
+  pickSet(window, doc, 1);
+  assert.ok(!setDialogOpen(doc), "closes on choosing");
+  const info = doc.querySelector("#stageInfo").textContent;
+  assert.match(info, /1×4 \(×2\)/, "the second set's 1×4 pair is loaded");
+  assert.ok(!/2×2 \(×2\)/.test(info), "and the first set's 2×2 pair is gone");
+  assert.strictEqual(sel.value, "9", "still on Stage 9");
+  // A dropdown next to the preset one switches sets afterwards, without the dialog.
+  const setSel = doc.querySelector("#setSelect");
+  assert.ok(!doc.querySelector("#setRow").hidden, "the set dropdown is up");
+  assert.strictEqual(setSel.value, "1", "showing the set actually loaded");
+  setSel.value = "0";
+  setSel.dispatchEvent(new window.Event("change", { bubbles: true }));
+  assert.ok(!setDialogOpen(doc), "switching does not reopen the dialog");
+  assert.match(doc.querySelector("#stageInfo").textContent, /2×2 \(×2\)/, "back on the first set");
+});
+
+// Nothing loads until the choice is answered, so backing out must not leave the dropdown
+// advertising a stage that never arrived.
+test("cancelling the chooser puts the dropdown back and keeps the board", () => {
+  const { window, doc } = boot();     // boots Stage 1 at its first set
+  loadStage(window, doc, 13);         // a single-set stage, loaded for real
+  const sel = doc.querySelector("#stageSelect");
+
+  sel.value = "9";
+  sel.dispatchEvent(new window.Event("change", { bubbles: true }));
+  assert.ok(setDialogOpen(doc), "asking");
+  click(window, doc.querySelector("#setCancel"));
+
+  assert.ok(!setDialogOpen(doc), "closed");
+  assert.strictEqual(sel.value, "13", "dropdown back on the stage actually loaded");
+  assert.match(doc.querySelector("#stageInfo").textContent, /2×4 \(×2\)/, "Stage 13's board is untouched");
+});
+
+// The escape hatch for a set nobody has recorded: take the grid and the pickaxe cost,
+// leave the treasures to the player.
+test("'none of these' keeps the stage's grid and pickaxes but no treasures", () => {
+  const { window, doc } = boot();
+  loadStage(window, doc, 9, "custom");
+
+  assert.strictEqual(doc.querySelector("#stageSelect").value, "", "no set means no stage label");
+  assert.strictEqual(doc.querySelector("#gridSize").value, "7", "grid came from the stage");
+  assert.strictEqual(doc.querySelector("#pickPerTile").value, "25", "so did the pickaxe cost");
+  assert.strictEqual(cells(doc).length, 49);
+  assert.match(doc.querySelector("#status").textContent, /Add this stage's treasures/);
+});
+
+// The picker hides itself with the `hidden` attribute, and that is not self-evidently
+// enough: the UA stylesheet's [hidden] { display: none } loses to *any* author `display`,
+// and #setRow is a .row, which is display:flex. It shipped rendering as an empty box on
+// all 16 single-set stages. Nothing driving the DOM here can see it, because boot() drops
+// the stylesheet, so the file itself is what has to be asserted on.
+test("hidden elements really are hidden, whatever else styles them", () => {
+  const css = fs.readFileSync(path.join(ROOT, "styles.css"), "utf8");
+  assert.match(css, /\[hidden\]\s*\{[^}]*display:\s*none\s*!important/,
+    "styles.css must force display:none on [hidden]; .row's display:flex outranks the UA rule");
+});
+
+// Two sets are known to be missing (stages 8 and 9), so those stages say so rather than
+// implying their list is exhaustive.
+test("a stage with an unrecorded set says so, and asks even with one set", () => {
+  const { window, doc } = boot();
+  loadStage(window, doc, 9);
+  assert.match(doc.querySelector("#stageInfo").textContent, /isn't recorded yet/);
+  loadStage(window, doc, 13);
+  assert.ok(!/isn't recorded yet/.test(doc.querySelector("#stageInfo").textContent),
+    "only on the stages with a known gap");
+
+  // Stage 8 has one known set and one missing, so it asks despite having no second option:
+  // "none of these" is the whole point there, and the dialog is where the ask belongs.
+  const sel = doc.querySelector("#stageSelect");
+  sel.value = "8";
+  sel.dispatchEvent(new window.Event("change", { bubbles: true }));
+  assert.ok(setDialogOpen(doc), "a partial stage asks even with a single known set");
+  assert.strictEqual(setOptions(doc).length, 2, "its one set, plus 'none of these'");
+  assert.ok(!doc.querySelector("#setPartial").hidden, "and says a set is missing");
+  assert.ok(!doc.querySelector("#setDiscord").hidden, "with the screenshot ask");
+
+  pickSet(window, doc, 0);
+  assert.ok(doc.querySelector("#setRow").hidden, "one known set, so nothing to switch between");
+});
+
+// The notice explains that a stage draws from several sets and how the picker works,
+// asks for screenshots of the two sets still missing, and the setup panel can reopen it.
 test("the patch notice opens once per browser, and the setup link reopens it", () => {
   const storage = makeStorage();
   const dlg = doc => doc.querySelector("#noticeDialog");
@@ -200,7 +350,7 @@ test("the patch notice opens once per browser, and the setup link reopens it", (
 
   click(first.window, first.doc.querySelector("#noticeClose"));
   assert.ok(!dlg(first.doc).hasAttribute("open"), "dismissed");
-  assert.strictEqual(storage.getItem("th.seenNotice"), "presets-paused-2026-07", "remembered by version");
+  assert.strictEqual(storage.getItem("th.seenNotice"), "presets-back-2026-08", "remembered by version");
 
   // Second visit: not shown again, but still one click away.
   const second = boot({ storage });
@@ -230,7 +380,7 @@ test("editing pieces switches the preset dropdown to custom", () => {
 // (The old model counted ~1 dig per treasure and reported well under 9.)
 test("pick-cost estimator counts every treasure tile, not one hit per treasure", async () => {
   const { window, doc, errors } = boot();
-  loadHidden(window, FIX.s1); // three 1×3 = 9 treasure tiles
+  loadFix(window, FIX.s1); // three 1×3 = 9 treasure tiles
   click(window, doc.querySelector("#estimate"));
   await new Promise(r => setTimeout(r, 80)); // runEstimate defers compute via setTimeout
 
@@ -243,7 +393,7 @@ test("pick-cost estimator counts every treasure tile, not one hit per treasure",
 
 test("estimator reports nothing left when every treasure is dug out", async () => {
   const { window, doc } = boot();
-  loadHidden(window, FIX.one);   // a single 1×2, so the board can be finished in two clicks
+  loadFix(window, FIX.one);   // a single 1×2, so the board can be finished in two clicks
   placeTreasure(window, doc, 0, /1×2/);
   click(window, cells(doc).find(c => /buried/.test(c.className)));
   click(window, popButtons(doc).find(b => /dug out/i.test(b.textContent)));
@@ -254,10 +404,11 @@ test("estimator reports nothing left when every treasure is dug out", async () =
 });
 
 // An empty setup is not a finished board. estimateSolve() would call it "done"
-// (nothing left to find), which was harmless when presets brought treasures and is
-// the default state now that they don't.
+// (nothing left to find), which is wrong for someone who has cleared the pieces out
+// to enter their own.
 test("the estimator asks for treasures instead of calling an empty board finished", async () => {
-  const { window, doc } = boot();   // no treasures: a preset ships none
+  const { window, doc } = boot();
+  loadFix(window, FIX.empty);
   click(window, doc.querySelector("#estimate"));
   await new Promise(r => setTimeout(r, 80));
   const out = doc.querySelector("#estimateOut").textContent;
@@ -277,7 +428,7 @@ test("highlights the best hidden tile(s) but never empties or found treasures", 
   best.forEach(c => assert.ok(Math.abs(pct(c) - maxPct) < 0.6, "best tile is at (rounded) max probability"));
 
   // An empty test board has no treasures left -> nothing highlighted.
-  loadHidden(window, FIX.empty);
+  loadFix(window, FIX.empty);
   assert.strictEqual(cells(doc).filter(c => /best/.test(c.className)).length, 0, "no best tile when nothing remains");
 });
 
@@ -336,7 +487,7 @@ test("popover renders as a bottom sheet on small screens", () => {
 
 test("DP toggle: exact on a dense stage where DFS bails, falls back to MC when off", () => {
   const { window, doc, errors } = boot();
-  loadHidden(window, FIX.s13); // 7x7, ~556k layouts -> DFS bails (>EXACT_LEAF_BUDGET)
+  loadFix(window, FIX.s13); // 7x7, ~556k layouts -> DFS bails (>EXACT_LEAF_BUDGET)
   const status = () => doc.querySelector("#status").textContent;
   // default ON -> exact via the profile DP (no Monte-Carlo sampling)
   assert.match(status(), /Exact over [\d,]+ layouts \(DP\)/);
@@ -352,11 +503,34 @@ test("DP toggle: exact on a dense stage where DFS bails, falls back to MC when o
   assert.match(status(), /\(DP\)/);
 });
 
+// Three of the game's 48 bomb-weight tables deviate from the standard one, and which a
+// board draws on is invisible in the UI, so a wrong mapping would quietly bias the bomb
+// estimate with nothing on screen to contradict it. The total matters as much as the
+// weight: it used to be hardcoded to 10000, which would turn every roll past the end of
+// an 8000-weight table into a 0, i.e. fewer bombs exactly where the deviation grants more.
+test("the deviating bomb weights are picked up by stage and set", () => {
+  const { window, doc } = boot();
+  const table = (n, i) => {
+    window.loadStage(n, i);
+    return window.eval("useBombTable(); bombDist[0][1] + '/' + bombTotal");
+  };
+  assert.strictEqual(table(6, 1), "2000/8000", "stage 6's second set deviates");
+  assert.strictEqual(table(7, 1), "2000/8000", "stage 7's second set deviates");
+  assert.strictEqual(table(6, 0), "4000/10000", "stage 6's first set is standard");
+  assert.strictEqual(table(7, 2), "4000/10000", "stage 7's third set is standard");
+  assert.strictEqual(table(9, 1), "4000/10000", "a second set elsewhere is standard");
+
+  // A hand-edited board is no stage's set, so it cannot inherit a deviation.
+  click(window, doc.querySelector("#quickAdd button"));
+  assert.strictEqual(window.eval("useBombTable(); bombDist[0][1] + '/' + bombTotal"),
+    "4000/10000", "custom board falls back to the standard table");
+});
+
 // Bombs collect tiles for free, so the bomb-aware estimate is below the conservative
 // one, and the detail line flips from "ignores bombs" to "assumes bombs".
 test("bomb toggle lowers the estimate and relabels it", async () => {
   const { window, doc, errors } = boot();
-  loadHidden(window, FIX.s1); // three 1×3 = 9 treasure tiles on 5×5
+  loadFix(window, FIX.s1); // three 1×3 = 9 treasure tiles on 5×5
 
   // default OFF: the conservative estimate that ignores bombs
   click(window, doc.querySelector("#estimate"));
@@ -434,7 +608,7 @@ test("a prerendered locale page boots in its language, static chrome and dynamic
   // A preset ships no treasures, so a fresh board's status line is the notice.
   assert.ok(!/Add this stage's treasures/.test(doc.querySelector("#status").textContent),
     "the no-treasures notice is translated too");
-  loadHidden(window, FIX.s1);   // a board with something to solve -> the solver line
+  loadFix(window, FIX.s1);   // a board with something to solve -> the solver line
   const ja = doc.querySelector("#status").textContent;
   assert.ok(!/Remaining to find/.test(ja), "status line is not English");
   assert.match(ja, /発見すべき宝/, "status line translated (built by t() at runtime)");
@@ -442,8 +616,10 @@ test("a prerendered locale page boots in its language, static chrome and dynamic
 });
 
 test("the English root keeps its strings byte-identical (the other tests assert on them)", () => {
-  const { doc } = boot();
+  const { window, doc } = boot();
   assert.strictEqual(doc.querySelector("h1").textContent, "Clash of Critters Treasure Hunt Probability Solver");
+  assert.match(doc.querySelector("#status").textContent, /Remaining to find: 1×3 \(3 left\)\./);
+  loadFix(window, FIX.empty);
   assert.match(doc.querySelector("#status").textContent, /Add this stage's treasures in the setup panel\./);
 });
 
@@ -495,7 +671,7 @@ test("auto-detects the UI language from the browser, region-aware (zh-TW -> Trad
 
 test("treasure names are never shown — dimensions only", () => {
   const { window, doc } = boot();
-  loadHidden(window, FIX.s1); // three 1×3 treasures (formerly labelled "Zobo Cola")
+  loadFix(window, FIX.s1); // three 1×3 treasures (formerly labelled "Zobo Cola")
   const info = doc.querySelector("#stageInfo").textContent;
   assert.match(info, /1×3/, "stage info lists the dimension");
   assert.ok(!/Zobo|Cola|Syringe|Radio|Statue|Spaceship|Cyberlimb/.test(info), "no treasure names leak into the UI");
@@ -508,7 +684,7 @@ test("treasure names are never shown — dimensions only", () => {
 
 test("language switch localizes the popover while keeping dimensions intact", () => {
   const { window, doc } = bootLocale("ja");
-  loadHidden(window, FIX.s1);
+  loadFix(window, FIX.s1);
   click(window, cells(doc)[0]);
   const labels = popButtons(doc).map(b => b.textContent);
   assert.ok(labels.some(t => /1×3/.test(t)), "the dimension survives translation");
@@ -559,9 +735,8 @@ test("the board survives a refresh: treasures, digs and located treasures all co
   assert.match(doc.querySelector("#status").textContent, /Remaining to find/, "heatmap recomputed from the restored board");
 });
 
-// A preset is now just a grid size and a pickaxe cost, but which one you picked still
-// has to survive: matchesStage() compares the saved board against the stage's current
-// definition, and an empty treasure list has to count as a match.
+// Which preset you picked has to survive: stageSetOf() compares the saved board against
+// the stage's sets as they are defined today, and the dropdown follows the answer.
 test("the selected preset survives a refresh", () => {
   const storage = makeStorage();
   {
@@ -590,9 +765,62 @@ test("a restored treasure keeps its identity: clearing it frees exactly its own 
   assert.strictEqual(cells(doc).filter(c => /\bitem\b/.test(c.className)).length, 0, "all 3 tiles released");
 });
 
+// The set a board is on is derived from its saved pieces, never stored, so it cannot
+// drift from them. It also has to survive a refresh when it is not the first set.
+test("a board saved on a stage's second set restores onto that set", () => {
+  const storage = makeStorage();
+  {
+    const { window, doc } = boot({ storage });
+    loadStage(window, doc, 9, 1);          // take the second set
+    click(window, cells(doc)[0]);
+    click(window, popButtons(doc).find(b => /Empty/.test(b.textContent)));
+  }
+
+  const { doc, errors } = boot({ storage });
+  assert.strictEqual(errors.length, 0, errors.join("\n"));
+  assert.strictEqual(doc.querySelector("#stageSelect").value, "9", "still on Stage 9");
+  assert.match(doc.querySelector("#stageInfo").textContent, /1×4 \(×2\)/,
+    "restored onto the set that was in play, derived from the saved pieces");
+  assert.match(cells(doc)[0].className, /empty/, "the dug tile came back");
+});
+
+// Everyone who opened the app while the presets were empty has a saved board that is a
+// stage number, no treasures and no digs: that build wrote exactly this on every boot,
+// and the save format did not change, so it is still loadable. It holds nothing, and
+// restoring it would hand back a blank "custom" board instead of the presets.
+test("an empty leftover save is ignored, so the restored presets are what you see", () => {
+  const storage = makeStorage({
+    "th.board": JSON.stringify({
+      v: 1, N: 7, stage: "9", grid: "7", pick: "25", pieces: [],
+      cells: Array.from({ length: 49 }, () => ({ status: "hidden", type: null, itemId: 0, dug: false })),
+    }),
+  });
+
+  const { doc, errors } = boot({ storage });
+  assert.strictEqual(errors.length, 0, errors.join("\n"));
+  assert.strictEqual(doc.querySelector("#stageSelect").value, "1", "booted the default stage");
+  assert.match(doc.querySelector("#stageInfo").textContent, /1×3 \(×3\)/, "with its treasures");
+});
+
+// The flip side: one dig makes it a board someone was playing, and it is theirs to keep.
+test("a treasure-less save with a dig on it is still restored", () => {
+  const storage = makeStorage({
+    "th.board": JSON.stringify({
+      v: 1, N: 5, stage: "1", grid: "5", pick: "15", pieces: [],
+      cells: Array.from({ length: 25 }, (_, i) =>
+        i === 0 ? { status: "empty", type: null, itemId: 0, dug: false }
+                : { status: "hidden", type: null, itemId: 0, dug: false }),
+    }),
+  });
+
+  const { doc } = boot({ storage });
+  assert.strictEqual(doc.querySelector("#stageSelect").value, "", "no stage has no treasures, so: custom");
+  assert.match(cells(doc)[0].className, /empty/, "and the dig is kept");
+});
+
 test("a preset that changed under a saved board relabels it custom but keeps the board", () => {
-  // Stage 1 is a 5×5 that ships no treasures. This save claims Stage 1 *with* treasures,
-  // which is exactly what everyone who played before the presets were emptied now has.
+  // Stage 1's sets are three 1×3 and four 1×2. This save claims Stage 1 with a single
+  // 2×2, which is neither: the same shape as a save written while the presets were empty.
   const storage = makeStorage({
     "th.board": JSON.stringify({
       v: 1, N: 5, stage: "1", grid: "5", pick: "15",
@@ -700,7 +928,7 @@ test("every glyph clears WCAG AA against its actual background, on every stage",
   let worst = { r: Infinity };
   for (const stage of [FIX.s1, FIX.s5, FIX.s12, FIX.s15, FIX.s22]) {
     const { window, doc } = boot();
-    loadHidden(window, stage);
+    loadFix(window, stage);
     for (const el of cells(doc)) {
       let bg, fg;
       if (/buried/.test(el.className)) [bg, fg] = CSS.buried.map(hex);

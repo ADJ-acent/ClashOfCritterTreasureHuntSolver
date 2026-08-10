@@ -14,6 +14,14 @@
     --ink-dark: #000;
   }
   * { box-sizing: border-box; }
+  /* The UA stylesheet hides [hidden] with display:none, and *any* author `display`
+     outranks it (author origin beats UA, whatever the specificity). #setRow is a
+     .row, which is display:flex, so the set picker rendered as an empty box on the
+     16 single-set stages instead of disappearing. !important settles it for every
+     hidden element, so the attribute means what it says no matter what else styles
+     the element. jsdom drops this file, so no DOM test can catch a regression here;
+     the guard is the stylesheet assertion in tests/app.test.js. */
+  [hidden] { display: none !important; }
   body {
     margin: 0;
     font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -246,6 +254,8 @@
     #pop.sheet .ttl { font-size: 13px; }
     #pop.sheet button { padding: 11px 12px; font-size: 15px; }
     .mini { width: 54px; }
+    /* The chooser is a near-full-width sheet here and a 3×3 at 15px would crowd it. */
+    .set-shapes { --shape-cell: 12px; gap: 12px; }
   }
   .credits-dialog {
     background: var(--panel); color: var(--text);
@@ -255,6 +265,32 @@
   }
   .credits-dialog::backdrop { background: rgba(0,0,0,.55); }
   /* Patch notice. Same shell as the credits dialog, wider because it is prose. */
+  /* Set chooser. Each option draws the set's treasures as gold blocks at their real
+     proportions, so a player can match them against the game screen by shape instead of
+     parsing "1×2 (×2), 2×2 (×2), 2×4". The dimensions stay underneath as the exact answer. */
+  .set-dialog { max-width: 460px; font-size: 13px; line-height: 1.6; }
+  .set-dialog h2 { margin: 0 0 10px; font-size: 16px; color: var(--text); }
+  .set-dialog p { margin: 0 0 12px; color: var(--muted); }
+  .set-opt {
+    display: block; width: 100%; text-align: left; margin: 0 0 8px;
+    padding: 10px 12px; background: var(--panel2); border: 1px solid var(--line);
+    border-radius: 10px; color: var(--text); cursor: pointer; font: inherit;
+  }
+  .set-opt:hover, .set-opt:focus-visible { background: #3a4150; border-color: var(--accent); }
+  .set-opt.custom { text-align: center; color: var(--muted); }
+  /* Each block sits in its own column directly above its label. The row is bottom-aligned,
+     so every label lands on one line and the blocks grow upward off it: a 1×4 reads as
+     taller than a 1×2 without the text drifting out from under it. --shape-cell is the only
+     thing to tune, the blocks being grids of it. */
+  .set-shapes { --shape-cell: 15px; display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px 18px; }
+  .set-shapes .piece { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+  .set-shapes .shape { display: inline-grid; gap: 2px; }
+  .set-shapes .shape span {
+    width: var(--shape-cell); height: var(--shape-cell);
+    background: var(--item); border-radius: 2px;
+  }
+  .set-shapes .plabel { color: var(--muted); font-size: 12px; line-height: 1; white-space: nowrap; }
+
   .notice-dialog { max-width: 460px; font-size: 13px; line-height: 1.6; }
   .notice-dialog h2 { margin: 0 0 10px; font-size: 16px; color: var(--text); }
   .notice-dialog p { margin: 0 0 12px; color: var(--muted); }

@@ -33,81 +33,81 @@ const TREASURES = [
 ];
 
 /* ---------- Stage presets (from the in-game stage table). ----------
-   Grid size and pickaxes/tile only: every treasure list is empty on purpose.
-   The game patch ("Added variety to levels: a set of treasures will be selected
-   at random from several sets of similar difficulty for the current level") means
-   a stage no longer has *the* treasure list, so the old one-per-stage presets are
-   deprecated. Grid size and pickaxes/tile did not change, so those still autofill.
+   A stage draws its treasures from one of several sets, so a preset is a *list* of
+   sets. `sets[0]` is what the stage shipped with before the "added variety" patch.
 
-   This is a data change, not a code change: an empty `pieces` already meant "stage
-   known, treasures not published" everywhere (empty board, "add them manually" in
-   the stage info, the no-treasures notice in the status line).
+   Two sets that differ only in which item fills a given rectangle are one set here,
+   because the solver sees dimensions and nothing else. That collapses most of the
+   game's variants, which is why 24 stages need only 35 sets.
 
-   When the sets have been collected, the shape this wants is a list of sets per
-   stage plus a picker for which one you got. See docs/ARCHITECTURE.md. */
+   `partial` marks a stage with a set that isn't recorded here, so the UI can say so
+   rather than imply the list is exhaustive.
+
+   Each set is [name, count] using TREASURES sizes; same-size pieces merge. Names are
+   never displayed, so where a set could be either of two same-size treasures
+   (Radio/TV, Syringe/Outdated Console) the label is a guess and nothing depends on it. */
 const STAGES = [
-  { n: 1,  grid: 5, pick: 15,  pieces: [] },
-  { n: 2,  grid: 5, pick: 15,  pieces: [] },
-  { n: 3,  grid: 5, pick: 15,  pieces: [] },
-  { n: 4,  grid: 6, pick: 20,  pieces: [] },
-  { n: 5,  grid: 6, pick: 20,  pieces: [] },
-  { n: 6,  grid: 6, pick: 20,  pieces: [] },
-  { n: 7,  grid: 7, pick: 25,  pieces: [] },
-  { n: 8,  grid: 7, pick: 25,  pieces: [] },
-  { n: 9,  grid: 7, pick: 25,  pieces: [] },
-  { n: 10, grid: 7, pick: 35,  pieces: [] },
-  { n: 11, grid: 7, pick: 35,  pieces: [] },
-  { n: 12, grid: 7, pick: 35,  pieces: [] },
-  { n: 13, grid: 7, pick: 70,  pieces: [] },
-  { n: 14, grid: 7, pick: 70,  pieces: [] },
-  { n: 15, grid: 7, pick: 70,  pieces: [] },
-  { n: 16, grid: 7, pick: 100, pieces: [] },
-  { n: 17, grid: 7, pick: 100, pieces: [] },
-  { n: 18, grid: 7, pick: 100, pieces: [] },
-  { n: 19, grid: 7, pick: 150, pieces: [] },
-  { n: 20, grid: 7, pick: 150, pieces: [] },
-  { n: 21, grid: 7, pick: 150, pieces: [] },
-  { n: 22, grid: 7, pick: 200, pieces: [] },
-  { n: 23, grid: 7, pick: 200, pieces: [] },
-  { n: 24, grid: 7, pick: 200, pieces: [] },
+  { n: 1,  grid: 5, pick: 15,  sets: [
+    [["Zobo Cola", 3]],
+    [["Outdated Console", 4]],
+  ] },
+  { n: 2,  grid: 5, pick: 15,  sets: [
+    [["Zobo Zine", 1], ["Syringe", 3]],
+    [["Syringe", 2], ["Outdated Console", 2]],
+  ] },
+  { n: 3,  grid: 5, pick: 15,  sets: [
+    [["Trumpet", 1], ["Zobo Zine", 1], ["Outdated Console", 2]],
+    [["Pirated Magazine", 2], ["Zobo Zine", 1]],
+    [["Zobo Cola", 1], ["Outdated Console", 4]],
+  ] },
+  { n: 4,  grid: 6, pick: 20,  sets: [
+    [["Zobo Cola", 1], ["Outdated Console", 2], ["Radio", 1]],
+    [["Zobo Cola", 3], ["Outdated Console", 2]],
+  ] },
+  { n: 5,  grid: 6, pick: 20,  sets: [
+    [["Pirated Magazine", 2], ["Zobo Zine", 2]],
+    [["Cyberlimb", 2], ["Zobo Zine", 2]],
+    [["Zobo Cola", 2], ["Trumpet", 2], ["Zobo Zine", 1]],
+  ] },
+  { n: 6,  grid: 6, pick: 20,  sets: [
+    [["Zobo Cola", 2], ["Zobo Zine", 1], ["TV", 1]],
+    [["Outdated Console", 2], ["Radio", 1], ["TV", 1]],
+  ] },
+  { n: 7,  grid: 7, pick: 25,  sets: [
+    [["Zobo Zine", 1], ["Radio", 1], ["Cyberlimb", 2]],
+    [["Syringe", 4], ["Statue", 1]],
+    [["Zobo Zine", 1], ["Radio", 1], ["Statue", 1]],
+  ] },
+  { n: 8,  grid: 7, pick: 25,  partial: true, sets: [
+    [["Outdated Console", 2], ["Cyberlimb", 1], ["Spaceship", 1]],
+  ] },
+  { n: 9,  grid: 7, pick: 25,  partial: true, sets: [
+    [["Syringe", 2], ["Pirated Magazine", 2], ["Statue", 1]],
+    [["Syringe", 2], ["Cyberlimb", 2], ["Statue", 1]],
+  ] },
+  { n: 10, grid: 7, pick: 35,  sets: [[["Outdated Console", 2], ["Cyberlimb", 2], ["Spaceship", 1]]] },
+  { n: 11, grid: 7, pick: 35,  sets: [[["Zobo Cola", 2], ["Outdated Console", 2], ["Trumpet", 1], ["Statue", 1]]] },
+  { n: 12, grid: 7, pick: 35,  sets: [[["Cyberlimb", 2], ["Radio", 1], ["Outdated Console", 2], ["Spaceship", 1]]] },
+  { n: 13, grid: 7, pick: 70,  sets: [[["Outdated Console", 2], ["Statue", 2]]] },
+  { n: 14, grid: 7, pick: 70,  sets: [[["Radio", 1], ["Cyberlimb", 2], ["Spaceship", 1]]] },
+  { n: 15, grid: 7, pick: 70,  sets: [[["Zobo Cola", 2], ["Syringe", 2], ["TV", 1], ["Statue", 1]]] },
+  { n: 16, grid: 7, pick: 100, sets: [[["Outdated Console", 2], ["Pirated Magazine", 2], ["Statue", 1]]] },
+  { n: 17, grid: 7, pick: 100, sets: [[["Outdated Console", 2], ["Zobo Cola", 2], ["Radio", 1], ["Spaceship", 1]]] },
+  { n: 18, grid: 7, pick: 100, sets: [[["Outdated Console", 2], ["Cyberlimb", 2], ["TV", 1], ["Spaceship", 1]]] },
+  { n: 19, grid: 7, pick: 150, sets: [[["Outdated Console", 2], ["Zobo Zine", 2], ["Statue", 1]]] },
+  { n: 20, grid: 7, pick: 150, sets: [[["Outdated Console", 2], ["Zobo Cola", 2], ["Radio", 1], ["Spaceship", 1]]] },
+  { n: 21, grid: 7, pick: 150, sets: [[["Outdated Console", 2], ["Cyberlimb", 2], ["Radio", 1], ["Spaceship", 1]]] },
+  { n: 22, grid: 7, pick: 200, sets: [[["Outdated Console", 2], ["Zobo Zine", 2], ["Statue", 1]]] },
+  { n: 23, grid: 7, pick: 200, sets: [[["Outdated Console", 2], ["Zobo Cola", 2], ["Radio", 1], ["Spaceship", 1]]] },
+  { n: 24, grid: 7, pick: 200, sets: [[["Outdated Console", 2], ["Cyberlimb", 2], ["Radio", 1], ["Spaceship", 1]]] },
 ];
 // Stages loadable by the test suite but hidden from the dropdown. Negative n keeps
 // them out of sight (loadStage() reads ALL_STAGES, populateStages() reads STAGES).
-//
-// -101..-124 are the pre-patch treasure lists for stages 1..24, i.e. -(100 + n).
-// They are not dead data: each is one real set that the stage can still draw, and
-// the tests need boards that actually have treasures to solve. They are kept out of
-// the dropdown because there is no way to tell a player which set they got.
-// pieces: [name, count] using TREASURES sizes; same-size pieces merge in the solver.
-// Stage 12's 2×3 and 1×2 are labelled Radio / Outdated Console, but could be
-// TV / Syringe (same sizes). Labels only, no effect on the probabilities.
+// Both are boards no real stage provides: an empty one, and a one-treasure one that
+// can be finished in two clicks. Everything else a test needs is a real stage now.
 const HIDDEN_STAGES = [
-  { n: -1, grid: 5, pick: 15, pieces: [] },                  // no treasures set up. Tests only
-  { n: -2, grid: 5, pick: 15, pieces: [["Syringe", 1]] },    // one 1×2, for the all-dug-out path. Tests only
-  { n: -101, grid: 5, pick: 15,  pieces: [["Zobo Cola", 3]] },
-  { n: -102, grid: 5, pick: 15,  pieces: [["Zobo Zine", 1], ["Syringe", 3]] },
-  { n: -103, grid: 5, pick: 15,  pieces: [["Trumpet", 1], ["Zobo Zine", 1], ["Outdated Console", 2]] },
-  { n: -104, grid: 6, pick: 20,  pieces: [["Zobo Cola", 1], ["Outdated Console", 2], ["Radio", 1]] },
-  { n: -105, grid: 6, pick: 20,  pieces: [["Pirated Magazine", 2], ["Zobo Zine", 2]] },
-  { n: -106, grid: 6, pick: 20,  pieces: [["Zobo Cola", 2], ["Zobo Zine", 1], ["TV", 1]] },
-  { n: -107, grid: 7, pick: 25,  pieces: [["Zobo Zine", 1], ["Radio", 1], ["Cyberlimb", 2]] },
-  { n: -108, grid: 7, pick: 25,  pieces: [["Outdated Console", 2], ["Cyberlimb", 1], ["Spaceship", 1]] },
-  { n: -109, grid: 7, pick: 25,  pieces: [["Syringe", 2], ["Pirated Magazine", 2], ["Statue", 1]] },
-  { n: -110, grid: 7, pick: 35,  pieces: [["Outdated Console", 2], ["Cyberlimb", 2], ["Spaceship", 1]] },
-  { n: -111, grid: 7, pick: 35,  pieces: [["Zobo Cola", 2], ["Outdated Console", 2], ["Trumpet", 1], ["Statue", 1]] },
-  { n: -112, grid: 7, pick: 35,  pieces: [["Cyberlimb", 2], ["Radio", 1], ["Outdated Console", 2], ["Spaceship", 1]] },
-  { n: -113, grid: 7, pick: 70,  pieces: [["Outdated Console", 2], ["Statue", 2]] },
-  { n: -114, grid: 7, pick: 70,  pieces: [["Radio", 1], ["Cyberlimb", 2], ["Spaceship", 1]] },
-  { n: -115, grid: 7, pick: 70,  pieces: [["Zobo Cola", 2], ["Syringe", 2], ["TV", 1], ["Statue", 1]] },
-  { n: -116, grid: 7, pick: 100, pieces: [["Outdated Console", 2], ["Pirated Magazine", 2], ["Statue", 1]] },
-  { n: -117, grid: 7, pick: 100, pieces: [["Outdated Console", 2], ["Zobo Cola", 2], ["Radio", 1], ["Spaceship", 1]] },
-  { n: -118, grid: 7, pick: 100, pieces: [["Outdated Console", 2], ["Cyberlimb", 2], ["TV", 1], ["Spaceship", 1]] },
-  { n: -119, grid: 7, pick: 150, pieces: [["Outdated Console", 2], ["Zobo Zine", 2], ["Statue", 1]] },
-  { n: -120, grid: 7, pick: 150, pieces: [["Outdated Console", 2], ["Zobo Cola", 2], ["Radio", 1], ["Spaceship", 1]] },
-  { n: -121, grid: 7, pick: 150, pieces: [["Outdated Console", 2], ["Cyberlimb", 2], ["Radio", 1], ["Spaceship", 1]] },
-  { n: -122, grid: 7, pick: 200, pieces: [["Outdated Console", 2], ["Zobo Zine", 2], ["Statue", 1]] },
-  { n: -123, grid: 7, pick: 200, pieces: [["Outdated Console", 2], ["Zobo Cola", 2], ["Radio", 1], ["Spaceship", 1]] },
-  { n: -124, grid: 7, pick: 200, pieces: [["Outdated Console", 2], ["Cyberlimb", 2], ["Radio", 1], ["Spaceship", 1]] },
+  { n: -1, grid: 5, pick: 15, sets: [[]] },                    // no treasures set up. Tests only
+  { n: -2, grid: 5, pick: 15, sets: [[["Syringe", 1]]] },      // one 1×2, for the all-dug-out path. Tests only
 ];
 const ALL_STAGES = STAGES.concat(HIDDEN_STAGES);   // dropdown shows STAGES; loadStage() accepts either
 const sizeOf = name => { const t = TREASURES.find(t => t[0] === name); return [t[1], t[2]]; };
@@ -212,13 +212,36 @@ function renderStageInfo() {
   if (!el) return;
   const pick = $("#pickPerTile").value;
   const list = state.pieces.length
-    ? state.pieces.map(p => `${p.w}×${p.h}×${p.count}`).join(", ")
-    : t("setup.treasuresVary");
-  el.innerHTML = t("setup.pickInfo", { pick, _n: +pick }) + "<br>" + list;
+    ? dimsLabel(state.pieces)
+    : t("setup.noneYet");
+  let out = t("setup.pickInfo", { pick, _n: +pick }) + "<br>" + list;
+  // Say it on the stage itself: a board matching no option is not the player's mistake.
+  const s = currentStage();
+  if (s && s.partial) out += `<br><span class="warn">${t("setup.partialSets")}</span>`;
+  el.innerHTML = out;
+  renderSetRow(s);
+}
+
+// Switching sets afterwards is a plain dropdown next to the preset one. It only appears
+// where there is more than one to switch between, so `partial` stages with a single known
+// set don't get a one-option select.
+function renderSetRow(s) {
+  const row = $("#setRow"), sel = $("#setSelect");
+  if (!row || !sel) return;
+  sel.innerHTML = "";
+  if (!s || s.sets.length < 2) { row.hidden = true; return; }
+  row.hidden = false;
+  s.sets.forEach((set, i) => {
+    const o = document.createElement("option");
+    o.value = String(i);
+    o.textContent = dimsLabel(setDims(set));
+    sel.appendChild(o);
+  });
+  sel.value = String(Math.max(0, currentSet));
 }
 // Dropdown label. There used to be a "(no data)" marker for stages whose treasures
-// weren't published; now that no stage ships a treasure list it would be on all 24,
-// so the stage info line and the no-treasures notice carry that on their own.
+// weren't published; every stage ships at least one set now, and the ones with a gap
+// in their set list say so through setup.partialSets instead.
 function stageLabel(s) { return t("stage.option", { n: s.n, grid: s.grid }); }
 // (There is no in-place language switch. LANG is resolved once, at boot, before anything renders:
 // the picker navigates, and every dynamic string is built through t() afterwards.)
@@ -250,6 +273,29 @@ function foundCountOf(k) {
 function remainingOf(p) { return p.count - foundCountOf(key(p.w, p.h)); }
 
 /* ---------- UI: stage presets ---------- */
+// The stage the dropdown is on, or null when it says "(custom)".
+const currentStage = () => ALL_STAGES.find(s => String(s.n) === $("#stageSelect").value) || null;
+// Which of that stage's sets is loaded. -1 once the pieces have been edited by hand.
+let currentSet = 0;
+
+// A set as {w,h,count} in the same shape as state.pieces, merging same-size treasures
+// the way the solver does. Everything a set is *shown* as goes through this: names are
+// never displayed, so a set is its rectangles and nothing else.
+function setDims(set) {
+  const out = [];
+  set.forEach(([name, count]) => {
+    const [a, b] = sizeOf(name), w = Math.min(a, b), h = Math.max(a, b), k = key(w, h);
+    const hit = out.find(p => key(p.w, p.h) === k);
+    if (hit) hit.count += count; else out.push({ w, h, count });
+  });
+  return out;
+}
+// "1×2 (×2)". The count is bracketed off because 1×2×2 gives no way to tell which × is the
+// shape and which is the tally. One formatter, so the chooser's per-shape labels and the
+// stage info line can never drift apart.
+const dimLabel = p => (p.count > 1 ? `${p.w}×${p.h} (×${p.count})` : `${p.w}×${p.h}`);
+const dimsLabel = dims => dims.map(dimLabel).join(", ");
+
 function populateStages() {
   const sel = $("#stageSelect");
   STAGES.forEach(s => {
@@ -260,18 +306,105 @@ function populateStages() {
   });
 }
 
-function loadStage(n) {
+// Ask rather than guess where there is a choice: silently loading set 0 would be wrong
+// about half the time, and every probability on the board depends on it.
+const needsSetDialog = s => !!s && (s.sets.length > 1 || !!s.partial);
+// What the dropdown should read for the board actually loaded. Opening the chooser moves
+// the dropdown before anything loads, so cancelling needs this to put it back.
+let loadedStageValue = "";
+
+function loadStage(n, setIdx) {
   const s = ALL_STAGES.find(s => s.n === +n);
   if (!s) return;
+  currentSet = Math.min(Math.max(0, +setIdx || 0), s.sets.length - 1);
   state.pieces = [];
-  s.pieces.forEach(([name, count]) => { const [w, h] = sizeOf(name); addPiece(w, h, count); });
-  renderPieceRows();   // refresh even when the stage has no published treasures
+  s.sets[currentSet].forEach(([name, count]) => { const [w, h] = sizeOf(name); addPiece(w, h, count); });
+  renderPieceRows();
   $("#gridSize").value = s.grid;
   $("#gridSizeEcho").textContent = s.grid;
   $("#pickPerTile").value = s.pick;
   $("#stageSelect").value = s.n;
+  loadedStageValue = $("#stageSelect").value;   // "" for the hidden test-only stages
   renderStageInfo();   // dimensions only. Treasure names are not shown
   newGame();
+}
+
+// "None of these": the stage's grid and pickaxe cost, treasures left to the player. The
+// escape hatch for an unrecorded set, and why the chooser opens on `partial` stages.
+function loadStageCustom(s) {
+  currentSet = -1;
+  state.pieces = [];
+  renderPieceRows();
+  $("#gridSize").value = s.grid;
+  $("#gridSizeEcho").textContent = s.grid;
+  $("#pickPerTile").value = s.pick;
+  $("#stageSelect").value = "";
+  loadedStageValue = "";
+  renderStageInfo();
+  newGame();
+}
+
+/* ---------- Set chooser ---------- */
+// One block per distinct size, each sitting directly above its own label, rather than N
+// copies of a block over one combined dimension string: four 1×2 drawn four times is a wall
+// of gold, and a single string underneath leaves you matching text to shapes by counting.
+function setShapes(dims) {
+  const box = document.createElement("span");
+  box.className = "set-shapes";
+  dims.forEach(p => {
+    const piece = document.createElement("span");
+    piece.className = "piece";
+    const sh = document.createElement("span");
+    sh.className = "shape";
+    sh.style.gridTemplateColumns = `repeat(${p.w}, 1fr)`;
+    for (let c = 0; c < p.w * p.h; c++) sh.appendChild(document.createElement("span"));
+    const lbl = document.createElement("span");
+    lbl.className = "plabel";
+    lbl.textContent = dimLabel(p);
+    piece.append(sh, lbl);
+    box.appendChild(piece);
+  });
+  return box;
+}
+
+const setDialog = $("#setDialog");
+// dialog.close() *queues* the close event, so a "put the dropdown back" handler can land
+// after the chosen stage has loaded and undo it. This says the dialog was answered.
+let setChoiceMade = false;
+function closeSetDialog(chose) {
+  setChoiceMade = !!chose;
+  if (!setDialog) return;
+  if (setDialog.close) setDialog.close(); else setDialog.removeAttribute("open");
+}
+function openSetDialog(s) {
+  if (!setDialog || !s)   // no dialog in the DOM: fall back rather than load nothing
+     { if (s) loadStage(s.n, 0); return; }
+  const list = $("#setOptions");
+  list.innerHTML = "";
+  s.sets.forEach((set, i) => {
+    const dims = setDims(set);
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "set-opt" + (i === currentSet && String(s.n) === loadedStageValue ? " sel" : "");
+    b.dataset.set = String(i);
+    b.appendChild(setShapes(dims));
+    b.onclick = () => { closeSetDialog(true); loadStage(s.n, i); };
+    list.appendChild(b);
+  });
+  const custom = document.createElement("button");
+  custom.type = "button";
+  custom.className = "set-opt custom";
+  custom.textContent = t("setDialog.custom");
+  custom.onclick = () => { closeSetDialog(true); loadStageCustom(s); };
+  list.appendChild(custom);
+
+  setChoiceMade = false;
+  const partial = $("#setPartial"), discord = $("#setDiscord");
+  if (partial) partial.hidden = !s.partial;
+  if (discord) discord.hidden = !s.partial;
+
+  if (setDialog.showModal) { try { setDialog.showModal(); return; } catch (_) {} }
+  setDialog.setAttribute("open", "");
 }
 
 /* ---------- UI: controls ---------- */
@@ -361,19 +494,20 @@ function validBoard(b) {
   return b.pieces.every(okPiece) && b.cells.every(okCell);
 }
 
-// Does the saved board still match what this stage's preset says *today*? A preset
-// can change under a saved board (treasures get published for a stage that had
-// none), so we keep the user's board but relabel it "custom" rather than claim it
-// is a stage whose definition no longer matches.
-function matchesStage(s, b) {
-  if (+b.grid !== s.grid) return false;
-  const want = new Map();
-  s.pieces.forEach(([name, count]) => {
-    const k = key(...sizeOf(name));
-    want.set(k, (want.get(k) || 0) + count);
+// Which of this stage's sets does the saved board hold? Index, or -1 for none. Derived
+// rather than saved, so it cannot drift from the pieces it describes; -1 makes the caller
+// keep the board and relabel it "custom".
+function stageSetOf(s, b) {
+  if (+b.grid !== s.grid) return -1;
+  return s.sets.findIndex(set => {
+    const want = new Map();
+    set.forEach(([name, count]) => {
+      const k = key(...sizeOf(name));
+      want.set(k, (want.get(k) || 0) + count);
+    });
+    if (want.size !== b.pieces.length) return false;
+    return b.pieces.every(p => want.get(key(p.w, p.h)) === p.count);
   });
-  if (want.size !== b.pieces.length) return false;
-  return b.pieces.every(p => want.get(key(p.w, p.h)) === p.count);
 }
 
 // Reload the last board. Returns false (leaving the app untouched, so the caller
@@ -382,6 +516,11 @@ function restoreBoard() {
   let b = null;
   try { b = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (_) { return false; }
   if (!validBoard(b)) return false;
+
+  // No treasures and no digs: the save holds nothing. Browsers that used the app while the
+  // presets were empty all have one of these, and the format is unchanged so it still
+  // loads; restoring it would withhold the presets behind a blank "custom" board.
+  if (!b.pieces.length && !b.cells.some(c => c.status !== "hidden")) return false;
 
   state.N = b.N;
   state.pieces = b.pieces.map(p => ({ w: p.w, h: p.h, count: p.count }));
@@ -395,7 +534,10 @@ function restoreBoard() {
   $("#gridSizeEcho").textContent = grid;
   $("#pickPerTile").value = Math.max(1, Math.min(999, +b.pick || 15));
   const s = ALL_STAGES.find(s => String(s.n) === String(b.stage));
-  $("#stageSelect").value = (s && matchesStage(s, b)) ? s.n : "";
+  const idx = s ? stageSetOf(s, b) : -1;
+  $("#stageSelect").value = idx >= 0 ? s.n : "";
+  loadedStageValue = $("#stageSelect").value;
+  currentSet = idx;
 
   renderPieceRows();
   renderStageInfo();
@@ -753,7 +895,27 @@ const EST_TIME_MS = 1500;
 // Digging a treasure tile (locating one, or digging out a buried one) sets off nothing.
 // Used only when the bomb toggle is on. See simulateBomb().
 const BOMB_DIST = [[0, 4000], [1, 3500], [2, 1600], [3, 800], [4, 100]];
-function rollBomb() { let r = (Math.random() * 10000) | 0, a = 0; for (const [k, w] of BOMB_DIST) { a += w; if (r < a) return k; } return 0; }
+
+// A few sets deviate, and only in the zero-bomb weight, so E[k] stays 9500/total. 2000
+// means a bomb fires on 75% of empty digs instead of 60%. Keyed "stage:set".
+const BOMB_W0 = { "6:1": 2000, "7:1": 2000 };
+
+// Resolved once per estimate, not per dig: rollBomb() runs deep inside the trial loop.
+let bombDist = BOMB_DIST, bombTotal = 10000;
+function useBombTable() {
+  const s = currentStage();
+  const w0 = s ? BOMB_W0[s.n + ":" + currentSet] : undefined;
+  bombDist = w0 === undefined ? BOMB_DIST : [[0, w0], ...BOMB_DIST.slice(1)];
+  bombTotal = bombDist.reduce((a, wk) => a + wk[1], 0);
+}
+// The total is read off the table, not hardcoded to 10000: an override moves it to 8000,
+// and a stale 10000 turns every roll past the end into a 0, i.e. *fewer* bombs where the
+// deviation grants more.
+function rollBomb() {
+  let r = (Math.random() * bombTotal) | 0, a = 0;
+  for (const [k, w] of bombDist) { a += w; if (r < a) return k; }
+  return 0;
+}
 
 // Place the remaining (unfound) pieces on the currently-hidden cells, no overlap.
 // Returns { owner } where owner[cell] = treasure index (>=0) or -1 for empty.
@@ -922,6 +1084,7 @@ function estimateSolve() {
   // Bomb toggle: simulate the game's bombs (they collect tiles for free, so the whole
   // playthrough is stochastic and there is no fixed treasure-tile term to add).
   if (bombEnabled()) {
+    useBombTable();                     // which bomb weights this stage/set draws on
     const score = new Float64Array(M);
     const results = [];
     let rejected = 0;
@@ -1336,8 +1499,24 @@ function clearItem(id) {
 function setDug(i, val) { state.cells[i].dug = val; recompute(); }
 
 /* ---------- Wiring ---------- */
-const markCustom = () => { $("#stageSelect").value = ""; };
-$("#stageSelect").onchange = e => { if (e.target.value) loadStage(e.target.value); };
+// Hand-edited pieces are no stage's set, so the label and the chooser go together.
+const markCustom = () => { $("#stageSelect").value = ""; loadedStageValue = ""; currentSet = -1; renderStageInfo(); };
+$("#stageSelect").onchange = e => {
+  const v = e.target.value;
+  if (!v) { markCustom(); return; }                  // "(custom)" chosen explicitly: keep the board
+  const s = ALL_STAGES.find(x => String(x.n) === v);
+  if (!s) return;
+  if (needsSetDialog(s)) openSetDialog(s); else loadStage(s.n, 0);
+};
+$("#setSelect").onchange = e => { const s = currentStage(); if (s) loadStage(s.n, +e.target.value); };
+if (setDialog) {
+  const cancel = () => { closeSetDialog(false); $("#stageSelect").value = loadedStageValue; };
+  $("#setCancel").onclick = cancel;
+  setDialog.addEventListener("click", e => { if (e.target === setDialog) cancel(); });
+  // Esc closes a <dialog> natively; the dropdown must not keep pointing at a stage that
+  // never loaded.
+  setDialog.addEventListener("close", () => { if (!setChoiceMade) $("#stageSelect").value = loadedStageValue; });
+}
 $("#gridSize").addEventListener("input", e => { $("#gridSizeEcho").textContent = e.target.value; markCustom(); saveBoard(); });
 $("#pickPerTile").addEventListener("input", saveBoard);
 $("#addPiece").onclick = () => { addPiece($("#newW").value, $("#newH").value, $("#newC").value); markCustom(); saveBoard(); };
@@ -1375,16 +1554,15 @@ if (creditsDialog) {
   creditsDialog.addEventListener("click", e => { if (e.target === creditsDialog) closeCredits(); });
 }
 /* ---------- Patch notice ---------- */
-// The game now picks each stage's treasures from one of several sets, so the per-stage
-// presets were emptied (see STAGES). This says so once per browser and asks for the
-// screenshots needed to rebuild them.
+// The game picks each stage's treasures from one of several sets, so a preset is a list
+// of sets (see STAGES) and the stages with more than one get a picker. This explains that
+// once per browser, and asks for screenshots of the two sets still missing.
 //
-// The stored value is a version string rather than a flag: a later notice only has to
-// change NOTICE_V to re-fire for everyone, which is exactly what bringing the presets
-// back will want. Storage that throws (private mode, opaque origin, and jsdom's
-// about:blank) counts as already seen. The no-treasures line in the status area carries
-// the part you must not miss, and a modal on every single load would be worse.
-const NOTICE_V = "presets-paused-2026-07";
+// The stored value is a version string rather than a flag, so each new notice re-fires for
+// everyone by changing NOTICE_V: this is the second one (the first said the presets were
+// paused). Storage that throws (private mode, opaque origin, and jsdom's about:blank)
+// counts as already seen, and the setup panel keeps a link to reopen it.
+const NOTICE_V = "presets-back-2026-08";
 const noticeSeen = () => { try { return localStorage.getItem("th.seenNotice") === NOTICE_V; } catch (_) { return true; } };
 const markNoticeSeen = () => { try { localStorage.setItem("th.seenNotice", NOTICE_V); } catch (_) {} };
 const noticeDialog = $("#noticeDialog");

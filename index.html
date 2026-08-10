@@ -126,10 +126,17 @@
           </select>
         </label>
       </div>
+      <!-- Shown once a stage with more than one set is loaded, to switch between them
+           without going back through the chooser. Filled by renderSetRow(). -->
+      <div class="row" id="setRow" hidden style="margin-top:8px">
+        <label><span data-i18n="setup.set">Treasure set</span>
+          <select id="setSelect"></select>
+        </label>
+      </div>
       <div id="stageInfo" class="hint"></div>
       <!-- Reopens the patch notice. It sits here, not in the footer, because this is
-           where someone finds out the presets are empty and might send a screenshot. -->
-      <button id="presetsLink" type="button" class="linkish" data-i18n="notice.why">Why are the presets empty?</button>
+           where someone meets the set picker and might send a screenshot of a set. -->
+      <button id="presetsLink" type="button" class="linkish" data-i18n="notice.why">Why can a stage have several sets?</button>
       <div class="row" style="margin-top:8px">
         <label><span data-i18n="setup.gridSize">Grid size</span> <input id="gridSize" type="number" min="2" max="12" value="5" /> × <span id="gridSizeEcho">5</span></label>
       </div>
@@ -208,19 +215,34 @@
   </div>
 </dialog>
 
-<!-- Patch notice. The game now picks each stage's treasures from one of several sets, so the
-     per-stage presets can't be right any more and have been emptied. Opens once per browser
-     (localStorage["th.seenNotice"], a version string so a later notice can re-fire) and any time
-     from the "Why are the presets empty?" link in the setup panel. -->
+<!-- Set chooser. Opens when a stage has more than one possible treasure set, or has one we know
+     is unrecorded (stages 8 and 9), because loading a set silently would be a guess and the whole
+     heatmap depends on getting it right. Options are drawn as shapes, so they can be matched
+     against the game screen without reading dimensions. Filled by openSetDialog(). -->
+<dialog id="setDialog" class="credits-dialog set-dialog" aria-labelledby="setTitle">
+  <h2 id="setTitle" data-i18n="setDialog.title">Which treasures does this stage show?</h2>
+  <p data-i18n="setDialog.intro">This stage draws its treasures from one of several sets. Pick the one the game is showing you.</p>
+  <div id="setOptions"></div>
+  <p id="setPartial" class="warn" hidden data-i18n="setup.partialSets">One set for this stage isn't recorded yet. If none of the options match your board, add the treasures you see.</p>
+  <div class="notice-actions">
+    <a id="setDiscord" href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" hidden data-i18n="notice.discord">Post a screenshot on Discord</a>
+    <button id="setCancel" type="button" data-i18n="common.cancel">Cancel</button>
+  </div>
+</dialog>
+
+<!-- Patch notice. The game picks each stage's treasures from one of several sets, so a preset is a
+     list of sets and multi-set stages get a picker. Opens once per browser
+     (localStorage["th.seenNotice"], a version string so each new notice re-fires) and any time
+     from the "Why does a stage have several sets?" link in the setup panel. -->
 <dialog id="noticeDialog" class="credits-dialog notice-dialog" aria-labelledby="noticeTitle">
-  <h2 id="noticeTitle" data-i18n="notice.title">Treasure Hunt changed, presets are paused</h2>
+  <h2 id="noticeTitle" data-i18n="notice.title">Presets are back, with a set picker</h2>
   <p data-i18n="notice.intro">From the game's patch notes:</p>
   <blockquote>
     <b data-i18n="notice.patchHeading">Treasure Hunt</b><br>
     <span data-i18n="notice.patchBody">Added variety to stages. Now, a set of treasures will be selected at random from several sets of similar difficulty for the current stage.</span>
   </blockquote>
-  <p data-i18n="notice.deprecated">Each stage now draws its treasures from one of several sets, so the previous presets are deprecated. Every stage still fills in its grid size and pickaxes per tile, and you add the treasures you actually see.</p>
-  <p data-i18n="notice.help">How to help: post a screenshot in the Discord channel showing the stage number and the treasures listed for it. Once enough sets are collected, presets come back with a picker for which set you got.</p>
+  <p data-i18n="notice.sets">Each stage draws its treasures from one of a few sets of similar difficulty. The preset fills in the grid size, the pickaxes per tile, and the sets that stage can roll. Where there is more than one, pick the set that matches what the game shows you.</p>
+  <p data-i18n="notice.help">Stages 8 and 9 each have one more set that isn't recorded yet. If your board matches none of the options, add the treasures you see and post a screenshot in the Discord channel showing the stage number and its treasure list.</p>
   <div class="notice-actions">
     <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" data-i18n="notice.discord">Post a screenshot on Discord</a>
     <button id="noticeClose" type="button" class="primary" data-i18n="notice.gotIt">Got it</button>

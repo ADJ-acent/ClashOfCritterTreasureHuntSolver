@@ -140,10 +140,17 @@
           </select>
         </label>
       </div>
+      <!-- Shown once a stage with more than one set is loaded, to switch between them
+           without going back through the chooser. Filled by renderSetRow(). -->
+      <div class="row" id="setRow" hidden="" style="margin-top:8px">
+        <label><span data-i18n="setup.set">Ensemble de trésors</span>
+          <select id="setSelect"></select>
+        </label>
+      </div>
       <div id="stageInfo" class="hint"></div>
       <!-- Reopens the patch notice. It sits here, not in the footer, because this is
-           where someone finds out the presets are empty and might send a screenshot. -->
-      <button id="presetsLink" type="button" class="linkish" data-i18n="notice.why">Pourquoi les préréglages sont-ils vides ?</button>
+           where someone meets the set picker and might send a screenshot of a set. -->
+      <button id="presetsLink" type="button" class="linkish" data-i18n="notice.why">Pourquoi un niveau a-t-il plusieurs ensembles ?</button>
       <div class="row" style="margin-top:8px">
         <label><span data-i18n="setup.gridSize">Taille de la grille</span> <input id="gridSize" type="number" min="2" max="12" value="5"> × <span id="gridSizeEcho">5</span></label>
       </div>
@@ -222,19 +229,34 @@
   </div>
 </dialog>
 
-<!-- Patch notice. The game now picks each stage's treasures from one of several sets, so the
-     per-stage presets can't be right any more and have been emptied. Opens once per browser
-     (localStorage["th.seenNotice"], a version string so a later notice can re-fire) and any time
-     from the "Why are the presets empty?" link in the setup panel. -->
+<!-- Set chooser. Opens when a stage has more than one possible treasure set, or has one we know
+     is unrecorded (stages 8 and 9), because loading a set silently would be a guess and the whole
+     heatmap depends on getting it right. Options are drawn as shapes, so they can be matched
+     against the game screen without reading dimensions. Filled by openSetDialog(). -->
+<dialog id="setDialog" class="credits-dialog set-dialog" aria-labelledby="setTitle">
+  <h2 id="setTitle" data-i18n="setDialog.title">Quels trésors ce niveau affiche-t-il ?</h2>
+  <p data-i18n="setDialog.intro">Ce niveau peut tirer son ensemble de trésors parmi plusieurs. Choisissez celui que le jeu vous affiche.</p>
+  <div id="setOptions"></div>
+  <p id="setPartial" class="warn" hidden="" data-i18n="setup.partialSets">Il manque encore un ensemble pour ce niveau. Si aucune option ne correspond à votre grille, ajoutez les trésors que vous voyez.</p>
+  <div class="notice-actions">
+    <a id="setDiscord" href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" hidden="" data-i18n="notice.discord">Publier une capture sur Discord</a>
+    <button id="setCancel" type="button" data-i18n="common.cancel">Annuler</button>
+  </div>
+</dialog>
+
+<!-- Patch notice. The game picks each stage's treasures from one of several sets, so a preset is a
+     list of sets and multi-set stages get a picker. Opens once per browser
+     (localStorage["th.seenNotice"], a version string so each new notice re-fires) and any time
+     from the "Why does a stage have several sets?" link in the setup panel. -->
 <dialog id="noticeDialog" class="credits-dialog notice-dialog" aria-labelledby="noticeTitle">
-  <h2 id="noticeTitle" data-i18n="notice.title">La Chasse au trésor a changé, les préréglages sont en pause</h2>
+  <h2 id="noticeTitle" data-i18n="notice.title">Les préréglages sont de retour, avec un sélecteur d'ensemble</h2>
   <p data-i18n="notice.intro">D'après les notes de mise à jour du jeu :</p>
   <blockquote>
     <b data-i18n="notice.patchHeading">Chasse au trésor</b><br>
     <span data-i18n="notice.patchBody">Ajout de variété dans les niveaux. Désormais, un ensemble de trésors est choisi au hasard parmi plusieurs ensembles de difficulté similaire pour le niveau en cours.</span>
   </blockquote>
-  <p data-i18n="notice.deprecated">Chaque niveau puise désormais ses trésors dans un ensemble parmi plusieurs, les préréglages précédents sont donc obsolètes. La taille de la grille et les pioches par case restent renseignées automatiquement, et vous ajoutez vous-même les trésors que vous voyez.</p>
-  <p data-i18n="notice.help">Comment aider : publiez dans le salon Discord une capture d'écran montrant le numéro du niveau et les trésors qui y sont listés. Une fois assez d'ensembles réunis, les préréglages reviendront avec un sélecteur pour indiquer l'ensemble que vous avez obtenu.</p>
+  <p data-i18n="notice.sets">Chaque niveau puise ses trésors dans l'un de plusieurs ensembles de difficulté comparable. Le préréglage remplit la taille de la grille, les pioches par case et les ensembles que ce niveau peut tirer. Lorsqu'il y en a plusieurs, choisissez celui qui correspond à ce que le jeu affiche.</p>
+  <p data-i18n="notice.help">Il manque encore un ensemble à chacun des niveaux 8 et 9. Si aucune option ne correspond à votre grille, ajoutez les trésors que vous voyez et publiez dans le salon Discord une capture d'écran montrant le numéro du niveau et sa liste de trésors.</p>
   <div class="notice-actions">
     <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" data-i18n="notice.discord">Publier une capture sur Discord</a>
     <button id="noticeClose" type="button" class="primary" data-i18n="notice.gotIt">J'ai compris</button>

@@ -140,10 +140,17 @@
           </select>
         </label>
       </div>
+      <!-- Shown once a stage with more than one set is loaded, to switch between them
+           without going back through the chooser. Filled by renderSetRow(). -->
+      <div class="row" id="setRow" hidden="" style="margin-top:8px">
+        <label><span data-i18n="setup.set">Conjunto de tesoros</span>
+          <select id="setSelect"></select>
+        </label>
+      </div>
       <div id="stageInfo" class="hint"></div>
       <!-- Reopens the patch notice. It sits here, not in the footer, because this is
-           where someone finds out the presets are empty and might send a screenshot. -->
-      <button id="presetsLink" type="button" class="linkish" data-i18n="notice.why">¿Por qué están vacíos los preajustes?</button>
+           where someone meets the set picker and might send a screenshot of a set. -->
+      <button id="presetsLink" type="button" class="linkish" data-i18n="notice.why">¿Por qué un escenario tiene varios conjuntos?</button>
       <div class="row" style="margin-top:8px">
         <label><span data-i18n="setup.gridSize">Tamaño de cuadrícula</span> <input id="gridSize" type="number" min="2" max="12" value="5"> × <span id="gridSizeEcho">5</span></label>
       </div>
@@ -222,19 +229,34 @@
   </div>
 </dialog>
 
-<!-- Patch notice. The game now picks each stage's treasures from one of several sets, so the
-     per-stage presets can't be right any more and have been emptied. Opens once per browser
-     (localStorage["th.seenNotice"], a version string so a later notice can re-fire) and any time
-     from the "Why are the presets empty?" link in the setup panel. -->
+<!-- Set chooser. Opens when a stage has more than one possible treasure set, or has one we know
+     is unrecorded (stages 8 and 9), because loading a set silently would be a guess and the whole
+     heatmap depends on getting it right. Options are drawn as shapes, so they can be matched
+     against the game screen without reading dimensions. Filled by openSetDialog(). -->
+<dialog id="setDialog" class="credits-dialog set-dialog" aria-labelledby="setTitle">
+  <h2 id="setTitle" data-i18n="setDialog.title">¿Qué tesoros muestra este escenario?</h2>
+  <p data-i18n="setDialog.intro">Este escenario toma sus tesoros de uno de varios conjuntos. Elige el que te muestra el juego.</p>
+  <div id="setOptions"></div>
+  <p id="setPartial" class="warn" hidden="" data-i18n="setup.partialSets">A este escenario aún le falta un conjunto por registrar. Si ninguna opción coincide con tu tablero, añade los tesoros que veas.</p>
+  <div class="notice-actions">
+    <a id="setDiscord" href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" hidden="" data-i18n="notice.discord">Publicar una captura en Discord</a>
+    <button id="setCancel" type="button" data-i18n="common.cancel">Cancelar</button>
+  </div>
+</dialog>
+
+<!-- Patch notice. The game picks each stage's treasures from one of several sets, so a preset is a
+     list of sets and multi-set stages get a picker. Opens once per browser
+     (localStorage["th.seenNotice"], a version string so each new notice re-fires) and any time
+     from the "Why does a stage have several sets?" link in the setup panel. -->
 <dialog id="noticeDialog" class="credits-dialog notice-dialog" aria-labelledby="noticeTitle">
-  <h2 id="noticeTitle" data-i18n="notice.title">La Búsqueda del tesoro ha cambiado: los preajustes están en pausa</h2>
+  <h2 id="noticeTitle" data-i18n="notice.title">Los preajustes han vuelto, con selector de conjunto</h2>
   <p data-i18n="notice.intro">De las notas de actualización del juego:</p>
   <blockquote>
     <b data-i18n="notice.patchHeading">Búsqueda del tesoro</b><br>
     <span data-i18n="notice.patchBody">Se ha añadido variedad a los escenarios. Ahora se elegirá al azar un conjunto de tesoros entre varios conjuntos de dificultad similar para el escenario actual.</span>
   </blockquote>
-  <p data-i18n="notice.deprecated">Cada escenario toma ahora sus tesoros de uno de varios conjuntos, así que los preajustes anteriores han quedado obsoletos. Cada uno sigue rellenando automáticamente el tamaño de la cuadrícula y los picos por casilla, y los tesoros que veas los añades tú.</p>
-  <p data-i18n="notice.help">Cómo ayudar: publica en el canal de Discord una captura que muestre el número del escenario y los tesoros que aparecen en él. Cuando haya suficientes conjuntos, los preajustes volverán con un selector para elegir el que te haya tocado.</p>
+  <p data-i18n="notice.sets">Cada escenario toma sus tesoros de uno de varios conjuntos de dificultad parecida. El preajuste rellena el tamaño de la cuadrícula, los picos por casilla y los conjuntos que ese escenario puede sacar. Cuando hay más de uno, elige el que coincida con lo que te muestra el juego.</p>
+  <p data-i18n="notice.help">Tanto al escenario 8 como al 9 les falta un conjunto por registrar. Si ninguna opción coincide con tu tablero, añade los tesoros que veas y publica en el canal de Discord una captura con el número del escenario y su lista de tesoros.</p>
   <div class="notice-actions">
     <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" data-i18n="notice.discord">Publicar una captura en Discord</a>
     <button id="noticeClose" type="button" class="primary" data-i18n="notice.gotIt">Entendido</button>
