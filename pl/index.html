@@ -140,10 +140,17 @@
           </select>
         </label>
       </div>
+      <!-- Shown once a stage with more than one set is loaded, to switch between them
+           without going back through the chooser. Filled by renderSetRow(). -->
+      <div class="row" id="setRow" hidden="" style="margin-top:8px">
+        <label><span data-i18n="setup.set">Zestaw skarbów</span>
+          <select id="setSelect"></select>
+        </label>
+      </div>
       <div id="stageInfo" class="hint"></div>
       <!-- Reopens the patch notice. It sits here, not in the footer, because this is
-           where someone finds out the presets are empty and might send a screenshot. -->
-      <button id="presetsLink" type="button" class="linkish" data-i18n="notice.why">Dlaczego szablony są puste?</button>
+           where someone meets the set picker and might send a screenshot of a set. -->
+      <button id="presetsLink" type="button" class="linkish" data-i18n="notice.why">Dlaczego etap może mieć kilka zestawów?</button>
       <div class="row" style="margin-top:8px">
         <label><span data-i18n="setup.gridSize">Rozmiar planszy</span> <input id="gridSize" type="number" min="2" max="12" value="5"> × <span id="gridSizeEcho">5</span></label>
       </div>
@@ -222,19 +229,34 @@
   </div>
 </dialog>
 
-<!-- Patch notice. The game now picks each stage's treasures from one of several sets, so the
-     per-stage presets can't be right any more and have been emptied. Opens once per browser
-     (localStorage["th.seenNotice"], a version string so a later notice can re-fire) and any time
-     from the "Why are the presets empty?" link in the setup panel. -->
+<!-- Set chooser. Opens when a stage has more than one possible treasure set, or has one we know
+     is unrecorded (stages 8 and 9), because loading a set silently would be a guess and the whole
+     heatmap depends on getting it right. Options are drawn as shapes, so they can be matched
+     against the game screen without reading dimensions. Filled by openSetDialog(). -->
+<dialog id="setDialog" class="credits-dialog set-dialog" aria-labelledby="setTitle">
+  <h2 id="setTitle" data-i18n="setDialog.title">Jakie skarby pokazuje ten etap?</h2>
+  <p data-i18n="setDialog.intro">Na tym etapie może wypaść jeden z kilku zestawów. Wybierz ten, który pokazuje gra.</p>
+  <div id="setOptions"></div>
+  <p id="setPartial" class="warn" hidden="" data-i18n="setup.partialSets">Dla tego etapu nie zapisano jeszcze jednego zestawu. Jeśli żadna opcja nie pasuje do twojej planszy, dodaj skarby, które widzisz.</p>
+  <div class="notice-actions">
+    <a id="setDiscord" href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" hidden="" data-i18n="notice.discord">Wyślij zrzut ekranu na Discorda</a>
+    <button id="setCancel" type="button" data-i18n="common.cancel">Anuluj</button>
+  </div>
+</dialog>
+
+<!-- Patch notice. The game picks each stage's treasures from one of several sets, so a preset is a
+     list of sets and multi-set stages get a picker. Opens once per browser
+     (localStorage["th.seenNotice"], a version string so each new notice re-fires) and any time
+     from the "Why does a stage have several sets?" link in the setup panel. -->
 <dialog id="noticeDialog" class="credits-dialog notice-dialog" aria-labelledby="noticeTitle">
-  <h2 id="noticeTitle" data-i18n="notice.title">Poszukiwanie skarbów się zmieniło, szablony są na razie wyłączone</h2>
+  <h2 id="noticeTitle" data-i18n="notice.title">Szablony wróciły, teraz z wyborem zestawu</h2>
   <p data-i18n="notice.intro">Z listy zmian w grze:</p>
   <blockquote>
     <b data-i18n="notice.patchHeading">Poszukiwanie skarbów</b><br>
     <span data-i18n="notice.patchBody">Urozmaicono etapy. Teraz zestaw skarbów dla bieżącego etapu jest losowany spośród kilku zestawów o podobnej trudności.</span>
   </blockquote>
-  <p data-i18n="notice.deprecated">Skarby na każdym etapie są teraz losowane spośród kilku zestawów, więc dotychczasowe szablony są nieaktualne. Rozmiar planszy i kilofy na pole nadal uzupełniają się same, a skarby dodajesz według tego, co widzisz.</p>
-  <p data-i18n="notice.help">Jak pomóc: wrzuć na kanał Discorda zrzut ekranu, na którym widać numer etapu i wypisane dla niego skarby. Gdy zbierze się dość zestawów, szablony wrócą razem z możliwością wyboru zestawu, który ci się trafił.</p>
+  <p data-i18n="notice.sets">Skarby na każdym etapie pochodzą z jednego z kilku zestawów o zbliżonej trudności. Szablon uzupełnia rozmiar planszy, kilofy na pole oraz zestawy, które mogą wypaść na danym etapie. Gdy jest ich kilka, wybierz ten, który pasuje do tego, co pokazuje gra.</p>
+  <p data-i18n="notice.help">Dla etapów 8 i 9 nie zapisano jeszcze po jednym zestawie. Jeśli żadna opcja nie pasuje do twojej planszy, dodaj skarby, które widzisz, i wrzuć na kanał Discorda zrzut ekranu z numerem etapu i jego listą skarbów.</p>
   <div class="notice-actions">
     <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" data-i18n="notice.discord">Wyślij zrzut ekranu na Discorda</a>
     <button id="noticeClose" type="button" class="primary" data-i18n="notice.gotIt">Rozumiem</button>
