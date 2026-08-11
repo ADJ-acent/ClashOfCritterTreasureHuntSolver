@@ -196,7 +196,7 @@ test("stage presets load the grid, the pickaxes, and the stage's first treasure 
   assert.ok(!/no data/.test(labels), "no per-option marker when it would be universal");
 });
 
-// 35 sets, entered by hand from the stage table. A typo that made one unplaceable would
+// 36 sets, entered by hand from the stage table. A typo that made one unplaceable would
 // render the whole board as "?" for whoever picked it, and a stage holding the same set
 // twice would give the picker two identical labels. Nothing else here would notice either.
 test("every treasure set fits its board, and no stage lists one twice", () => {
@@ -219,7 +219,7 @@ test("every treasure set fits its board, and no stage lists one twice", () => {
   })()`));
   assert.deepStrictEqual(report.bad, [], "every set has at least one valid layout");
   assert.deepStrictEqual(report.dup, [], "a repeated set would be indistinguishable in the picker");
-  assert.strictEqual(report.sets, 35, "24 stages, 35 distinct sets");
+  assert.strictEqual(report.sets, 36, "24 stages, 36 distinct sets");
 });
 
 // Loading a set silently would be a guess, and every probability on the board depends on
