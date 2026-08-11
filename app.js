@@ -38,7 +38,7 @@ const TREASURES = [
 
    Two sets that differ only in which item fills a given rectangle are one set here,
    because the solver sees dimensions and nothing else. That collapses most of the
-   game's variants, which is why 24 stages need only 35 sets.
+   game's variants, which is why 24 stages need only 36 sets.
 
    `partial` marks a stage with a set that isn't recorded here, so the UI can say so
    rather than imply the list is exhaustive.
@@ -54,6 +54,7 @@ const STAGES = [
   { n: 2,  grid: 5, pick: 15,  sets: [
     [["Zobo Zine", 1], ["Syringe", 3]],
     [["Syringe", 2], ["Outdated Console", 2]],
+    [["Syringe", 2], ["Zobo Cola", 2]],   // not in the stage table; from a player screenshot
   ] },
   { n: 3,  grid: 5, pick: 15,  sets: [
     [["Trumpet", 1], ["Zobo Zine", 1], ["Outdated Console", 2]],
