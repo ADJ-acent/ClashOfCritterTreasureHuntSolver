@@ -32,13 +32,13 @@ const TREASURES = [
   ["Spaceship", 3, 3], ["Statue", 2, 4],
 ];
 
-/* ---------- Stage presets (from the in-game stage table). ----------
+/* ---------- Stage presets. ----------
    A stage draws its treasures from one of several sets, so a preset is a *list* of
    sets. `sets[0]` is what the stage shipped with before the "added variety" patch.
 
    Two sets that differ only in which item fills a given rectangle are one set here,
    because the solver sees dimensions and nothing else. That collapses most of the
-   game's variants, which is why 24 stages need only 36 sets.
+   game's variants, which is why 24 stages need only 37 sets.
 
    `partial` marks a stage with a set that isn't recorded here, so the UI can say so
    rather than imply the list is exhaustive.
@@ -54,7 +54,7 @@ const STAGES = [
   { n: 2,  grid: 5, pick: 15,  sets: [
     [["Zobo Zine", 1], ["Syringe", 3]],
     [["Syringe", 2], ["Outdated Console", 2]],
-    [["Syringe", 2], ["Zobo Cola", 2]],   // not in the stage table; from a player screenshot
+    [["Syringe", 2], ["Zobo Cola", 2]],   // from a player screenshot
   ] },
   { n: 3,  grid: 5, pick: 15,  sets: [
     [["Trumpet", 1], ["Zobo Zine", 1], ["Outdated Console", 2]],
@@ -79,8 +79,9 @@ const STAGES = [
     [["Syringe", 4], ["Statue", 1]],
     [["Zobo Zine", 1], ["Radio", 1], ["Statue", 1]],
   ] },
-  { n: 8,  grid: 7, pick: 25,  partial: true, sets: [
+  { n: 8,  grid: 7, pick: 25,  sets: [
     [["Outdated Console", 2], ["Cyberlimb", 1], ["Spaceship", 1]],
+    [["Zobo Cola", 3], ["Spaceship", 1]],   // from a player screenshot
   ] },
   { n: 9,  grid: 7, pick: 25,  partial: true, sets: [
     [["Syringe", 2], ["Pirated Magazine", 2], ["Statue", 1]],
@@ -898,8 +899,9 @@ const EST_TIME_MS = 1500;
 const BOMB_DIST = [[0, 4000], [1, 3500], [2, 1600], [3, 800], [4, 100]];
 
 // A few sets deviate, and only in the zero-bomb weight, so E[k] stays 9500/total. 2000
-// means a bomb fires on 75% of empty digs instead of 60%. Keyed "stage:set".
-const BOMB_W0 = { "6:1": 2000, "7:1": 2000 };
+// means a bomb fires on 75% of empty digs instead of 60%; 5000 drops it to 54.5%.
+// Keyed "stage:set".
+const BOMB_W0 = { "6:1": 2000, "7:1": 2000, "8:1": 5000 };
 
 // Resolved once per estimate, not per dig: rollBomb() runs deep inside the trial loop.
 let bombDist = BOMB_DIST, bombTotal = 10000;

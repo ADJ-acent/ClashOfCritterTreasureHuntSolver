@@ -196,7 +196,7 @@ test("stage presets load the grid, the pickaxes, and the stage's first treasure 
   assert.ok(!/no data/.test(labels), "no per-option marker when it would be universal");
 });
 
-// 36 sets, entered by hand from the stage table. A typo that made one unplaceable would
+// 37 sets, all entered by hand. A typo that made one unplaceable would
 // render the whole board as "?" for whoever picked it, and a stage holding the same set
 // twice would give the picker two identical labels. Nothing else here would notice either.
 test("every treasure set fits its board, and no stage lists one twice", () => {
@@ -219,11 +219,11 @@ test("every treasure set fits its board, and no stage lists one twice", () => {
   })()`));
   assert.deepStrictEqual(report.bad, [], "every set has at least one valid layout");
   assert.deepStrictEqual(report.dup, [], "a repeated set would be indistinguishable in the picker");
-  assert.strictEqual(report.sets, 36, "24 stages, 36 distinct sets");
+  assert.strictEqual(report.sets, 37, "24 stages, 37 distinct sets");
 });
 
 // Loading a set silently would be a guess, and every probability on the board depends on
-// it, so stages with a choice ask. The 15 with one set and no known gap just load.
+// it, so stages with a choice ask. The 15 single-set stages just load.
 test("the set chooser opens only where a stage has a choice to make", () => {
   const { window, doc } = boot();
   const sel = doc.querySelector("#stageSelect");
@@ -307,9 +307,10 @@ test("hidden elements really are hidden, whatever else styles them", () => {
     "styles.css must force display:none on [hidden]; .row's display:flex outranks the UA rule");
 });
 
-// Two sets are known to be missing (stages 8 and 9), so those stages say so rather than
-// implying their list is exhaustive.
-test("a stage with an unrecorded set says so, and asks even with one set", () => {
+// One set is still missing (stage 9), so that stage says so rather than implying its list
+// is exhaustive. Stage 8 was the other one until a player screenshot filled it in, so the
+// other half of this is that a stage stops warning once its gap is closed.
+test("a stage with an unrecorded set says so, and a filled-in one stops", () => {
   const { window, doc } = boot();
   loadStage(window, doc, 9);
   assert.match(doc.querySelector("#stageInfo").textContent, /isn't recorded yet/);
@@ -317,22 +318,29 @@ test("a stage with an unrecorded set says so, and asks even with one set", () =>
   assert.ok(!/isn't recorded yet/.test(doc.querySelector("#stageInfo").textContent),
     "only on the stages with a known gap");
 
-  // Stage 8 has one known set and one missing, so it asks despite having no second option:
-  // "none of these" is the whole point there, and the dialog is where the ask belongs.
+  // The chooser says it too, since "none of these" is the way out of a set nobody recorded.
   const sel = doc.querySelector("#stageSelect");
-  sel.value = "8";
-  sel.dispatchEvent(new window.Event("change", { bubbles: true }));
-  assert.ok(setDialogOpen(doc), "a partial stage asks even with a single known set");
-  assert.strictEqual(setOptions(doc).length, 2, "its one set, plus 'none of these'");
+  const pick = n => { sel.value = String(n); sel.dispatchEvent(new window.Event("change", { bubbles: true })); };
+  pick(9);
+  assert.ok(setDialogOpen(doc), "asking");
+  assert.strictEqual(setOptions(doc).length, 3, "its two known sets, plus 'none of these'");
   assert.ok(!doc.querySelector("#setPartial").hidden, "and says a set is missing");
   assert.ok(!doc.querySelector("#setDiscord").hidden, "with the screenshot ask");
+  click(window, doc.querySelector("#setCancel"));
 
-  pickSet(window, doc, 0);
-  assert.ok(doc.querySelector("#setRow").hidden, "one known set, so nothing to switch between");
+  // Stage 8's second set (1×3 ×3 + 3×3) is recorded now: two real options, no warning.
+  pick(8);
+  assert.strictEqual(setOptions(doc).length, 3, "both sets, plus 'none of these'");
+  assert.ok(doc.querySelector("#setPartial").hidden, "nothing left to record on stage 8");
+  assert.ok(doc.querySelector("#setDiscord").hidden, "so no screenshot ask either");
+  pickSet(window, doc, 1);
+  assert.match(doc.querySelector("#stageInfo").textContent, /1×3 \(×3\), 3×3/, "the new set loads");
+  assert.ok(!/isn't recorded yet/.test(doc.querySelector("#stageInfo").textContent), "and says nothing is missing");
+  assert.ok(!doc.querySelector("#setRow").hidden, "with two sets to switch between");
 });
 
 // The notice explains that a stage draws from several sets and how the picker works,
-// asks for screenshots of the two sets still missing, and the setup panel can reopen it.
+// asks for screenshots of the set still missing, and the setup panel can reopen it.
 test("the patch notice opens once per browser, and the setup link reopens it", () => {
   const storage = makeStorage();
   const dlg = doc => doc.querySelector("#noticeDialog");
