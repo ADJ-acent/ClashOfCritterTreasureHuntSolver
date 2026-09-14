@@ -245,9 +245,8 @@
 </dialog>
 
 <!-- Patch notice. The game picks each stage's treasures from one of several sets, so a preset is a
-     list of sets and multi-set stages get a picker. Opens once per browser
-     (localStorage["th.seenNotice"], a version string so each new notice re-fires) and any time
-     from the "Why does a stage have several sets?" link in the setup panel. -->
+     list of sets and multi-set stages get a picker. Opens only from the "Why can a stage have
+     several sets?" link in the setup panel; it no longer auto-opens on a first visit. -->
 <dialog id="noticeDialog" class="credits-dialog notice-dialog" aria-labelledby="noticeTitle">
   <h2 id="noticeTitle" data-i18n="notice.title">Szablony wróciły, teraz z wyborem zestawu</h2>
   <p data-i18n="notice.intro">Z listy zmian w grze:</p>
@@ -256,9 +255,7 @@
     <span data-i18n="notice.patchBody">Urozmaicono etapy. Teraz zestaw skarbów dla bieżącego etapu jest losowany spośród kilku zestawów o podobnej trudności.</span>
   </blockquote>
   <p data-i18n="notice.sets">Skarby na każdym etapie pochodzą z jednego z kilku zestawów o zbliżonej trudności. Szablon uzupełnia rozmiar planszy, kilofy na pole oraz zestawy, które mogą wypaść na danym etapie. Gdy jest ich kilka, wybierz ten, który pasuje do tego, co pokazuje gra.</p>
-  <p data-i18n="notice.help">Dla etapu 9 nie zapisano jeszcze jednego zestawu. Jeśli żadna opcja nie pasuje do twojej planszy, dodaj skarby, które widzisz, i wrzuć na kanał Discorda zrzut ekranu z numerem etapu i jego listą skarbów.</p>
   <div class="notice-actions">
-    <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" data-i18n="notice.discord">Wyślij zrzut ekranu na Discorda</a>
     <button id="noticeClose" type="button" class="primary" data-i18n="notice.gotIt">Rozumiem</button>
   </div>
 </dialog>

@@ -245,9 +245,8 @@
 </dialog>
 
 <!-- Patch notice. The game picks each stage's treasures from one of several sets, so a preset is a
-     list of sets and multi-set stages get a picker. Opens once per browser
-     (localStorage["th.seenNotice"], a version string so each new notice re-fires) and any time
-     from the "Why does a stage have several sets?" link in the setup panel. -->
+     list of sets and multi-set stages get a picker. Opens only from the "Why can a stage have
+     several sets?" link in the setup panel; it no longer auto-opens on a first visit. -->
 <dialog id="noticeDialog" class="credits-dialog notice-dialog" aria-labelledby="noticeTitle">
   <h2 id="noticeTitle" data-i18n="notice.title">I preset sono tornati, con un selettore di set</h2>
   <p data-i18n="notice.intro">Dalle note di aggiornamento del gioco:</p>
@@ -256,9 +255,7 @@
     <span data-i18n="notice.patchBody">Aggiunta varietà ai livelli. Ora, per il livello attuale, un set di tesori viene scelto a caso tra più set di difficoltà simile.</span>
   </blockquote>
   <p data-i18n="notice.sets">Ogni livello pesca i tesori da uno tra più set di difficoltà simile. Il preset imposta la dimensione della griglia, i picconi per casella e i set che quel livello può estrarre. Quando ce n'è più di uno, scegli quello che corrisponde a ciò che mostra il gioco.</p>
-  <p data-i18n="notice.help">Al livello 9 manca ancora un set. Se nessuna opzione corrisponde alla tua griglia, aggiungi i tesori che vedi e pubblica nel canale Discord uno screenshot con il numero del livello e il suo elenco di tesori.</p>
   <div class="notice-actions">
-    <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" data-i18n="notice.discord">Pubblica uno screenshot su Discord</a>
     <button id="noticeClose" type="button" class="primary" data-i18n="notice.gotIt">Ho capito</button>
   </div>
 </dialog>

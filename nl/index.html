@@ -245,9 +245,8 @@
 </dialog>
 
 <!-- Patch notice. The game picks each stage's treasures from one of several sets, so a preset is a
-     list of sets and multi-set stages get a picker. Opens once per browser
-     (localStorage["th.seenNotice"], a version string so each new notice re-fires) and any time
-     from the "Why does a stage have several sets?" link in the setup panel. -->
+     list of sets and multi-set stages get a picker. Opens only from the "Why can a stage have
+     several sets?" link in the setup panel; it no longer auto-opens on a first visit. -->
 <dialog id="noticeDialog" class="credits-dialog notice-dialog" aria-labelledby="noticeTitle">
   <h2 id="noticeTitle" data-i18n="notice.title">De presets zijn terug, met een setkeuze</h2>
   <p data-i18n="notice.intro">Uit de patch notes van het spel:</p>
@@ -256,9 +255,7 @@
     <span data-i18n="notice.patchBody">Meer variatie in de levels. Voor het huidige level wordt nu willekeurig een set schatten gekozen uit meerdere sets met een vergelijkbare moeilijkheidsgraad.</span>
   </blockquote>
   <p data-i18n="notice.sets">Elk level haalt zijn schatten uit een van meerdere sets met een vergelijkbare moeilijkheidsgraad. De preset vult de bordgrootte, de houwelen per vakje en de mogelijke sets van dat level in. Zijn er meerdere, kies dan de set die overeenkomt met wat het spel laat zien.</p>
-  <p data-i18n="notice.help">Bij level 9 ontbreekt nog één set. Past geen van de opties bij jouw bord, voeg dan de schatten toe die je ziet en post in het Discord-kanaal een screenshot met het levelnummer en de bijbehorende schattenlijst.</p>
   <div class="notice-actions">
-    <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" data-i18n="notice.discord">Screenshot op Discord posten</a>
     <button id="noticeClose" type="button" class="primary" data-i18n="notice.gotIt">Begrepen</button>
   </div>
 </dialog>
