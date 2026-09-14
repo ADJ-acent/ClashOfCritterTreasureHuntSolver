@@ -215,10 +215,10 @@
   </div>
 </dialog>
 
-<!-- Set chooser. Opens when a stage has more than one possible treasure set, or has one we know
-     is unrecorded (stage 9), because loading a set silently would be a guess and the whole
-     heatmap depends on getting it right. Options are drawn as shapes, so they can be matched
-     against the game screen without reading dimensions. Filled by openSetDialog(). -->
+<!-- Set chooser. Opens when a stage has more than one possible treasure set, or (via `partial`)
+     has one we know is unrecorded, because loading a set silently would be a guess and the
+     whole heatmap depends on getting it right. Options are drawn as shapes, so they can be
+     matched against the game screen without reading dimensions. Filled by openSetDialog(). -->
 <dialog id="setDialog" class="credits-dialog set-dialog" aria-labelledby="setTitle">
   <h2 id="setTitle" data-i18n="setDialog.title">Which treasures does this stage show?</h2>
   <p data-i18n="setDialog.intro">This stage draws its treasures from one of several sets. Pick the one the game is showing you.</p>
