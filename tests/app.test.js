@@ -307,28 +307,27 @@ test("hidden elements really are hidden, whatever else styles them", () => {
     "styles.css must force display:none on [hidden]; .row's display:flex outranks the UA rule");
 });
 
-// One set is still missing (stage 9), so that stage says so rather than implying its list
-// is exhaustive. Stage 8 was the other one until a player screenshot filled it in, so the
-// other half of this is that a stage stops warning once its gap is closed.
-test("a stage with an unrecorded set says so, and a filled-in one stops", () => {
+// Every stage's sets are recorded now (stage 9's second set was the last gap), so no stage
+// should warn that one is still missing, in the stage info or in the chooser.
+test("no stage warns about an unrecorded set", () => {
   const { window, doc } = boot();
   loadStage(window, doc, 9);
-  assert.match(doc.querySelector("#stageInfo").textContent, /isn't recorded yet/);
-  loadStage(window, doc, 13);
   assert.ok(!/isn't recorded yet/.test(doc.querySelector("#stageInfo").textContent),
-    "only on the stages with a known gap");
+    "stage 9's gap is closed");
+  loadStage(window, doc, 13);
+  assert.ok(!/isn't recorded yet/.test(doc.querySelector("#stageInfo").textContent));
 
-  // The chooser says it too, since "none of these" is the way out of a set nobody recorded.
+  // The chooser agrees: both known sets, no "still missing" warning.
   const sel = doc.querySelector("#stageSelect");
   const pick = n => { sel.value = String(n); sel.dispatchEvent(new window.Event("change", { bubbles: true })); };
   pick(9);
   assert.ok(setDialogOpen(doc), "asking");
   assert.strictEqual(setOptions(doc).length, 3, "its two known sets, plus 'none of these'");
-  assert.ok(!doc.querySelector("#setPartial").hidden, "and says a set is missing");
-  assert.ok(!doc.querySelector("#setDiscord").hidden, "with the screenshot ask");
+  assert.ok(doc.querySelector("#setPartial").hidden, "nothing left to record on stage 9");
+  assert.ok(doc.querySelector("#setDiscord").hidden, "so no screenshot ask either");
   click(window, doc.querySelector("#setCancel"));
 
-  // Stage 8's second set (1×3 ×3 + 3×3) is recorded now: two real options, no warning.
+  // Stage 8's second set (1×3 ×3 + 3×3) is recorded too: two real options, no warning.
   pick(8);
   assert.strictEqual(setOptions(doc).length, 3, "both sets, plus 'none of these'");
   assert.ok(doc.querySelector("#setPartial").hidden, "nothing left to record on stage 8");
@@ -339,39 +338,20 @@ test("a stage with an unrecorded set says so, and a filled-in one stops", () => 
   assert.ok(!doc.querySelector("#setRow").hidden, "with two sets to switch between");
 });
 
-// The notice explains that a stage draws from several sets and how the picker works,
-// asks for screenshots of the set still missing, and the setup panel can reopen it.
-test("the patch notice opens once per browser, and the setup link reopens it", () => {
-  const storage = makeStorage();
-  const dlg = doc => doc.querySelector("#noticeDialog");
+// The notice explains that a stage draws from several sets and how the picker works. It no
+// longer opens itself (all known sets are collected); it is only reachable from the setup
+// panel's link.
+test("the patch notice does not open itself, but the setup link opens it", () => {
+  const { window, doc, errors } = boot();
+  const dlg = doc.querySelector("#noticeDialog");
+  assert.ok(!dlg.hasAttribute("open"), "not shown on load");
 
-  // First visit: it opens by itself. (jsdom has no showModal, so this is the
-  // open-attribute fallback path, same as an old engine.)
-  const first = boot({ storage });
-  assert.ok(dlg(first.doc).hasAttribute("open"), "shown on a first visit");
-  assert.match(dlg(first.doc).textContent, /set of treasures will be selected at random/, "quotes the patch notes");
-  assert.match(dlg(first.doc).textContent, /screenshot/i, "asks for screenshots");
-  const discord = dlg(first.doc).querySelector("a[href*='discord.com']");
-  assert.ok(discord, "links to the Discord channel");
-  assert.match(discord.href, /discord\.com\/channels\/1343763804349267989\/1517044316177039502/);
-  assert.match(discord.getAttribute("rel") || "", /noopener/);
+  click(window, doc.querySelector("#presetsLink"));
+  assert.ok(dlg.hasAttribute("open"), "the setup-panel link opens it");
+  assert.match(dlg.textContent, /set of treasures will be selected at random/, "quotes the patch notes");
 
-  click(first.window, first.doc.querySelector("#noticeClose"));
-  assert.ok(!dlg(first.doc).hasAttribute("open"), "dismissed");
-  assert.strictEqual(storage.getItem("th.seenNotice"), "presets-back-2026-08", "remembered by version");
-
-  // Second visit: not shown again, but still one click away.
-  const second = boot({ storage });
-  assert.ok(!dlg(second.doc).hasAttribute("open"), "not shown twice");
-  click(second.window, second.doc.querySelector("#presetsLink"));
-  assert.ok(dlg(second.doc).hasAttribute("open"), "the setup-panel link reopens it");
-  assert.strictEqual(second.errors.length, 0, second.errors.join("\n"));
-});
-
-// Storage that throws (private mode, opaque origin) must not mean a modal on every load.
-test("the patch notice stays shut when localStorage is unavailable", () => {
-  const { doc, errors } = boot();   // jsdom's about:blank has no localStorage
-  assert.ok(!doc.querySelector("#noticeDialog").hasAttribute("open"), "no storage -> treated as seen");
+  click(window, doc.querySelector("#noticeClose"));
+  assert.ok(!dlg.hasAttribute("open"), "dismissed");
   assert.strictEqual(errors.length, 0, errors.join("\n"));
 });
 

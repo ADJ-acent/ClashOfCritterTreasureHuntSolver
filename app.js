@@ -83,7 +83,7 @@ const STAGES = [
     [["Outdated Console", 2], ["Cyberlimb", 1], ["Spaceship", 1]],
     [["Zobo Cola", 3], ["Spaceship", 1]],   // from a player screenshot
   ] },
-  { n: 9,  grid: 7, pick: 25,  partial: true, sets: [
+  { n: 9,  grid: 7, pick: 25,  sets: [
     [["Syringe", 2], ["Pirated Magazine", 2], ["Statue", 1]],
     [["Syringe", 2], ["Cyberlimb", 2], ["Statue", 1]],
   ] },
@@ -1509,7 +1509,10 @@ $("#stageSelect").onchange = e => {
   if (!v) { markCustom(); return; }                  // "(custom)" chosen explicitly: keep the board
   const s = ALL_STAGES.find(x => String(x.n) === v);
   if (!s) return;
-  if (needsSetDialog(s)) openSetDialog(s); else loadStage(s.n, 0);
+  // On mobile, opening the set dialog from inside this handler can leave the native
+  // <select>'s own picker UI stuck open underneath it until the page is tapped elsewhere.
+  // Blurring first dismisses that native picker before the dialog takes over.
+  if (needsSetDialog(s)) { e.target.blur(); openSetDialog(s); } else loadStage(s.n, 0);
 };
 $("#setSelect").onchange = e => { const s = currentStage(); if (s) loadStage(s.n, +e.target.value); };
 if (setDialog) {
@@ -1558,16 +1561,9 @@ if (creditsDialog) {
 }
 /* ---------- Patch notice ---------- */
 // The game picks each stage's treasures from one of several sets, so a preset is a list
-// of sets (see STAGES) and the stages with more than one get a picker. This explains that
-// once per browser, and asks for screenshots of the two sets still missing.
-//
-// The stored value is a version string rather than a flag, so each new notice re-fires for
-// everyone by changing NOTICE_V: this is the second one (the first said the presets were
-// paused). Storage that throws (private mode, opaque origin, and jsdom's about:blank)
-// counts as already seen, and the setup panel keeps a link to reopen it.
-const NOTICE_V = "presets-back-2026-08";
-const noticeSeen = () => { try { return localStorage.getItem("th.seenNotice") === NOTICE_V; } catch (_) { return true; } };
-const markNoticeSeen = () => { try { localStorage.setItem("th.seenNotice", NOTICE_V); } catch (_) {} };
+// of sets (see STAGES) and the stages with more than one get a picker. This dialog explains
+// that; it no longer opens itself (all known sets are now collected), only from the setup
+// panel's "Why can a stage have several sets?" link.
 const noticeDialog = $("#noticeDialog");
 function openNotice() {
   if (!noticeDialog) return;
@@ -1577,14 +1573,12 @@ function openNotice() {
 }
 function closeNotice() {
   if (!noticeDialog) return;
-  markNoticeSeen();
   if (noticeDialog.close) noticeDialog.close(); else noticeDialog.removeAttribute("open");
 }
 if (noticeDialog) {
   $("#presetsLink").onclick = openNotice;
   $("#noticeClose").onclick = closeNotice;
   noticeDialog.addEventListener("click", e => { if (e.target === noticeDialog) closeNotice(); });
-  noticeDialog.addEventListener("close", markNoticeSeen);   // Esc closes a <dialog> natively
 }
 
 const langPickerEl = $("#langPicker");
@@ -1617,4 +1611,3 @@ catch (_) { $("#bombToggle").checked = false; }   // default OFF; persisted opt-
 renderQuickAdd();
 populateStages();
 if (!restoreBoard()) loadStage(1);   // last board from localStorage["th.board"], else Stage 1
-if (!noticeSeen()) openNotice();     // the presets-are-paused notice, once per browser

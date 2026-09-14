@@ -142,9 +142,9 @@ Eyeball layout changes with `npm run screenshots` (`scripts/visual-test.sh`), wh
 
 **The solver's dimensions-only view collapses most of the game's variants.** A stage can have up to three, but most of the difference between them is a reskin: the same rectangles with different treasures sitting in them. Since `state.pieces` is keyed by size, a reskin *is* the same set here and is stored once. Player screenshots show this happening directly, with stage 1 appearing both as three cola bottles and as three trumpets, the same three 1×3 either way. That is why 24 stages need only 37 sets, and why **the 15 stages from 10 up have exactly one set** and never have to ask. A test asserts no stage lists the same set twice, because two identical sets would give the chooser two identical options.
 
-**The list is not exhaustive, and `partial` does not mark every gap.** Stage 2's third set (`1×2 (×2), 1×3 (×2)`) and stage 8's second (`1×3 (×3), 3×3`) both arrived from player screenshots, after the stages had sat there looking complete. Each is dimensionally distinct from its stage's other sets, so neither is a reskin the dedup swallowed. Treat a sighting that matches no option as new data rather than a misread, on any stage and not only the one carrying `partial`.
+**The list was not always exhaustive.** Stage 2's third set (`1×2 (×2), 1×3 (×2)`) and stage 8's second (`1×3 (×3), 3×3`) both arrived late, from player screenshots, after the stages had sat there looking complete. Each is dimensionally distinct from its stage's other sets, so neither is a reskin the dedup swallowed. Treat a sighting that matches no option as new data rather than a misread, even now that no stage is marked as having a gap.
 
-Stage 9 carries `partial: true`: the game has one more set for it that isn't recorded. `renderStageInfo()` appends `setup.partialSets` there, so a player whose board matches none of the options knows it isn't their mistake. `needsSetDialog()` still ORs `partial` in, so a `partial` stage would ask even with a single known set; no stage is in that shape now (stage 8 was, until its second set arrived), so nothing exercises that branch.
+A stage can still carry `partial: true` if a future patch adds a set nobody has recorded yet: `renderStageInfo()` would append `setup.partialSets`, and `needsSetDialog()` ORs `partial` in so the picker would ask even with a single known set. No stage is in that shape currently (stage 9 was, until its second set arrived), so `#setPartial`/`#setDiscord` stay hidden and nothing exercises that branch.
 
 - `renderSetPicker(s)` fills `#setSelect` and shows `#setRow` only when `s.sets.length > 1`. Options are labelled by dimensions (`dimsLabel(setDims(set))`, e.g. `1×2 (×2), 2×2 (×2), 2×4`) because **treasure names are never displayed**; the no-duplicates property is what makes those labels unambiguous.
   - *Gotcha, and it shipped broken once:* it hides via the `hidden` attribute, and the UA stylesheet's `[hidden] { display: none }` loses to **any** author `display` rule (author origin beats UA regardless of specificity). `#setRow` is a `.row`, which is `display: flex`, so the picker rendered as an empty box on every single-set stage. `styles.css` now forces `[hidden] { display: none !important }`. No DOM test can catch this class of bug, because `boot()` strips the stylesheet before jsdom sees it, so the guard is a test that asserts on `styles.css` as text.
@@ -155,7 +155,7 @@ Stage 9 carries `partial: true`: the game has one more set for it that isn't rec
 
 ### The notice
 
-`#noticeDialog` / `NOTICE_V` explains that a stage draws from several sets and how the picker works, and asks for screenshots of the two sets still missing. `NOTICE_V` is a version string rather than a flag so each new notice re-fires for everyone; it has now done that once (`presets-paused-2026-07` → `presets-back-2026-08`).
+`#noticeDialog` explains that a stage draws from several sets and how the picker works. It no longer opens itself on a first visit (all known sets are now collected); it only opens from the setup panel's "Why can a stage have several sets?" link (`#presetsLink`).
 
 ## Persistence
 

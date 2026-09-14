@@ -229,10 +229,10 @@
   </div>
 </dialog>
 
-<!-- Set chooser. Opens when a stage has more than one possible treasure set, or has one we know
-     is unrecorded (stage 9), because loading a set silently would be a guess and the whole
-     heatmap depends on getting it right. Options are drawn as shapes, so they can be matched
-     against the game screen without reading dimensions. Filled by openSetDialog(). -->
+<!-- Set chooser. Opens when a stage has more than one possible treasure set, or (via `partial`)
+     has one we know is unrecorded, because loading a set silently would be a guess and the
+     whole heatmap depends on getting it right. Options are drawn as shapes, so they can be
+     matched against the game screen without reading dimensions. Filled by openSetDialog(). -->
 <dialog id="setDialog" class="credits-dialog set-dialog" aria-labelledby="setTitle">
   <h2 id="setTitle" data-i18n="setDialog.title">Quais tesouros esta fase mostra?</h2>
   <p data-i18n="setDialog.intro">Esta fase pode sortear mais de um conjunto de tesouros. Escolha o que o jogo está mostrando.</p>
@@ -245,9 +245,8 @@
 </dialog>
 
 <!-- Patch notice. The game picks each stage's treasures from one of several sets, so a preset is a
-     list of sets and multi-set stages get a picker. Opens once per browser
-     (localStorage["th.seenNotice"], a version string so each new notice re-fires) and any time
-     from the "Why does a stage have several sets?" link in the setup panel. -->
+     list of sets and multi-set stages get a picker. Opens only from the "Why can a stage have
+     several sets?" link in the setup panel; it no longer auto-opens on a first visit. -->
 <dialog id="noticeDialog" class="credits-dialog notice-dialog" aria-labelledby="noticeTitle">
   <h2 id="noticeTitle" data-i18n="notice.title">As predefinições voltaram, com seletor de conjunto</h2>
   <p data-i18n="notice.intro">Das notas de atualização do jogo:</p>
@@ -256,9 +255,7 @@
     <span data-i18n="notice.patchBody">Adicionada variedade às fases. Agora, um conjunto de tesouros será escolhido aleatoriamente entre vários conjuntos de dificuldade semelhante para a fase atual.</span>
   </blockquote>
   <p data-i18n="notice.sets">Cada fase usa um conjunto de tesouros sorteado entre vários de dificuldade parecida. A predefinição preenche o tamanho da grade, as picaretas por casa e os conjuntos que essa fase pode sortear. Quando houver mais de um, escolha o que corresponder ao que o jogo mostra.</p>
-  <p data-i18n="notice.help">Na fase 9 ainda falta registrar um conjunto. Se nenhuma opção corresponder ao seu tabuleiro, adicione os tesouros que aparecerem e poste no canal do Discord uma captura de tela com o número da fase e a lista de tesouros.</p>
   <div class="notice-actions">
-    <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" data-i18n="notice.discord">Postar uma captura de tela no Discord</a>
     <button id="noticeClose" type="button" class="primary" data-i18n="notice.gotIt">Entendi</button>
   </div>
 </dialog>

@@ -229,10 +229,10 @@
   </div>
 </dialog>
 
-<!-- Set chooser. Opens when a stage has more than one possible treasure set, or has one we know
-     is unrecorded (stage 9), because loading a set silently would be a guess and the whole
-     heatmap depends on getting it right. Options are drawn as shapes, so they can be matched
-     against the game screen without reading dimensions. Filled by openSetDialog(). -->
+<!-- Set chooser. Opens when a stage has more than one possible treasure set, or (via `partial`)
+     has one we know is unrecorded, because loading a set silently would be a guess and the
+     whole heatmap depends on getting it right. Options are drawn as shapes, so they can be
+     matched against the game screen without reading dimensions. Filled by openSetDialog(). -->
 <dialog id="setDialog" class="credits-dialog set-dialog" aria-labelledby="setTitle">
   <h2 id="setTitle" data-i18n="setDialog.title">このステージに表示されている宝はどれですか？</h2>
   <p data-i18n="setDialog.intro">このステージは複数のセットのどれかが出ます。ゲームの表示と一致するものを選んでください。</p>
@@ -245,9 +245,8 @@
 </dialog>
 
 <!-- Patch notice. The game picks each stage's treasures from one of several sets, so a preset is a
-     list of sets and multi-set stages get a picker. Opens once per browser
-     (localStorage["th.seenNotice"], a version string so each new notice re-fires) and any time
-     from the "Why does a stage have several sets?" link in the setup panel. -->
+     list of sets and multi-set stages get a picker. Opens only from the "Why can a stage have
+     several sets?" link in the setup panel; it no longer auto-opens on a first visit. -->
 <dialog id="noticeDialog" class="credits-dialog notice-dialog" aria-labelledby="noticeTitle">
   <h2 id="noticeTitle" data-i18n="notice.title">プリセットが復活し、セットを選べるようになりました</h2>
   <p data-i18n="notice.intro">ゲームのアップデート情報より：</p>
@@ -256,9 +255,7 @@
     <span data-i18n="notice.patchBody">ステージにバリエーションを追加しました。現在のステージの宝は、難易度が近い複数のセットの中からランダムに選ばれるようになりました。</span>
   </blockquote>
   <p data-i18n="notice.sets">各ステージの宝は、難易度の近い複数のセットの中から1つが選ばれます。プリセットを選ぶと、グリッドサイズ、1マスあたりのツルハシ、そのステージに出るセットが自動で入ります。セットが複数ある場合は、ゲームの表示と一致するものを選んでください。</p>
-  <p data-i18n="notice.help">ステージ9には、まだ記録できていないセットが1つあります。どの選択肢も合わない場合は、実際に見た宝を追加したうえで、ステージ番号とそのステージの宝の一覧が分かるスクリーンショットを Discord チャンネルに投稿してください。</p>
   <div class="notice-actions">
-    <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" data-i18n="notice.discord">Discord にスクリーンショットを投稿</a>
     <button id="noticeClose" type="button" class="primary" data-i18n="notice.gotIt">わかりました</button>
   </div>
 </dialog>

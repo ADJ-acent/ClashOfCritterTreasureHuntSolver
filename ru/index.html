@@ -229,10 +229,10 @@
   </div>
 </dialog>
 
-<!-- Set chooser. Opens when a stage has more than one possible treasure set, or has one we know
-     is unrecorded (stage 9), because loading a set silently would be a guess and the whole
-     heatmap depends on getting it right. Options are drawn as shapes, so they can be matched
-     against the game screen without reading dimensions. Filled by openSetDialog(). -->
+<!-- Set chooser. Opens when a stage has more than one possible treasure set, or (via `partial`)
+     has one we know is unrecorded, because loading a set silently would be a guess and the
+     whole heatmap depends on getting it right. Options are drawn as shapes, so they can be
+     matched against the game screen without reading dimensions. Filled by openSetDialog(). -->
 <dialog id="setDialog" class="credits-dialog set-dialog" aria-labelledby="setTitle">
   <h2 id="setTitle" data-i18n="setDialog.title">Какие сокровища показывает этот этап?</h2>
   <p data-i18n="setDialog.intro">На этом этапе может выпасть один из нескольких наборов. Выберите тот, что показывает игра.</p>
@@ -245,9 +245,8 @@
 </dialog>
 
 <!-- Patch notice. The game picks each stage's treasures from one of several sets, so a preset is a
-     list of sets and multi-set stages get a picker. Opens once per browser
-     (localStorage["th.seenNotice"], a version string so each new notice re-fires) and any time
-     from the "Why does a stage have several sets?" link in the setup panel. -->
+     list of sets and multi-set stages get a picker. Opens only from the "Why can a stage have
+     several sets?" link in the setup panel; it no longer auto-opens on a first visit. -->
 <dialog id="noticeDialog" class="credits-dialog notice-dialog" aria-labelledby="noticeTitle">
   <h2 id="noticeTitle" data-i18n="notice.title">Пресеты вернулись, теперь с выбором набора</h2>
   <p data-i18n="notice.intro">Из примечаний к обновлению игры:</p>
@@ -256,9 +255,7 @@
     <span data-i18n="notice.patchBody">Этапы стали разнообразнее. Теперь набор сокровищ для текущего этапа выбирается случайным образом из нескольких наборов схожей сложности.</span>
   </blockquote>
   <p data-i18n="notice.sets">Для каждого этапа игра выбирает один из нескольких наборов сокровищ схожей сложности. Пресет подставляет размер сетки, кирки на клетку и наборы, которые могут выпасть на этом этапе. Если наборов несколько, выберите тот, что совпадает с показанным в игре.</p>
-  <p data-i18n="notice.help">Для этапа 9 ещё не записан один из наборов. Если ни один вариант не совпадает с вашим полем, добавьте сокровища, которые видите, и выложите в канал Discord скриншот с номером этапа и списком его сокровищ.</p>
   <div class="notice-actions">
-    <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" data-i18n="notice.discord">Выложить скриншот в Discord</a>
     <button id="noticeClose" type="button" class="primary" data-i18n="notice.gotIt">Понятно</button>
   </div>
 </dialog>

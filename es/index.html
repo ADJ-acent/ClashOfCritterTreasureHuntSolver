@@ -229,10 +229,10 @@
   </div>
 </dialog>
 
-<!-- Set chooser. Opens when a stage has more than one possible treasure set, or has one we know
-     is unrecorded (stage 9), because loading a set silently would be a guess and the whole
-     heatmap depends on getting it right. Options are drawn as shapes, so they can be matched
-     against the game screen without reading dimensions. Filled by openSetDialog(). -->
+<!-- Set chooser. Opens when a stage has more than one possible treasure set, or (via `partial`)
+     has one we know is unrecorded, because loading a set silently would be a guess and the
+     whole heatmap depends on getting it right. Options are drawn as shapes, so they can be
+     matched against the game screen without reading dimensions. Filled by openSetDialog(). -->
 <dialog id="setDialog" class="credits-dialog set-dialog" aria-labelledby="setTitle">
   <h2 id="setTitle" data-i18n="setDialog.title">¿Qué tesoros muestra este escenario?</h2>
   <p data-i18n="setDialog.intro">Este escenario toma sus tesoros de uno de varios conjuntos. Elige el que te muestra el juego.</p>
@@ -245,9 +245,8 @@
 </dialog>
 
 <!-- Patch notice. The game picks each stage's treasures from one of several sets, so a preset is a
-     list of sets and multi-set stages get a picker. Opens once per browser
-     (localStorage["th.seenNotice"], a version string so each new notice re-fires) and any time
-     from the "Why does a stage have several sets?" link in the setup panel. -->
+     list of sets and multi-set stages get a picker. Opens only from the "Why can a stage have
+     several sets?" link in the setup panel; it no longer auto-opens on a first visit. -->
 <dialog id="noticeDialog" class="credits-dialog notice-dialog" aria-labelledby="noticeTitle">
   <h2 id="noticeTitle" data-i18n="notice.title">Los preajustes han vuelto, con selector de conjunto</h2>
   <p data-i18n="notice.intro">De las notas de actualización del juego:</p>
@@ -256,9 +255,7 @@
     <span data-i18n="notice.patchBody">Se ha añadido variedad a los escenarios. Ahora se elegirá al azar un conjunto de tesoros entre varios conjuntos de dificultad similar para el escenario actual.</span>
   </blockquote>
   <p data-i18n="notice.sets">Cada escenario toma sus tesoros de uno de varios conjuntos de dificultad parecida. El preajuste rellena el tamaño de la cuadrícula, los picos por casilla y los conjuntos que ese escenario puede sacar. Cuando hay más de uno, elige el que coincida con lo que te muestra el juego.</p>
-  <p data-i18n="notice.help">Al escenario 9 le falta un conjunto por registrar. Si ninguna opción coincide con tu tablero, añade los tesoros que veas y publica en el canal de Discord una captura con el número del escenario y su lista de tesoros.</p>
   <div class="notice-actions">
-    <a href="https://discord.com/channels/1343763804349267989/1517044316177039502" target="_blank" rel="noopener" data-i18n="notice.discord">Publicar una captura en Discord</a>
     <button id="noticeClose" type="button" class="primary" data-i18n="notice.gotIt">Entendido</button>
   </div>
 </dialog>

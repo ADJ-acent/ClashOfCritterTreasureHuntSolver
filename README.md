@@ -7,7 +7,7 @@ A single-page web app that helps you play the **Treasure Hunt** event efficientl
 ## What it does
 
 - **Probability heatmap** — every hidden tile is colored blue→red by how likely it is to contain part of a treasure, given everything you've dug so far.
-- **Stage presets** — pick any of the 24 stages to auto-fill the grid size, the pickaxes-per-tile, and the treasures. The game picks each stage's treasures at random from several sets of similar difficulty, so a preset is a *list* of sets: 15 stages have only one and just load it, and the other 9 offer a picker so you can choose the set the game dealt you (they are listed by dimension, e.g. `1×2 (×2), 2×2 (×2), 2×4`). One set is still unrecorded, on stage 9; that stage says so, and you can enter the treasures by hand as before.
+- **Stage presets** — pick any of the 24 stages to auto-fill the grid size, the pickaxes-per-tile, and the treasures. The game picks each stage's treasures at random from several sets of similar difficulty, so a preset is a *list* of sets: 15 stages have only one and just load it, and the other 9 offer a picker so you can choose the set the game dealt you (they are listed by dimension, e.g. `1×2 (×2), 2×2 (×2), 2×4`).
 - **Pick-cost estimator** — estimates the average number of tiles (and pickaxes) needed to finish the stage from the current board, with a typical range.
 - **Manual setup** — set any grid size and add treasures by dimension for custom boards.
 - **Your board is remembered.** Refresh the page or come back later and the board is exactly as you left it: the stage, every dig, and every located treasure. It is saved in your own browser and never uploaded. Press **New game** to start over.
