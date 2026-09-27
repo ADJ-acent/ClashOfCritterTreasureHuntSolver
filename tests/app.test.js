@@ -95,6 +95,19 @@ const setMobile = win => {
 const popButtons = doc => [...doc.querySelectorAll("#pop button")];
 const cells = doc => [...doc.querySelector("#grid").children];
 
+test("one-step lookahead breaks equal-odds endgame ties", () => {
+  const { window, doc } = boot();
+  loadFix(window, FIX.one);
+  window.eval(`state.cells = Array.from({ length: 25 }, (_, i) =>
+    [15, 0, 17, 12, 6, 9, 22].includes(i)
+      ? { status: "empty", type: null, itemId: 0, dug: false }
+      : { status: "hidden", type: null, itemId: 0, dug: false }); recompute()`);
+
+  const best = cells(doc).flatMap((cell, i) => cell.classList.contains("best") ? [i] : []);
+  assert.deepStrictEqual(best, [2], "the lookahead tie-breaker chooses the highest-impact tile");
+  assert.match(cells(doc)[2].textContent, /%/, "the recommendation remains a normal heatmap tile");
+});
+
 test("boots Stage 1 as a 5x5 board carrying the stage's first treasure set", () => {
   const { doc, errors } = boot();
   assert.strictEqual(errors.length, 0, errors.join("\n"));
@@ -138,6 +151,17 @@ test("digging an empty tile marks it and recomputes", () => {
   assert.ok(empty, "Empty option should be offered");
   click(window, empty);
   assert.match(cells(doc)[0].className, /empty/);
+  assert.strictEqual(errors.length, 0, errors.join("\n"));
+});
+
+test("shift-click marks a hidden tile empty without opening the popover", () => {
+  const { window, doc, errors } = bootPlaying();
+  const cell = cells(doc)[0];
+  cell.dispatchEvent(new window.MouseEvent("click", {
+    bubbles: true, cancelable: true, shiftKey: true, clientX: 50, clientY: 50,
+  }));
+  assert.match(cell.className, /empty/);
+  assert.strictEqual(doc.querySelector("#pop").style.display, "none");
   assert.strictEqual(errors.length, 0, errors.join("\n"));
 });
 
@@ -984,7 +1008,9 @@ test("every locale has a page, pinned and self-canonical, with the reciprocal al
     // Assets live one level up; the analytics beacon is protocol-relative and must be left alone.
     assert.strictEqual(doc.querySelector('link[rel="stylesheet"]').getAttribute("href"), "../styles.css");
     assert.deepStrictEqual([...doc.querySelectorAll("script[src]")].map(s => s.getAttribute("src")),
-      ["../i18n.js", "../app.js", "//gc.zgo.at/count.js"], `${where}: script srcs`);
+      ["../i18n.js", "../src/data.js", "../src/core.js", "../src/solver.js",
+       "../src/estimator.js", "../src/ui.js", "../app.js", "//gc.zgo.at/count.js"],
+      `${where}: script srcs`);
 
     // The picker links back out to every sibling, so each page is one hop from all the others.
     const links = [...doc.querySelectorAll("#langMenu a[data-lang]")];
