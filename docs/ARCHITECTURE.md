@@ -2,9 +2,9 @@
 
 Developer-facing notes on how the solver works. For user instructions see the [README](../README.md).
 
-The app is [`index.html`](../index.html) plus three siblings it loads directly: [`app.js`](../app.js) (everything the app does), [`i18n.js`](../i18n.js) (the 16-locale string table), and [`styles.css`](../styles.css). Vanilla JS, no dependencies at runtime, and **no build step to run it**: they load as classic `<script src>`/`<link>` tags, not ES modules (which would need CORS and die on `file://`), so opening the file straight off the filesystem still works. jsdom is a dev-only dependency, used by the tests and by the locale-page generator.
+The app is [`index.html`](../index.html), [`i18n.js`](../i18n.js), [`styles.css`](../styles.css), and the ordered classic scripts under [`src/`](../src/). [`app.js`](../app.js) remains the stable entry-point name for locale pages and external links, while the implementation is split into five responsibilities: [`data.js`](../src/data.js) (presets and dimensions), [`core.js`](../src/core.js) (state, controls, persistence, and board lifecycle), [`solver.js`](../src/solver.js) (exact/DP/Monte-Carlo placement probabilities), [`estimator.js`](../src/estimator.js) (pick-cost simulation), and [`ui.js`](../src/ui.js) (rendering, interaction, wiring, and boot). Vanilla JS, no dependencies at runtime, and **no build step to run it**: they load as classic `<script src>`/`<link>` tags, not ES modules (which would need CORS and die on `file://`), so opening the file straight off the filesystem still works. jsdom is a dev-only dependency, used by the tests and by the locale-page generator.
 
-It was one file until the per-locale pages arrived; each of those would otherwise have had to inline a copy of the whole app. See [Per-locale pages and SEO](#per-locale-pages-and-seo).
+The scripts intentionally remain classic rather than modules: this keeps direct `file://` usage intact and makes the same ordered asset list work on every generated locale page. Keep their order in `index.html`; later scripts consume the top-level functions and constants established by earlier ones. See [Per-locale pages and SEO](#per-locale-pages-and-seo).
 
 ## The model
 

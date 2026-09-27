@@ -2,7 +2,7 @@
 
 A technical note on how good the ★ recommendation is. For user instructions see the [README](../README.md); for the solver internals see [ARCHITECTURE](ARCHITECTURE.md).
 
-The heatmap colors every hidden tile by the probability it covers a treasure, and the ★ marks the tile with the highest probability as the best next dig. That raises a fair question: is "dig the most likely tile" really the best strategy, or could a smarter algorithm finish stages with fewer wasted digs? This page records what we explored and what we found.
+The heatmap colors every hidden tile by the probability it covers a treasure, and the ★ marks the tile with the highest probability as the best next dig. When several tiles tie, the app now performs a bounded one-step lookahead and favors the tie whose possible result is expected to reduce the most uncertainty on the rest of the board. That raises a fair question: is "dig the most likely tile" really the best strategy, or could a smarter algorithm finish stages with fewer wasted digs? This page records what we explored and what we found.
 
 ## The problem, precisely
 
@@ -22,7 +22,7 @@ In short, there is no practical algorithm that is provably optimal for a full st
 
 Three policies, all judged on expected empty digs against the same uniform belief:
 
-- **cost-greedy** (what the app does): dig the tile most likely to be treasure (highest coverage).
+- **cost-greedy** (what the app does): dig the tile most likely to be treasure (highest coverage), using expected downstream uncertainty reduction only to break ties.
 - **info-greedy** (generalized binary search): dig the tile that splits the surviving layouts most evenly. This is the variant the textbook `ln m` guarantee actually applies to.
 - **optimal**: exact expectimax over the layout set. Correct, but only computable on small instances.
 
