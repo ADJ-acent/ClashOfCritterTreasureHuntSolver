@@ -1,0 +1,20 @@
+name: Assign PR
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  assign:
+    runs-on: ubuntu-latest
+    steps:
+      # pull_request_target runs with the base repo's token so it also works on PRs from forks.
+      # Nothing from the PR is checked out, so the elevated token never touches untrusted code.
+      - run: gh pr edit "$PR" --repo "$REPO" --add-assignee ADJ-acent
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
