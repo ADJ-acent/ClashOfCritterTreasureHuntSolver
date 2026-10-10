@@ -17,6 +17,7 @@
      7. ESTIMATOR      simulate greedy play to estimate picks needed to finish.
      8. RENDER         paint the heatmap + mark the best tile(s) to dig.
      9. INTERACTION    click a tile -> popover -> mark empty / place a treasure.
+                       Shift-click or long-press marks a hidden tile empty directly.
     10. WIRING + BOOT  event handlers, detect language, then load Stage 1.
 
    Core model: every cell is hidden / empty / item. A "found" treasure is fully
@@ -587,6 +588,7 @@ function buildGrid() {
     d.className = "cell";
     d.dataset.i = i;
     d.onclick = e => onCellClick(i, e);
+    attachLongPress(d, i);
     gridEl.appendChild(d);
   }
 }
@@ -1285,12 +1287,50 @@ function clearHighlights() {
 
 function onCellClick(i, ev) {
   ev.stopPropagation();
+  // The finger lifting after a long press still fires a click. Swallow it, or it
+  // would open the menu for the tile that was just marked empty.
+  if (longPressFired) { longPressFired = false; return; }
   const c = state.cells[i];
+  // Fast path: Shift-click marks a hidden tile empty without the menu.
+  if (ev.shiftKey && c.status === "hidden") { tipShown = true; hidePop(); setEmpty(i); return; }
   if (c.status === "empty" || c.status === "item") {
     openClearMenu(i, ev);
   } else {
     openDigMenu(i, ev);
   }
+}
+
+// Touch fast path: holding a hidden tile marks it empty, the same as Shift-click.
+// Moving the finger (a scroll) or lifting early cancels it and leaves a normal tap.
+const LONG_PRESS_MS = 450, LONG_PRESS_SLOP = 10;
+let longPressFired = false;
+function attachLongPress(el, i) {
+  let timer = 0, x0 = 0, y0 = 0, touching = false;
+  const cancel = () => { clearTimeout(timer); timer = 0; };
+  const release = () => { cancel(); touching = false; };
+  el.addEventListener("pointerdown", e => {
+    longPressFired = false;
+    touching = e.pointerType === "touch";
+    if (!touching || state.cells[i].status !== "hidden") return;
+    x0 = e.clientX; y0 = e.clientY;
+    cancel();
+    timer = setTimeout(() => {
+      timer = 0;
+      if (state.cells[i].status !== "hidden") return;
+      longPressFired = tipShown = true;
+      if (navigator.vibrate) navigator.vibrate(15);
+      hidePop();
+      setEmpty(i);
+    }, LONG_PRESS_MS);
+  });
+  el.addEventListener("pointermove", e => {
+    if (timer && Math.hypot(e.clientX - x0, e.clientY - y0) > LONG_PRESS_SLOP) cancel();
+  });
+  el.addEventListener("pointerup", release);
+  el.addEventListener("pointercancel", release);
+  // Android raises a context menu on a held tap; keep it off the board. A mouse
+  // right-click is left alone.
+  el.addEventListener("contextmenu", e => { if (touching || longPressFired) e.preventDefault(); });
 }
 
 function placePop(ev) {
@@ -1320,7 +1360,7 @@ function openDigMenu(i, ev) {
   popEl.onmouseleave = null;   // drop the placement picker's preview-clear handler
   clearHighlights();   // drop any placement preview when returning to this menu
   popEl.innerHTML = `<div class="ttl">${t("dig.title", { label: cellLabel(i) })}</div>`;
-  const empty = mkBtn(t("dig.empty"), () => { setEmpty(i); hidePop(); });
+  const empty = mkBtn(t("dig.empty"), () => { setEmpty(i); hidePop(); maybeShowShortcutTip(); });
   popEl.appendChild(empty);
 
   let any = false;
@@ -1482,6 +1522,23 @@ function previewCells(cells) {
 }
 
 /* ---------- State mutations ---------- */
+// The first time someone marks a tile empty through the menu, point out the
+// shortcut once. Remembered per browser; without storage, once per page load.
+const TIP_KEY = "th.tipFastEmpty", TIP_MS = 7000;
+let tipShown = false, tipTimer = 0;
+function maybeShowShortcutTip() {
+  if (tipShown) return;
+  tipShown = true;
+  try { if (localStorage.getItem(TIP_KEY)) return; localStorage.setItem(TIP_KEY, "1"); } catch (_) {}
+  const touch = !!(window.matchMedia && window.matchMedia("(hover: none)").matches);
+  const el = $("#toast");
+  el.textContent = t(touch ? "tip.fastEmptyTouch" : "tip.fastEmptyMouse");
+  el.hidden = false;
+  el.onclick = hideShortcutTip;
+  tipTimer = setTimeout(hideShortcutTip, TIP_MS);
+}
+function hideShortcutTip() { clearTimeout(tipTimer); $("#toast").hidden = true; }
+
 function setEmpty(i) { state.cells[i] = { status: "empty", type: null, itemId: 0 }; recompute(); }
 
 let itemCounter = 1;

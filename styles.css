@@ -165,6 +165,7 @@
     font-size: 1em;            /* inherits grid font-size (set in sizeBoard) so % scales with the board */
     font-weight: 600;
     cursor: pointer;
+    -webkit-touch-callout: none;   /* no iOS callout on a long press (marks the tile empty) */
     border: 2px solid transparent;
     background: #333;
     /* background-color, not the `background` shorthand: the buried hatch is a
@@ -214,6 +215,17 @@
        .sheet variant sets its own max-height and overrides this. */
     max-height: calc(100vh - 16px);
     overflow-y: auto;
+  }
+  /* One-time tip about the mark-empty shortcut. Sits above the bottom sheet's spot. */
+  #toast {
+    position: fixed; z-index: 60;
+    left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    width: max-content; max-width: calc(100vw - 32px);
+    background: var(--panel2); color: var(--text);
+    border: 1px solid var(--accent); border-radius: 8px;
+    padding: 10px 14px; font-size: 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.5);
+    cursor: pointer;
   }
   #pop .ttl { font-size: 11px; color: var(--muted); padding: 3px 6px 6px; }
   #pop button { display: block; width: 100%; text-align: left; margin: 2px 0; }
