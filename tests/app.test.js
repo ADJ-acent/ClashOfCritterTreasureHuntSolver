@@ -141,6 +141,90 @@ test("digging an empty tile marks it and recomputes", () => {
   assert.strictEqual(errors.length, 0, errors.join("\n"));
 });
 
+test("Shift-click marks a hidden tile empty without opening the menu", () => {
+  const { window, doc, errors } = bootPlaying();
+  const shiftClick = el => el.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true, shiftKey: true }));
+  shiftClick(cells(doc)[0]);
+  assert.match(cells(doc)[0].className, /empty/);
+  assert.notStrictEqual(doc.querySelector("#pop").style.display, "block", "no popover on the fast path");
+  // On a tile that is already marked, Shift-click falls back to the normal menu.
+  shiftClick(cells(doc)[0]);
+  assert.strictEqual(doc.querySelector("#pop").style.display, "block");
+  assert.match(cells(doc)[0].className, /empty/);
+  assert.strictEqual(errors.length, 0, errors.join("\n"));
+});
+
+// jsdom has no PointerEvent, so fake one: a MouseEvent carrying pointerType.
+const touch = (win, el, type, x = 50, y = 50) => {
+  const e = new win.MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y });
+  Object.defineProperty(e, "pointerType", { value: "touch" });
+  el.dispatchEvent(e);
+};
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+test("long press marks a hidden tile empty, and the release does not open the menu", async () => {
+  const { window, doc, errors } = bootPlaying();
+  setMobile(window);
+  const el = cells(doc)[0];
+  touch(window, el, "pointerdown");
+  await wait(600);
+  assert.match(cells(doc)[0].className, /empty/);
+  touch(window, el, "pointerup");
+  click(window, el);   // the click a lifted finger still fires
+  assert.notStrictEqual(doc.querySelector("#pop").style.display, "block", "the release must be swallowed");
+  click(window, el);   // a later tap is a normal tap again
+  assert.strictEqual(doc.querySelector("#pop").style.display, "block");
+  assert.strictEqual(errors.length, 0, errors.join("\n"));
+});
+
+test("a short tap or a drag does not mark the tile", async () => {
+  const { window, doc } = bootPlaying();
+  setMobile(window);
+  const [a, b] = cells(doc);
+  touch(window, a, "pointerdown");
+  touch(window, a, "pointerup");
+  touch(window, b, "pointerdown");
+  touch(window, b, "pointermove", 50, 80);   // a scroll, not a hold
+  await wait(600);
+  assert.ok(!/empty/.test(a.className) && !/empty/.test(b.className));
+});
+
+test("marking a tile empty through the menu shows the shortcut tip once per browser", () => {
+  const storage = makeStorage();
+  const toast = doc => doc.querySelector("#toast");
+  const markViaMenu = (window, doc, k) => {
+    click(window, cells(doc)[k]);
+    click(window, popButtons(doc).find(b => /Empty/.test(b.textContent)));
+  };
+  let { window, doc } = bootPlaying({ storage });
+  assert.ok(toast(doc).hidden, "no tip before the first empty");
+  markViaMenu(window, doc, 0);
+  assert.ok(!toast(doc).hidden);
+  assert.match(toast(doc).textContent, /Shift-click/);
+  click(window, toast(doc));
+  assert.ok(toast(doc).hidden, "clicking the tip dismisses it");
+  markViaMenu(window, doc, 1);
+  assert.ok(toast(doc).hidden, "only once per page");
+
+  ({ window, doc } = bootPlaying({ storage }));   // a refresh
+  markViaMenu(window, doc, 0);
+  assert.ok(toast(doc).hidden, "and only once per browser");
+});
+
+test("the tip names the long press on touch, and is skipped once a shortcut was used", () => {
+  let { window, doc } = bootPlaying();
+  setMobile(window);
+  click(window, cells(doc)[0]);
+  click(window, popButtons(doc).find(b => /Empty/.test(b.textContent)));
+  assert.match(doc.querySelector("#toast").textContent, /Press and hold/);
+
+  ({ window, doc } = bootPlaying());
+  cells(doc)[0].dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true, shiftKey: true }));
+  click(window, cells(doc)[1]);
+  click(window, popButtons(doc).find(b => /Empty/.test(b.textContent)));
+  assert.ok(doc.querySelector("#toast").hidden);
+});
+
 // Regression: opening the placement submenu used to self-close the popover
 // (the clicked button was detached by innerHTML rebuild, so the outside-click
 // handler hid it). On desktop a single click on a placement commits it.
