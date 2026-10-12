@@ -153,6 +153,7 @@
   #grid {
     display: grid;
     gap: 4px;
+    -webkit-user-select: none;   /* Safari still ignores the unprefixed property */
     user-select: none;
   }
   .cell {

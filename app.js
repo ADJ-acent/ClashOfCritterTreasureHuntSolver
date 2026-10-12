@@ -1303,13 +1303,12 @@ function onCellClick(i, ev) {
 // Touch fast path: holding a hidden tile marks it empty, the same as Shift-click.
 // Moving the finger (a scroll) or lifting early cancels it and leaves a normal tap.
 const LONG_PRESS_MS = 450, LONG_PRESS_SLOP = 10;
-let longPressFired = false;
+let longPressFired = false, touching = false;
 function attachLongPress(el, i) {
-  let timer = 0, x0 = 0, y0 = 0, touching = false;
+  let timer = 0, x0 = 0, y0 = 0;
   const cancel = () => { clearTimeout(timer); timer = 0; };
   const release = () => { cancel(); touching = false; };
   el.addEventListener("pointerdown", e => {
-    longPressFired = false;
     touching = e.pointerType === "touch";
     if (!touching || state.cells[i].status !== "hidden") return;
     x0 = e.clientX; y0 = e.clientY;
@@ -1318,6 +1317,7 @@ function attachLongPress(el, i) {
       timer = 0;
       if (state.cells[i].status !== "hidden") return;
       longPressFired = tipShown = true;
+      clearSelection();
       if (navigator.vibrate) navigator.vibrate(15);
       hidePop();
       setEmpty(i);
@@ -1332,6 +1332,14 @@ function attachLongPress(el, i) {
   // right-click is left alone.
   el.addEventListener("contextmenu", e => { if (touching || longPressFired) e.preventDefault(); });
 }
+// A held finger also starts a text selection. The board itself is user-select:none,
+// but iOS then selects the nearest text it can (the hint, the legend) and shows its
+// copy menu over the board. Refuse any selection that starts during a hold.
+document.addEventListener("selectstart", e => { if (touching || longPressFired) e.preventDefault(); });
+// Some browsers send no click after a long press, so don't wait for one to clear the
+// flag: any new press anywhere ends the old one (capture runs before the tile's own).
+document.addEventListener("pointerdown", () => { longPressFired = false; }, true);
+function clearSelection() { try { window.getSelection().removeAllRanges(); } catch (_) {} }
 
 function placePop(ev) {
   popEl.style.display = "block";

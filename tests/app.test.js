@@ -177,6 +177,25 @@ test("long press marks a hidden tile empty, and the release does not open the me
   assert.strictEqual(errors.length, 0, errors.join("\n"));
 });
 
+// iOS answers a held finger by selecting the nearest selectable text and showing
+// its copy menu over the board. Safari also ignores the unprefixed user-select.
+test("a long press does not start a text selection", async () => {
+  const { window, doc } = bootPlaying();
+  setMobile(window);
+  const selectStart = el => !el.dispatchEvent(new window.Event("selectstart", { bubbles: true, cancelable: true }));
+  const hint = doc.querySelector(".hint");
+  touch(window, cells(doc)[0], "pointerdown");
+  assert.ok(selectStart(hint), "blocked while the finger is down");
+  await wait(600);
+  touch(window, cells(doc)[0], "pointerup");
+  assert.ok(selectStart(hint), "blocked after the hold fires, until the next press");
+  hint.dispatchEvent(new window.MouseEvent("pointerdown", { bubbles: true }));
+  assert.ok(!selectStart(hint), "a new press elsewhere can select text again");
+
+  const css = fs.readFileSync(path.join(ROOT, "styles.css"), "utf8");
+  assert.match(css, /#grid\s*\{[^}]*-webkit-user-select:\s*none/);
+});
+
 test("a short tap or a drag does not mark the tile", async () => {
   const { window, doc } = bootPlaying();
   setMobile(window);
